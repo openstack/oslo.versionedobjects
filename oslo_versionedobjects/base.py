@@ -19,21 +19,20 @@ import contextlib
 import copy
 import datetime
 import functools
+import logging
 import traceback
 
 import netaddr
-from oslo import messaging
-from oslo.utils import timeutils
+from oslo_context import context
+import oslo_messaging as messaging
+from oslo_utils import timeutils
 import six
 
-from nova import context
-from nova import exception
-from nova.i18n import _, _LE
-from nova import objects
-from nova.objects import fields
-from nova.openstack.common import log as logging
-from nova.openstack.common import versionutils
-from nova import utils
+from oslo_versionedobjects._i18n import _, _LE
+from oslo_versionedobjects import exception
+from oslo_versionedobjects import fields
+from oslo_versionedobjects.openstack.common import versionutils
+from oslo_versionedobjects import utils
 
 
 LOG = logging.getLogger('object')
@@ -120,23 +119,29 @@ class NovaObjectMetaclass(type):
             if cls.VERSION == obj.VERSION:
                 cls._obj_classes[obj_name][i] = cls
                 # Update nova.objects with this newer class.
-                setattr(objects, obj_name, cls)
+                # FIXME(dhellmann): We can't store library state in
+                # the application module.
+                # setattr(objects, obj_name, cls)
                 break
             if _vers_tuple(cls) > _vers_tuple(obj):
                 # Insert before.
                 cls._obj_classes[obj_name].insert(i, cls)
-                if i == 0:
-                    # Later version than we've seen before. Update
-                    # nova.objects.
-                    setattr(objects, obj_name, cls)
+                # FIXME(dhellmann): We can't store library state in
+                # the application module.
+                # if i == 0:
+                #     # Later version than we've seen before. Update
+                #     # nova.objects.
+                #     setattr(objects, obj_name, cls)
                 break
         else:
             cls._obj_classes[obj_name].append(cls)
             # Either this is the first time we've seen the object or it's
             # an older version than anything we'e seen. Update nova.objects
             # only if it's the first time we've seen this object name.
-            if not hasattr(objects, obj_name):
-                setattr(objects, obj_name, cls)
+            # FIXME(dhellmann): We can't store library state in
+            # the application module.
+            # if not hasattr(objects, obj_name):
+            #     setattr(objects, obj_name, cls)
 
 
 # These are decorators that mark an object's method as remotable.
@@ -615,7 +620,7 @@ class NovaObjectDictCompat(object):
         """
         if key not in self.obj_fields:
             raise AttributeError("'%s' object has no attribute '%s'" % (
-                    self.__class__, key))
+                self.__class__, key))
         if value != NotSpecifiedSentinel and not self.obj_attr_is_set(key):
             return value
         else:

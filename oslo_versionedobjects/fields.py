@@ -17,11 +17,10 @@ import datetime
 
 import iso8601
 import netaddr
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 import six
 
-from nova.i18n import _
-from nova.network import model as network_model
+from oslo_versionedobjects._i18n import _
 
 
 class KeyTypeError(TypeError):
@@ -386,7 +385,7 @@ class List(CompoundFieldType):
             raise ValueError(_('A list is required here'))
         for index, element in enumerate(list(value)):
             value[index] = self._element_type.coerce(
-                    obj, '%s[%i]' % (attr, index), element)
+                obj, '%s[%i]' % (attr, index), element)
         return value
 
     def to_primitive(self, obj, attr, value):
@@ -514,7 +513,7 @@ class Object(FieldType):
     @staticmethod
     def from_primitive(obj, attr, value):
         # FIXME(danms): Avoid circular import from base.py
-        from nova.objects import base as obj_base
+        from oslo_versionedobjects import base as obj_base
         # NOTE (ndipanov): If they already got hydrated by the serializer, just
         # pass them back unchanged
         if isinstance(value, obj_base.NovaObject):
@@ -535,30 +534,6 @@ class Object(FieldType):
             ident = ''
 
         return '%s%s' % (self._obj_name, ident)
-
-
-class NetworkModel(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
-        if isinstance(value, network_model.NetworkInfo):
-            return value
-        elif isinstance(value, six.string_types):
-            # Hmm, do we need this?
-            return network_model.NetworkInfo.hydrate(value)
-        else:
-            raise ValueError(_('A NetworkModel is required here'))
-
-    @staticmethod
-    def to_primitive(obj, attr, value):
-        return value.json()
-
-    @staticmethod
-    def from_primitive(obj, attr, value):
-        return network_model.NetworkInfo.hydrate(value)
-
-    def stringify(self, value):
-        return 'NetworkModel(%s)' % (
-            ','.join([str(vif['id']) for vif in value]))
 
 
 class AutoTypedField(Field):

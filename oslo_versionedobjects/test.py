@@ -26,95 +26,45 @@ eventlet.monkey_patch(os=False)
 
 import copy
 import inspect
-import logging
 import mock
 import os
 
 import fixtures
-from oslo.config import cfg
-from oslo.config import fixture as config_fixture
-from oslo.utils import timeutils
 from oslo_concurrency import lockutils
+from oslo_config import cfg
+from oslo_config import fixture as config_fixture
+from oslo_log.fixture import logging_error
+import oslo_log.log as logging
+from oslo_utils import timeutils
 from oslotest import moxstubout
 import six
 import testtools
 
-from nova import context
-from nova import db
-from nova.network import manager as network_manager
-from nova import objects
-from nova.objects import base as objects_base
-from nova.openstack.common.fixture import logging as log_fixture
-from nova.openstack.common import log as nova_logging
-from nova.tests import fixtures as nova_fixtures
-from nova.tests.unit import conf_fixture
-from nova.tests.unit import policy_fixture
-from nova import utils
+#from nova import db
+#from nova.network import manager as network_manager
+#from nova import objects
+from oslo_versionedobjects import base as objects_base
+from oslo_versionedobjects.tests import fixtures as nova_fixtures
+from oslo_versionedobjects import utils
 
 
 CONF = cfg.CONF
-CONF.import_opt('enabled', 'nova.api.openstack', group='osapi_v3')
-CONF.set_override('use_stderr', False)
+# CONF.import_opt('enabled', 'nova.api.openstack', group='osapi_v3')
+# CONF.set_override('use_stderr', False)
 
-nova_logging.setup('nova')
+logging.register_options(CONF)
+logging.setup(CONF, 'nova')
 
 # NOTE(comstud): Make sure we have all of the objects loaded. We do this
 # at module import time, because we may be using mock decorators in our
 # tests that run at import time.
-objects.register_all()
-
-_TRUE_VALUES = ('True', 'true', '1', 'yes')
-
-
-class SampleNetworks(fixtures.Fixture):
-
-    """Create sample networks in the database."""
-
-    def __init__(self, host=None):
-        self.host = host
-
-    def setUp(self):
-        super(SampleNetworks, self).setUp()
-        ctxt = context.get_admin_context()
-        network = network_manager.VlanManager(host=self.host)
-        bridge_interface = CONF.flat_interface or CONF.vlan_interface
-        network.create_networks(ctxt,
-                                label='test',
-                                cidr='10.0.0.0/8',
-                                multi_host=CONF.multi_host,
-                                num_networks=CONF.num_networks,
-                                network_size=CONF.network_size,
-                                cidr_v6=CONF.fixed_range_v6,
-                                gateway=CONF.gateway,
-                                gateway_v6=CONF.gateway_v6,
-                                bridge=CONF.flat_network_bridge,
-                                bridge_interface=bridge_interface,
-                                vpn_start=CONF.vpn_start,
-                                vlan_start=CONF.vlan_start,
-                                dns1=CONF.flat_network_dns)
-        for net in db.network_get_all(ctxt):
-            network.set_network_host(ctxt, net)
+# FIXME(dhellmann): We can't store library state in
+# the application module.
+# objects.register_all()
 
 
 class TestingException(Exception):
     pass
-
-
-class NullHandler(logging.Handler):
-    """custom default NullHandler to attempt to format the record.
-
-    Used in conjunction with
-    log_fixture.get_logging_handle_error_fixture to detect formatting errors in
-    debug level logs without saving the logs.
-    """
-    def handle(self, record):
-        self.format(record)
-
-    def emit(self, record):
-        pass
-
-    def createLock(self):
-        self.lock = None
 
 
 class skipIf(object):
@@ -193,7 +143,7 @@ class TestCase(testtools.TestCase):
         self.useFixture(fixtures.NestedTempfile())
         self.useFixture(fixtures.TempHomeDir())
         self.useFixture(nova_fixtures.TranslationFixture())
-        self.useFixture(log_fixture.get_logging_handle_error_fixture())
+        self.useFixture(logging_error.get_logging_handle_error_fixture())
 
         self.useFixture(nova_fixtures.OutputStreamCapture())
 
@@ -217,11 +167,11 @@ class TestCase(testtools.TestCase):
             self.fixture.config(lock_path=lock_path,
                                 group='oslo_concurrency')
 
-        self.useFixture(conf_fixture.ConfFixture(CONF))
-        self.useFixture(nova_fixtures.RPCFixture('nova.test'))
+        # self.useFixture(config_fixture.ConfFixture(CONF))
+        # self.useFixture(nova_fixtures.RPCFixture('nova.test'))
 
-        if self.USES_DB:
-            self.useFixture(nova_fixtures.Database())
+        # if self.USES_DB:
+        #     self.useFixture(nova_fixtures.Database())
 
         # NOTE(blk-u): WarningsFixture must be after the Database fixture
         # because sqlalchemy-migrate messes with the warnings filters.
@@ -245,7 +195,6 @@ class TestCase(testtools.TestCase):
         self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
-        self.policy = self.useFixture(policy_fixture.PolicyFixture())
 
     def _restore_obj_registry(self):
         objects_base.NovaObject._obj_classes = self._base_test_obj_backup

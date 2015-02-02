@@ -16,12 +16,11 @@ import datetime
 
 import iso8601
 import netaddr
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 
-from nova.network import model as network_model
-from nova.objects import base as obj_base
-from nova.objects import fields
-from nova import test
+from oslo_versionedobjects import base as obj_base
+from oslo_versionedobjects import fields
+from oslo_versionedobjects import test
 
 
 class FakeFieldType(fields.FieldType):
@@ -64,7 +63,7 @@ class TestField(test.NoDBTestCase):
 
         for prim_val, out_val in self.from_primitive_values:
             self.assertEqual(out_val, self.field.from_primitive(
-                    ObjectLikeThing, 'attr', prim_val))
+                ObjectLikeThing, 'attr', prim_val))
 
     def test_stringify(self):
         self.assertEqual('123', self.field.stringify(123))
@@ -257,7 +256,7 @@ class TestListOfDictOfNullableStringsField(TestField):
     def test_stringify(self):
         self.assertEqual("[{f=None,f1='b1'},{f2='b2'}]",
                          self.field.stringify(
-                            [{'f': None, 'f1': 'b1'}, {'f2': 'b2'}]))
+                             [{'f': None, 'f1': 'b1'}, {'f2': 'b2'}]))
 
 
 class TestList(TestField):
@@ -354,30 +353,12 @@ class TestObject(TestField):
         self.to_primitive_values = [(test_inst, test_inst.obj_to_primitive())]
         self.from_primitive_values = [(test_inst.obj_to_primitive(),
                                        test_inst),
-                                       (test_inst, test_inst)]
+                                      (test_inst, test_inst)]
 
     def test_stringify(self):
         obj = self._test_cls(uuid='fake-uuid')
         self.assertEqual('TestableObject(fake-uuid)',
                          self.field.stringify(obj))
-
-
-class TestNetworkModel(TestField):
-    def setUp(self):
-        super(TestNetworkModel, self).setUp()
-        model = network_model.NetworkInfo()
-        self.field = fields.Field(fields.NetworkModel())
-        self.coerce_good_values = [(model, model), (model.json(), model)]
-        self.coerce_bad_values = [[], 'foo']
-        self.to_primitive_values = [(model, model.json())]
-        self.from_primitive_values = [(model.json(), model)]
-
-    def test_stringify(self):
-        networkinfo = network_model.NetworkInfo()
-        networkinfo.append(network_model.VIF(id=123))
-        networkinfo.append(network_model.VIF(id=456))
-        self.assertEqual('NetworkModel(123,456)',
-                         self.field.stringify(networkinfo))
 
 
 class TestIPNetwork(TestField):

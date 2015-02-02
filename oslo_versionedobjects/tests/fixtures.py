@@ -24,13 +24,12 @@ import uuid
 import warnings
 
 import fixtures
-from oslo.config import cfg
-from oslo.messaging import conffixture as messaging_conffixture
+from oslo_config import cfg
 
-from nova.db import migration
-from nova.db.sqlalchemy import api as session
-from nova import rpc
-from nova import service
+# from nova.db import migration
+# from nova.db.sqlalchemy import api as session
+# from nova import rpc
+# from nova import service
 
 _TRUE_VALUES = ('True', 'true', '1', 'yes')
 
@@ -50,9 +49,11 @@ class ServiceFixture(fixtures.Fixture):
 
     def setUp(self):
         super(ServiceFixture, self).setUp()
-        self.service = service.Service.create(**self.kwargs)
-        self.service.start()
-        self.addCleanup(self.service.kill)
+        # FIXME(dhellmann): See work items in
+        # adopt-oslo-versionedobjects spec.
+        # self.service = service.Service.create(**self.kwargs)
+        # self.service.start()
+        # self.addCleanup(self.service.kill)
 
 
 class TranslationFixture(fixtures.Fixture):
@@ -200,43 +201,43 @@ class Timeout(fixtures.Fixture):
             self.useFixture(fixtures.Timeout(self.test_timeout, gentle=True))
 
 
-class Database(fixtures.Fixture):
-    def _cache_schema(self):
-        global DB_SCHEMA
-        if not DB_SCHEMA:
-            engine = session.get_engine()
-            conn = engine.connect()
-            migration.db_sync()
-            DB_SCHEMA = "".join(line for line in conn.connection.iterdump())
-            engine.dispose()
+# class Database(fixtures.Fixture):
+#     def _cache_schema(self):
+#         global DB_SCHEMA
+#         if not DB_SCHEMA:
+#             engine = session.get_engine()
+#             conn = engine.connect()
+#             migration.db_sync()
+#             DB_SCHEMA = "".join(line for line in conn.connection.iterdump())
+#             engine.dispose()
 
-    def reset(self):
-        self._cache_schema()
-        engine = session.get_engine()
-        engine.dispose()
-        conn = engine.connect()
-        conn.connection.executescript(DB_SCHEMA)
+#     def reset(self):
+#         self._cache_schema()
+#         engine = session.get_engine()
+#         engine.dispose()
+#         conn = engine.connect()
+#         conn.connection.executescript(DB_SCHEMA)
 
-    def setUp(self):
-        super(Database, self).setUp()
-        self.reset()
+#     def setUp(self):
+#         super(Database, self).setUp()
+#         self.reset()
 
 
-class RPCFixture(fixtures.Fixture):
-    def __init__(self, *exmods):
-        super(RPCFixture, self).__init__()
-        self.exmods = []
-        self.exmods.extend(exmods)
+# class RPCFixture(fixtures.Fixture):
+#     def __init__(self, *exmods):
+#         super(RPCFixture, self).__init__()
+#         self.exmods = []
+#         self.exmods.extend(exmods)
 
-    def setUp(self):
-        super(RPCFixture, self).setUp()
-        self.addCleanup(rpc.cleanup)
-        rpc.add_extra_exmods(*self.exmods)
-        self.addCleanup(rpc.clear_extra_exmods)
-        self.messaging_conf = messaging_conffixture.ConfFixture(CONF)
-        self.messaging_conf.transport_driver = 'fake'
-        self.useFixture(self.messaging_conf)
-        rpc.init(CONF)
+#     def setUp(self):
+#         super(RPCFixture, self).setUp()
+#         self.addCleanup(rpc.cleanup)
+#         rpc.add_extra_exmods(*self.exmods)
+#         self.addCleanup(rpc.clear_extra_exmods)
+#         self.messaging_conf = messaging_conffixture.ConfFixture(CONF)
+#         self.messaging_conf.transport_driver = 'fake'
+#         self.useFixture(self.messaging_conf)
+#         rpc.init(CONF)
 
 
 class WarningsFixture(fixtures.Fixture):

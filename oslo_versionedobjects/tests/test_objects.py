@@ -17,29 +17,28 @@ import copy
 import datetime
 import hashlib
 import inspect
+import logging
 import os
 import pprint
 
 import mock
-from oslo.serialization import jsonutils
-from oslo.utils import timeutils
+from oslo_context import context
+from oslo_serialization import jsonutils
+from oslo_utils import timeutils
 import six
 from testtools import matchers
 
-from nova.conductor import rpcapi as conductor_rpcapi
-from nova import context
-from nova import exception
-from nova import objects
-from nova.objects import base
-from nova.objects import fields
-from nova.openstack.common import log
-from nova import rpc
-from nova import test
-from nova.tests.unit import fake_notifier
-from nova import utils
+# from nova.conductor import rpcapi as conductor_rpcapi
+from oslo_versionedobjects import base
+from oslo_versionedobjects import exception
+from oslo_versionedobjects import fields
+# from nova import rpc
+from oslo_versionedobjects import test
+# from nova.tests.unit import fake_notifier
+from oslo_versionedobjects import utils
 
 
-LOG = log.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class MyOwnedObject(base.NovaPersistentObject, base.NovaObject):
@@ -83,7 +82,10 @@ class MyObj(base.NovaPersistentObject, base.NovaObject,
 
     @base.remotable
     def _update_test(self, context):
-        if context.project_id == 'alternate':
+        project_id = getattr(context, 'tenant', None)
+        if project_id is None:
+            project_id = getattr(context, 'project_id', None)
+        if project_id == 'alternate':
             self.bar = 'alternate-context'
         else:
             self.bar = 'updated'
@@ -311,8 +313,10 @@ class _BaseTestCase(test.TestCase):
         self.user_id = 'fake-user'
         self.project_id = 'fake-project'
         self.context = context.RequestContext(self.user_id, self.project_id)
-        fake_notifier.stub_notifier(self.stubs)
-        self.addCleanup(fake_notifier.reset)
+        # FIXME(dhellmann): See work items in
+        # adopt-oslo-versionedobjects spec.
+        # fake_notifier.stub_notifier(self.stubs)
+        # self.addCleanup(fake_notifier.reset)
 
     def compare_obj(self, obj, db_obj, subs=None, allow_missing=None,
                     comparators=None):
@@ -393,17 +397,21 @@ class _RemoteTest(_BaseTestCase):
                        fake_object_action)
 
         # Things are remoted by default in this session
-        base.NovaObject.indirection_api = conductor_rpcapi.ConductorAPI()
+        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
+        # base.NovaObject.indirection_api = conductor_rpcapi.ConductorAPI()
 
         # To make sure local and remote contexts match
-        self.stubs.Set(rpc.RequestContextSerializer,
-                       'serialize_context',
-                       lambda s, c: c)
-        self.stubs.Set(rpc.RequestContextSerializer,
-                       'deserialize_context',
-                       lambda s, c: c)
+        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
+        # self.stubs.Set(rpc.RequestContextSerializer,
+        #                'serialize_context',
+        #                lambda s, c: c)
+        # self.stubs.Set(rpc.RequestContextSerializer,
+        #                'deserialize_context',
+        #                lambda s, c: c)
 
     def setUp(self):
+        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
+        self.skip('remote tests need to be rewritten')
         super(_RemoteTest, self).setUp()
         self._testable_conductor()
 
@@ -412,13 +420,13 @@ class _RemoteTest(_BaseTestCase):
 
 
 class _TestObject(object):
-    def test_object_attrs_in_init(self):
-        # Spot check a few
-        objects.Instance
-        objects.InstanceInfoCache
-        objects.SecurityGroup
-        # Now check the test one in this file. Should be newest version
-        self.assertEqual('1.6', objects.MyObj.VERSION)
+    # def test_object_attrs_in_init(self):
+    #     # Spot check a few
+    #     objects.Instance
+    #     objects.InstanceInfoCache
+    #     objects.SecurityGroup
+    #     # Now check the test one in this file. Should be newest version
+    #     self.assertEqual('1.6', objects.MyObj.VERSION)
 
     def test_hydration_type_error(self):
         primitive = {'nova_object.name': 'MyObj',
@@ -561,8 +569,8 @@ class _TestObject(object):
         self.assertEqual('1.6', error.kwargs['supported'])
 
     def test_with_alternate_context(self):
-        ctxt1 = context.RequestContext('foo', 'foo')
-        ctxt2 = context.RequestContext('bar', 'alternate')
+        ctxt1 = context.RequestContext(None, 'foo', 'foo')
+        ctxt2 = context.RequestContext(None, 'bar', 'alternate')
         obj = MyObj.query(ctxt1)
         obj._update_test(ctxt2)
         self.assertEqual(obj.bar, 'alternate-context')
@@ -649,18 +657,20 @@ class _TestObject(object):
         dt = datetime.datetime(1955, 11, 5)
         obj = MyObj(created_at=dt, updated_at=dt, deleted_at=None,
                     deleted=False)
-        expected = {'nova_object.name': 'MyObj',
-                    'nova_object.namespace': 'nova',
-                    'nova_object.version': '1.6',
-                    'nova_object.changes':
-                        ['deleted', 'created_at', 'deleted_at', 'updated_at'],
-                    'nova_object.data':
-                        {'created_at': timeutils.isotime(dt),
-                         'updated_at': timeutils.isotime(dt),
-                         'deleted_at': None,
-                         'deleted': False,
-                         }
-                    }
+        expected = {
+            'nova_object.name': 'MyObj',
+            'nova_object.namespace': 'nova',
+            'nova_object.version': '1.6',
+            'nova_object.changes': [
+                'deleted', 'created_at', 'deleted_at', 'updated_at',
+            ],
+            'nova_object.data': {
+                'created_at': timeutils.isotime(dt),
+                'updated_at': timeutils.isotime(dt),
+                'deleted_at': None,
+                'deleted': False,
+            },
+        }
         self.assertEqual(obj.obj_to_primitive(), expected)
 
     def test_contains(self):
@@ -708,6 +718,7 @@ class _TestObject(object):
                          set(TestSubclassedObject.fields.keys()))
 
     def test_obj_as_admin(self):
+        self.skip('oslo.context does not support elevated()')
         obj = MyObj(context=self.context)
 
         def fake(*args, **kwargs):
@@ -1113,76 +1124,9 @@ class TestObjectSerializer(_BaseTestCase):
 # they come with a corresponding version bump in the affected
 # objects
 object_data = {
-    'Agent': '1.0-c4ff8a833aee8ae44ab8aed1a171273d',
-    'AgentList': '1.0-31f07426a729311a42ff7f6246e76e25',
-    'Aggregate': '1.1-f5d477be06150529a9b2d27cc49030b5',
-    'AggregateList': '1.2-4b02a285b8612bfb86a96ff80052fb0a',
-    'BandwidthUsage': '1.2-a9d7c2ba54995e48ce38688c51c9416d',
-    'BandwidthUsageList': '1.2-5b564cbfd5ae6e106443c086938e7602',
-    'BlockDeviceMapping': '1.6-9968ffe513e7672484b0f528b034cd0f',
-    'BlockDeviceMappingList': '1.7-b67dc6a04cff2cdb53e6f25e146da456',
-    'ComputeNode': '1.10-70202a38b858977837b313d94475a26b',
-    'ComputeNodeList': '1.10-4ae1f844c247029fbcdb5fdccbe9e619',
-    'DNSDomain': '1.0-5bdc288d7c3b723ce86ede998fd5c9ba',
-    'DNSDomainList': '1.0-cfb3e7e82be661501c31099523154db4',
-    'EC2InstanceMapping': '1.0-627baaf4b12c9067200979bdc4558a99',
-    'EC2SnapshotMapping': '1.0-26cf315be1f8abab4289d4147671c836',
-    'EC2VolumeMapping': '1.0-2f8c3bf077c65a425294ec2b361c9143',
-    'FixedIP': '1.8-2472964d39e50da67202109eb85cd173',
-    'FixedIPList': '1.8-6cfaa5b6dd27e9eb8fcf8462dea06077',
-    'Flavor': '1.1-096cfd023c35d07542cf732fb29b45e4',
-    'FlavorList': '1.1-a3d5551267cb8f62ff38ded125900721',
-    'FloatingIP': '1.6-27eb68b7c9c620dd5f0561b5a3be0e82',
-    'FloatingIPList': '1.7-f376f63ed99243f9d90841b7f6732bbf',
-    'HVSpec': '1.0-c4d8377cc4fe519930e60c1d8265a142',
-    'Instance': '1.18-7827a9e9846a75f3038bd556e6f530d3',
-    'InstanceAction': '1.1-6b1d0a6dbd522b5a83c20757ec659663',
-    'InstanceActionEvent': '1.1-42dbdba74bd06e0619ca75cd3397cd1b',
-    'InstanceActionEventList': '1.0-1d5cc958171d6ce07383c2ad6208318e',
-    'InstanceActionList': '1.0-368410fdb8d69ae20c495308535d6266',
-    'InstanceExternalEvent': '1.0-f1134523654407a875fd59b80f759ee7',
-    'InstanceFault': '1.2-313438e37e9d358f3566c85f6ddb2d3e',
-    'InstanceFaultList': '1.1-aeb598ffd0cd6aa61fca7adf0f5e900d',
-    'InstanceGroup': '1.9-95ece99f092e8f4f88327cdbb44162c9',
-    'InstanceGroupList': '1.6-c6b78f3c9d9080d33c08667e80589817',
-    'InstanceInfoCache': '1.5-ef64b604498bfa505a8c93747a9d8b2f',
-    'InstanceList': '1.14-fe7f3266de1475454b939dee36a2ebcc',
-    'InstanceNUMACell': '1.2-5d2dfa36e9ecca9b63f24bf3bc958ea4',
-    'InstanceNUMATopology': '1.1-86b95d263c4c68411d44c6741b8d2bb0',
-    'InstancePCIRequest': '1.1-e082d174f4643e5756ba098c47c1510f',
-    'InstancePCIRequests': '1.1-bc7c6684d8579ee49d6a3b8aef756918',
-    'KeyPair': '1.1-3410f51950d052d861c11946a6ae621a',
-    'KeyPairList': '1.0-71132a568cc5d078ba1748a9c02c87b8',
-    'Migration': '1.1-67c47726c2c71422058cd9d149d6d3ed',
-    'MigrationList': '1.1-8c5f678edc72a592d591a13b35e54353',
-    'MyObj': '1.6-02b1e712b7ee334fa3fefe024c340977',
-    'MyOwnedObject': '1.0-0f3d6c028543d7f3715d121db5b8e298',
-    'Network': '1.2-2ea21ede5e45bb80e7b7ac7106915c4e',
-    'NetworkList': '1.2-aa4ad23f035b97a41732ea8b3445fc5e',
-    'NetworkRequest': '1.1-f31192f5a725017707f989585e12d7dc',
-    'NetworkRequestList': '1.1-beeab521ac9450f1f5ef4eaa945a783c',
-    'NUMACell': '1.2-cb9c3b08cc1c418d021492f788d04173',
-    'NUMAPagesTopology': '1.0-97d93f70a68625b5f29ff63a40a4f612',
-    'NUMATopology': '1.2-790f6bdff85bf6e5677f409f3a4f1c6a',
-    'PciDevice': '1.3-e059641df10e85d464672c5183a9473b',
-    'PciDeviceList': '1.1-38cbe2d3c23b9e46f7a74b486abcad85',
-    'PciDevicePool': '1.0-d6ed1abe611c9947345a44155abe6f11',
-    'PciDevicePoolList': '1.0-d31e08e0ff620a4df7cc2014b6c50da8',
-    'Quotas': '1.2-36098cf2143e6535873c3fa3d6fe56f7',
-    'QuotasNoOp': '1.2-164c628906b170fd946a7672e85e4935',
-    'S3ImageMapping': '1.0-9225943a44a91ad0349b9fd8bd3f3ce2',
-    'SecurityGroup': '1.1-bba0e72865e0953793e796571692453b',
-    'SecurityGroupList': '1.0-528e6448adfeeb78921ebeda499ab72f',
-    'SecurityGroupRule': '1.1-a9175baf7664439af1a16c2010b55576',
-    'SecurityGroupRuleList': '1.1-667fca3a9928f23d2d10e61962c55f3c',
-    'Service': '1.9-82bbfd46a744a9c89bc44b47a1b81683',
-    'ServiceList': '1.7-b856301eb7714839248e189bf4886168',
-    'Tag': '1.0-a11531f4e4e3166eef6243d6d58a18bd',
-    'TagList': '1.0-e89bf8c8055f1f1d654fb44f0abf1f53',
-    'TestSubclassedObject': '1.6-87177ccbefd7a740a9e261f958e15b00',
-    'VirtualInterface': '1.0-10fdac4c704102b6d57d6936d6d790d2',
-    'VirtualInterfaceList': '1.0-accbf02628a8063c1d885077a2bf49b6',
-    'VirtCPUTopology': '1.0-fc694de72e20298f7c6bab1083fd4563',
+    'MyObj': '1.6-b733cfefd8dcf706843d6bce5cd1be22',
+    'MyOwnedObject': '1.0-fec853730bd02d54cc32771dd67f08a0',
+    'TestSubclassedObject': '1.6-6c1976a36987b9832b3183a7d9163655',
 }
 
 
@@ -1289,6 +1233,7 @@ class TestObjectVersions(test.TestCase):
                 tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
 
     def test_relationships(self):
+        self.skip('relationship test needs to be rewritten')
         tree = {}
         for obj_name in base.NovaObject._obj_classes.keys():
             self._build_tree(tree, base.NovaObject._obj_classes[obj_name][0])
