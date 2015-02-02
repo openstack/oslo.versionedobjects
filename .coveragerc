@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = versionedobjects
+omit = versionedobjects/tests/*,versionedobjects/openstack/*
+
+[report]
+ignore-errors = True
