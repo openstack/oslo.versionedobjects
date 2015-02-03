@@ -14,9 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Nova base exception handling.
+"""VersionedObjects base exception handling.
 
-Includes decorator for re-raising Nova-type exceptions.
+Includes decorator for re-raising VersionedObjects-type exceptions.
 
 SHOULD include dedicated exception logging.
 
@@ -91,8 +91,8 @@ def wrap_exception(notifier=None, get_notifier=None):
     return inner
 
 
-class NovaException(Exception):
-    """Base Nova Exception
+class VersionedObjectsException(Exception):
+    """Base VersionedObjects Exception
 
     To correctly use this class, inherit from it and define
     a 'msg_fmt' property. That msg_fmt will get printf'd
@@ -131,33 +131,34 @@ class NovaException(Exception):
                     # at least get the core message out if something happened
                     message = self.msg_fmt
 
-        super(NovaException, self).__init__(message)
+        super(VersionedObjectsException, self).__init__(message)
 
     def format_message(self):
         # NOTE(mrodden): use the first argument to the python Exception object
-        # which should be our full NovaException message, (see __init__)
+        # which should be our full VersionedObjectsException message,
+        # (see __init__)
         return self.args[0]
 
 
-class ObjectActionError(NovaException):
+class ObjectActionError(VersionedObjectsException):
     msg_fmt = _('Object action %(action)s failed because: %(reason)s')
 
 
-class ObjectFieldInvalid(NovaException):
+class ObjectFieldInvalid(VersionedObjectsException):
     msg_fmt = _('Field %(field)s of %(objname)s is not an instance of Field')
 
 
-class OrphanedObjectError(NovaException):
+class OrphanedObjectError(VersionedObjectsException):
     msg_fmt = _('Cannot call %(method)s on orphaned %(objtype)s object')
 
 
-class IncompatibleObjectVersion(NovaException):
+class IncompatibleObjectVersion(VersionedObjectsException):
     msg_fmt = _('Version %(objver)s of %(objname)s is not supported')
 
 
-class ReadOnlyFieldError(NovaException):
+class ReadOnlyFieldError(VersionedObjectsException):
     msg_fmt = _('Cannot modify readonly field %(field)s')
 
 
-class UnsupportedObjectError(NovaException):
+class UnsupportedObjectError(VersionedObjectsException):
     msg_fmt = _('Unsupported object type %(objtype)s')

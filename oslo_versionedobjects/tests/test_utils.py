@@ -26,7 +26,7 @@ class VersionTestCase(test.NoDBTestCase):
         self.assertEqual(utils.convert_version_to_int('6.2.0'), 6002000)
         self.assertEqual(utils.convert_version_to_int((6, 4, 3)), 6004003)
         self.assertEqual(utils.convert_version_to_int((5, )), 5)
-        self.assertRaises(exception.NovaException,
+        self.assertRaises(exception.VersionedObjectsException,
                           utils.convert_version_to_int, '5a.6b')
 
     def test_convert_version_to_string(self):

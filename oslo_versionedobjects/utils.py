@@ -35,7 +35,7 @@ def convert_version_to_int(version):
             return reduce(lambda x, y: (x * 1000) + y, version)
     except Exception:
         msg = _("Hypervisor version %s is invalid.") % version
-        raise exception.NovaException(msg)
+        raise exception.VersionedObjectsException(msg)
 
 
 def convert_version_to_str(version_int):

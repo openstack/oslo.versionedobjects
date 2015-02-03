@@ -16,7 +16,6 @@ import abc
 import datetime
 
 import iso8601
-import netaddr
 from oslo_utils import timeutils
 import six
 
@@ -54,7 +53,7 @@ class AbstractFieldType(object):
         This method should convert the value given into the designated type,
         or throw an exception if this is not possible.
 
-        :param:obj: The NovaObject on which an attribute is being set
+        :param:obj: The VersionedObject on which an attribute is being set
         :param:attr: The name of the attribute being set
         :param:value: The value being set
         :returns: A properly-typed value
@@ -68,7 +67,7 @@ class AbstractFieldType(object):
         This method should deserialize a value from the form given by
         to_primitive() to the designated type.
 
-        :param:obj: The NovaObject on which the value is to be set
+        :param:obj: The VersionedObject on which the value is to be set
         :param:attr: The name of the attribute which will hold the value
         :param:value: The serialized form of the value
         :returns: The natural form of the value
@@ -82,7 +81,7 @@ class AbstractFieldType(object):
         This method should serialize a value to the form expected by
         from_primitive().
 
-        :param:obj: The NovaObject on which the value is set
+        :param:obj: The VersionedObject on which the value is set
         :param:attr: The name of the attribute holding the value
         :param:value: The natural form of the value
         :returns: The serialized form of the value
@@ -304,76 +303,6 @@ class DateTime(FieldType):
         return timeutils.isotime(value)
 
 
-class IPAddress(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
-        try:
-            return netaddr.IPAddress(value)
-        except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
-
-    def from_primitive(self, obj, attr, value):
-        return self.coerce(obj, attr, value)
-
-    @staticmethod
-    def to_primitive(obj, attr, value):
-        return str(value)
-
-
-class IPV4Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
-        if result.version != 4:
-            raise ValueError(_('Network "%s" is not valid') % value)
-        return result
-
-
-class IPV6Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
-        if result.version != 6:
-            raise ValueError(_('Network "%s" is not valid') % value)
-        return result
-
-
-class IPV4AndV6Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
-        if result.version != 4 and result.version != 6:
-            raise ValueError(_('Network "%s" is not valid') % value)
-        return result
-
-
-class IPNetwork(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        try:
-            return netaddr.IPNetwork(value)
-        except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
-
-
-class IPV4Network(IPNetwork):
-    @staticmethod
-    def coerce(obj, attr, value):
-        try:
-            return netaddr.IPNetwork(value, version=4)
-        except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
-
-
-class IPV6Network(IPNetwork):
-    @staticmethod
-    def coerce(obj, attr, value):
-        try:
-            return netaddr.IPNetwork(value, version=6)
-        except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
-
-
 class CompoundFieldType(FieldType):
     def __init__(self, element_type, **field_args):
         self._element_type = Field(element_type, **field_args)
@@ -517,9 +446,9 @@ class Object(FieldType):
         from oslo_versionedobjects import base as obj_base
         # NOTE (ndipanov): If they already got hydrated by the serializer, just
         # pass them back unchanged
-        if isinstance(value, obj_base.NovaObject):
+        if isinstance(value, obj_base.VersionedObject):
             return value
-        return obj_base.NovaObject.obj_from_primitive(value, obj._context)
+        return obj_base.VersionedObject.obj_from_primitive(value, obj._context)
 
     def describe(self):
         return "Object<%s>" % self._obj_name
@@ -566,34 +495,6 @@ class BooleanField(AutoTypedField):
 
 class DateTimeField(AutoTypedField):
     AUTO_TYPE = DateTime()
-
-
-class IPAddressField(AutoTypedField):
-    AUTO_TYPE = IPAddress()
-
-
-class IPV4AddressField(AutoTypedField):
-    AUTO_TYPE = IPV4Address()
-
-
-class IPV6AddressField(AutoTypedField):
-    AUTO_TYPE = IPV6Address()
-
-
-class IPV4AndV6AddressField(AutoTypedField):
-    AUTO_TYPE = IPV4AndV6Address()
-
-
-class IPNetworkField(AutoTypedField):
-    AUTO_TYPE = IPNetwork()
-
-
-class IPV4NetworkField(AutoTypedField):
-    AUTO_TYPE = IPV4Network()
-
-
-class IPV6NetworkField(AutoTypedField):
-    AUTO_TYPE = IPV6Network()
 
 
 class DictOfStringsField(AutoTypedField):

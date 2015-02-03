@@ -51,7 +51,7 @@ CONF = cfg.CONF
 # CONF.set_override('use_stderr', False)
 
 logging.register_options(CONF)
-logging.setup(CONF, 'nova')
+logging.setup(CONF, 'versionedobjects')
 
 # NOTE(comstud): Make sure we have all of the objects loaded. We do this
 # at module import time, because we may be using mock decorators in our

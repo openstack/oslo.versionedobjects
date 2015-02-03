@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Fixtures for Nova tests."""
+"""Fixtures for VersionedObject tests."""
 from __future__ import absolute_import
 
 import gettext
@@ -44,7 +44,7 @@ class ServiceFixture(fixtures.Fixture):
         name = name
         host = host or uuid.uuid4().hex
         kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'nova-%s' % name)
+        kwargs.setdefault('binary', 'versionedobjects-%s' % name)
         self.kwargs = kwargs
 
     def setUp(self):
