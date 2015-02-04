@@ -59,7 +59,7 @@ def make_class_properties(cls):
         for name, field in supercls.fields.items():
             if name not in cls.fields:
                 cls.fields[name] = field
-    for name, field in cls.fields.iteritems():
+    for name, field in six.iteritems(cls.fields):
         if not isinstance(field, fields.Field):
             raise exception.ObjectFieldInvalid(
                 field=name, objname=cls.obj_name())
@@ -558,7 +558,7 @@ class VersionedObject(object):
 
     @property
     def obj_fields(self):
-        return self.fields.keys() + self.obj_extra_fields
+        return list(self.fields.keys()) + self.obj_extra_fields
 
 
 class VersionedObjectDictCompat(object):
@@ -721,8 +721,8 @@ class ObjectListBase(object):
         """List index of value."""
         return self.objects.index(value)
 
-    def sort(self, cmp=None, key=None, reverse=False):
-        self.objects.sort(cmp=cmp, key=key, reverse=reverse)
+    def sort(self, key=None, reverse=False):
+        self.objects.sort(key=key, reverse=reverse)
 
     def obj_make_compatible(self, primitive, target_version):
         primitives = primitive['objects']

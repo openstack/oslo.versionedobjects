@@ -17,6 +17,7 @@
 
 """Utilities and helper functions."""
 
+import functools
 import logging
 
 import six
@@ -32,7 +33,7 @@ def convert_version_to_int(version):
         if isinstance(version, six.string_types):
             version = convert_version_to_tuple(version)
         if isinstance(version, tuple):
-            return reduce(lambda x, y: (x * 1000) + y, version)
+            return functools.reduce(lambda x, y: (x * 1000) + y, version)
     except Exception:
         msg = _("Hypervisor version %s is invalid.") % version
         raise exception.VersionedObjectsException(msg)
@@ -44,9 +45,9 @@ def convert_version_to_str(version_int):
     while version_int != 0:
         version_number = version_int - (version_int // factor * factor)
         version_numbers.insert(0, str(version_number))
-        version_int = version_int / factor
+        version_int = version_int // factor
 
-    return reduce(lambda x, y: "%s.%s" % (x, y), version_numbers)
+    return '.'.join(map(str, version_numbers))
 
 
 def convert_version_to_tuple(version_str):
