@@ -39,11 +39,11 @@ from oslotest import moxstubout
 import six
 import testtools
 
+from oslo_versionedobjects import _utils as utils
 #from nova import db
 #from nova.network import manager as network_manager
 #from nova import objects
 from oslo_versionedobjects.tests import obj_fixtures
-from oslo_versionedobjects import utils
 
 
 CONF = cfg.CONF

@@ -14,9 +14,9 @@
 
 from oslo_config import cfg
 
+from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import test
-from oslo_versionedobjects import utils
 
 CONF = cfg.CONF
 
