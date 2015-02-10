@@ -14,7 +14,6 @@ Contents
    api
    usage
    contributing
-   history
 
 Indices and tables
 ==================
