@@ -271,8 +271,11 @@ class Boolean(FieldType):
 
 
 class DateTime(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def __init__(self, tzinfo_aware=True, *args, **kwargs):
+        self.tzinfo_aware = tzinfo_aware
+        super(DateTime, self).__init__(*args, **kwargs)
+
+    def coerce(self, obj, attr, value):
         if isinstance(value, six.string_types):
             # NOTE(danms): Being tolerant of isotime strings here will help us
             # during our objects transition
@@ -280,11 +283,13 @@ class DateTime(FieldType):
         elif not isinstance(value, datetime.datetime):
             raise ValueError(_('A datetime.datetime is required here'))
 
-        if value.utcoffset() is None:
+        if value.utcoffset() is None and self.tzinfo_aware:
             # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
             # but are returned without a timezone attached.
             # As a transitional aid, assume a tz-naive object is in UTC.
             value = value.replace(tzinfo=iso8601.iso8601.Utc())
+        elif not self.tzinfo_aware:
+            value = value.replace(tzinfo=None)
         return value
 
     def from_primitive(self, obj, attr, value):
@@ -490,7 +495,9 @@ class BooleanField(AutoTypedField):
 
 
 class DateTimeField(AutoTypedField):
-    AUTO_TYPE = DateTime()
+    def __init__(self, tzinfo_aware=True, **kwargs):
+        self.AUTO_TYPE = DateTime(tzinfo_aware=tzinfo_aware)
+        super(DateTimeField, self).__init__(**kwargs)
 
 
 class DictOfStringsField(AutoTypedField):

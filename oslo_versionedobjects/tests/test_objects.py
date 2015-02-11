@@ -121,6 +121,11 @@ class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
 
 
 @base.VersionedObjectRegistry.register
+class MyComparableObj(MyObj, base.ComparableVersionedObject):
+    pass
+
+
+@base.VersionedObjectRegistry.register
 class MyObjDiffVers(MyObj):
     VERSION = '1.5'
 
@@ -794,6 +799,13 @@ class _TestObject(object):
             mock_mc.side_effect = fake_make_compat
             obj.obj_to_primitive('1.0')
             self.assertTrue(mock_mc.called)
+
+    def test_comparable_objects(self):
+        obj1 = MyComparableObj(foo=1)
+        obj2 = MyComparableObj(foo=1)
+        obj3 = MyComparableObj(foo=2)
+        self.assertTrue(obj1 == obj2)
+        self.assertFalse(obj1 == obj3)
 
 
 class TestObject(_LocalTest, _TestObject):

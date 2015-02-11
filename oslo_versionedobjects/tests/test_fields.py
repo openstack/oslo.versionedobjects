@@ -135,6 +135,29 @@ class TestDateTime(TestField):
                                   tzinfo=iso8601.iso8601.Utc())))
 
 
+class TestDateTimeNoTzinfo(TestField):
+    def setUp(self):
+        super(TestDateTimeNoTzinfo, self).setUp()
+        self.dt = datetime.datetime(1955, 11, 5)
+        self.field = fields.DateTimeField(tzinfo_aware=False)
+        self.coerce_good_values = [(self.dt, self.dt),
+                                   (timeutils.isotime(self.dt), self.dt)]
+        self.coerce_bad_values = [1, 'foo']
+        self.to_primitive_values = [(self.dt, timeutils.isotime(self.dt))]
+        self.from_primitive_values = [
+            (
+                timeutils.isotime(self.dt),
+                self.dt,
+            )
+        ]
+
+    def test_stringify(self):
+        self.assertEqual(
+            '1955-11-05T18:00:00Z',
+            self.field.stringify(
+                datetime.datetime(1955, 11, 5, 18, 0, 0)))
+
+
 class TestDict(TestField):
     def setUp(self):
         super(TestDict, self).setUp()
