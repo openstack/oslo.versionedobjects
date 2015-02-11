@@ -25,7 +25,6 @@ import mock
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
-import six
 from testtools import matchers
 
 # from nova.conductor import rpcapi as conductor_rpcapi
@@ -41,11 +40,21 @@ from oslo_versionedobjects import utils
 LOG = logging.getLogger(__name__)
 
 
+def is_test_object(cls):
+    """Return True if class is defined in the tests.
+
+    :param cls: Class to inspect
+    """
+    return 'oslo_versionedobjects.tests' in cls.__module__
+
+
+@base.VersionedObjectRegistry.register
 class MyOwnedObject(base.NovaPersistentObject, base.NovaObject):
     VERSION = '1.0'
     fields = {'baz': fields.Field(fields.Integer())}
 
 
+@base.VersionedObjectRegistry.register
 class MyObj(base.NovaPersistentObject, base.NovaObject,
             base.NovaObjectDictCompat):
     VERSION = '1.6'
@@ -115,6 +124,7 @@ class MyObj(base.NovaPersistentObject, base.NovaObject,
             primitive['bar'] = 'old%s' % primitive['bar']
 
 
+@base.VersionedObjectRegistry.register
 class MyObjDiffVers(MyObj):
     VERSION = '1.5'
 
@@ -123,7 +133,8 @@ class MyObjDiffVers(MyObj):
         return 'MyObj'
 
 
-class MyObj2(object):
+@base.VersionedObjectRegistry.register
+class MyObj2(base.NovaObject):
     @classmethod
     def obj_name(cls):
         return 'MyObj'
@@ -138,14 +149,15 @@ class RandomMixInWithNoFields(object):
     pass
 
 
+@base.VersionedObjectRegistry.register
 class TestSubclassedObject(RandomMixInWithNoFields, MyObj):
     fields = {'new_field': fields.Field(fields.String())}
 
 
-class TestMetaclass(test.TestCase):
+class TestRegistry(test.TestCase):
     def test_obj_tracking(self):
 
-        @six.add_metaclass(base.NovaObjectMetaclass)
+        @base.VersionedObjectRegistry.register
         class NewBaseClass(object):
             VERSION = '1.0'
             fields = {}
@@ -154,28 +166,35 @@ class TestMetaclass(test.TestCase):
             def obj_name(cls):
                 return cls.__name__
 
+        @base.VersionedObjectRegistry.register
         class Fake1TestObj1(NewBaseClass):
             @classmethod
             def obj_name(cls):
                 return 'fake1'
 
+        @base.VersionedObjectRegistry.register
         class Fake1TestObj2(Fake1TestObj1):
             pass
 
+        @base.VersionedObjectRegistry.register
         class Fake1TestObj3(Fake1TestObj1):
             VERSION = '1.1'
 
+        @base.VersionedObjectRegistry.register
         class Fake2TestObj1(NewBaseClass):
             @classmethod
             def obj_name(cls):
                 return 'fake2'
 
+        @base.VersionedObjectRegistry.register
         class Fake1TestObj4(Fake1TestObj3):
             VERSION = '1.2'
 
+        @base.VersionedObjectRegistry.register
         class Fake2TestObj2(Fake2TestObj1):
             VERSION = '1.1'
 
+        @base.VersionedObjectRegistry.register
         class Fake1TestObj5(Fake1TestObj1):
             VERSION = '1.1'
 
@@ -183,18 +202,14 @@ class TestMetaclass(test.TestCase):
         # newest object.
         expected = {'fake1': [Fake1TestObj4, Fake1TestObj5, Fake1TestObj2],
                     'fake2': [Fake2TestObj2, Fake2TestObj1]}
-        self.assertEqual(expected, NewBaseClass._obj_classes)
-        # The following should work, also.
-        self.assertEqual(expected, Fake1TestObj1._obj_classes)
-        self.assertEqual(expected, Fake1TestObj2._obj_classes)
-        self.assertEqual(expected, Fake1TestObj3._obj_classes)
-        self.assertEqual(expected, Fake1TestObj4._obj_classes)
-        self.assertEqual(expected, Fake1TestObj5._obj_classes)
-        self.assertEqual(expected, Fake2TestObj1._obj_classes)
-        self.assertEqual(expected, Fake2TestObj2._obj_classes)
+        self.assertEqual(expected['fake1'],
+                         base.VersionedObjectRegistry.obj_classes()['fake1'])
+        self.assertEqual(expected['fake2'],
+                         base.VersionedObjectRegistry.obj_classes()['fake2'])
 
     def test_field_checking(self):
         def create_class(field):
+            @base.VersionedObjectRegistry.register
             class TestField(base.NovaObject):
                 VERSION = '1.5'
                 fields = {'foo': field()}
@@ -210,6 +225,7 @@ class TestMetaclass(test.TestCase):
 class TestObjToPrimitive(test.TestCase):
 
     def test_obj_to_primitive_list(self):
+        @base.VersionedObjectRegistry.register
         class MyObjElement(base.NovaObject):
             fields = {'foo': fields.IntegerField()}
 
@@ -217,6 +233,7 @@ class TestObjToPrimitive(test.TestCase):
                 super(MyObjElement, self).__init__()
                 self.foo = foo
 
+        @base.VersionedObjectRegistry.register
         class MyList(base.ObjectListBase, base.NovaObject):
             fields = {'objects': fields.ListOfObjectsField('MyObjElement')}
 
@@ -231,6 +248,7 @@ class TestObjToPrimitive(test.TestCase):
                          base.obj_to_primitive(myobj))
 
     def test_obj_to_primitive_recursive(self):
+        @base.VersionedObjectRegistry.register
         class MyList(base.ObjectListBase, base.NovaObject):
             fields = {'objects': fields.ListOfObjectsField('MyObj')}
 
@@ -241,6 +259,7 @@ class TestObjToPrimitive(test.TestCase):
                          base.obj_to_primitive(mylist))
 
     def test_obj_to_primitive_with_ip_addr(self):
+        @base.VersionedObjectRegistry.register
         class TestObject(base.NovaObject):
             fields = {'addr': fields.IPAddressField(),
                       'cidr': fields.IPNetworkField()}
@@ -253,6 +272,7 @@ class TestObjToPrimitive(test.TestCase):
 class TestObjMakeList(test.TestCase):
 
     def test_obj_make_list(self):
+        @base.VersionedObjectRegistry.register
         class MyList(base.ObjectListBase, base.NovaObject):
             pass
 
@@ -518,6 +538,7 @@ class _TestObject(object):
         self.assertEqual(obj.bar, 'loaded!')
 
     def test_load_in_base(self):
+        @base.VersionedObjectRegistry.register
         class Foo(base.NovaObject):
             fields = {'foobar': fields.Field(fields.Integer())}
         obj = Foo()
@@ -623,6 +644,7 @@ class _TestObject(object):
         self.assertRemotes()
 
     def test_changed_with_sub_object(self):
+        @base.VersionedObjectRegistry.register
         class ParentObject(base.NovaObject):
             fields = {'foo': fields.IntegerField(),
                       'bar': fields.ObjectField('MyObj'),
@@ -909,6 +931,7 @@ class TestRemoteObject(_RemoteTest, _TestObject):
 
 class TestObjectListBase(test.TestCase):
     def test_list_like_operations(self):
+        @base.VersionedObjectRegistry.register
         class MyElement(base.NovaObject):
             fields = {'foo': fields.IntegerField()}
 
@@ -934,9 +957,11 @@ class TestObjectListBase(test.TestCase):
                          [x.foo for x in objlist])
 
     def test_serialization(self):
+        @base.VersionedObjectRegistry.register
         class Foo(base.ObjectListBase, base.NovaObject):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
+        @base.VersionedObjectRegistry.register
         class Bar(base.NovaObject):
             fields = {'foo': fields.Field(fields.String())}
 
@@ -958,7 +983,10 @@ class TestObjectListBase(test.TestCase):
 
         # Look through all object classes of this type and make sure that
         # the versions we find are covered by the parent list class
-        for item_class in base.NovaObject._obj_classes[item_obj_name]:
+        obj_classes = base.VersionedObjectRegistry.obj_classes()[item_obj_name]
+        for item_class in obj_classes:
+            if is_test_object(item_class):
+                continue
             self.assertIn(
                 item_class.VERSION,
                 list_obj_class.child_versions.values(),
@@ -968,15 +996,17 @@ class TestObjectListBase(test.TestCase):
     def test_object_version_mappings(self):
         # Find all object list classes and make sure that they at least handle
         # all the current object versions
-        for obj_classes in base.NovaObject._obj_classes.values():
+        for obj_classes in base.VersionedObjectRegistry.obj_classes().values():
             for obj_class in obj_classes:
                 if issubclass(obj_class, base.ObjectListBase):
                     self._test_object_list_version_mappings(obj_class)
 
     def test_list_changes(self):
+        @base.VersionedObjectRegistry.register
         class Foo(base.ObjectListBase, base.NovaObject):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
+        @base.VersionedObjectRegistry.register
         class Bar(base.NovaObject):
             fields = {'foo': fields.StringField()}
 
@@ -1003,9 +1033,11 @@ class TestObjectListBase(test.TestCase):
         self.assertEqual(set(), obj.obj_what_changed())
 
     def test_obj_repr(self):
+        @base.VersionedObjectRegistry.register
         class Foo(base.ObjectListBase, base.NovaObject):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
+        @base.VersionedObjectRegistry.register
         class Bar(base.NovaObject):
             fields = {'uuid': fields.StringField()}
 
@@ -1034,6 +1066,7 @@ class TestObjectSerializer(_BaseTestCase):
         ser._conductor = mock.Mock()
         ser._conductor.object_backport.return_value = 'backported'
 
+        @base.VersionedObjectRegistry.register
         class MyTestObj(MyObj):
             VERSION = my_version
 
@@ -1128,7 +1161,7 @@ object_data = {
     'MyOwnedObject': '1.0-fec853730bd02d54cc32771dd67f08a0',
     'TestSubclassedObject': '1.6-6c1976a36987b9832b3183a7d9163655',
 }
-
+object_data = {}
 
 object_relationships = {
     'BlockDeviceMapping': {'Instance': '1.18'},
@@ -1170,7 +1203,7 @@ class TestObjectVersions(test.TestCase):
             return None
 
     def _get_fingerprint(self, obj_name):
-        obj_class = base.NovaObject._obj_classes[obj_name][0]
+        obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
         fields = obj_class.fields.items()
         fields.sort()
         methods = []
@@ -1196,7 +1229,11 @@ class TestObjectVersions(test.TestCase):
 
     def test_versions(self):
         fingerprints = {}
-        for obj_name in base.NovaObject._obj_classes:
+        for obj_name in base.VersionedObjectRegistry.obj_classes():
+            obj_classes = base.VersionedObjectRegistry._registry._obj_classes
+            obj_cls = obj_classes[obj_name][0]
+            if is_test_object(obj_cls):
+                continue
             fingerprints[obj_name] = self._get_fingerprint(obj_name)
 
         if os.getenv('GENERATE_HASHES'):
@@ -1227,7 +1264,8 @@ class TestObjectVersions(test.TestCase):
         for name, field in obj_class.fields.items():
             if isinstance(field._type, fields.Object):
                 sub_obj_name = field._type._obj_name
-                sub_obj_class = base.NovaObject._obj_classes[sub_obj_name][0]
+                obj_classes = base.VersionedObjectRegistry.obj_classes()
+                sub_obj_class = obj_classes[sub_obj_name][0]
                 self._build_tree(tree, sub_obj_class)
                 tree.setdefault(obj_name, {})
                 tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
@@ -1235,8 +1273,9 @@ class TestObjectVersions(test.TestCase):
     def test_relationships(self):
         self.skip('relationship test needs to be rewritten')
         tree = {}
-        for obj_name in base.NovaObject._obj_classes.keys():
-            self._build_tree(tree, base.NovaObject._obj_classes[obj_name][0])
+        obj_classes = base.VersionedObjectRegistry.obj_classes()
+        for obj_name in base.VersionedObjectRegistry.obj_classes().keys():
+            self._build_tree(tree, obj_classes[obj_name][0])
 
         stored = set([(x, str(y)) for x, y in object_relationships.items()])
         computed = set([(x, str(y)) for x, y in tree.items()])
@@ -1259,8 +1298,8 @@ class TestObjectVersions(test.TestCase):
         # This doesn't actually test the data conversions, but it at least
         # makes sure the method doesn't blow up on something basic like
         # expecting the wrong version format.
-        for obj_name in base.NovaObject._obj_classes:
-            obj_class = base.NovaObject._obj_classes[obj_name][0]
+        for obj_name in base.VersionedObjectRegistry.obj_classes():
+            obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
             version = utils.convert_version_to_tuple(obj_class.VERSION)
             for n in range(version[1]):
                 test_version = '%d.%d' % (version[0], n)
@@ -1274,8 +1313,8 @@ class TestObjectVersions(test.TestCase):
         # This doesn't actually test the data conversions, but it at least
         # makes sure the method doesn't blow up on something basic like
         # expecting the wrong version format.
-        for obj_name in base.NovaObject._obj_classes:
-            obj_class = base.NovaObject._obj_classes[obj_name][0]
+        for obj_name in base.VersionedObjectRegistry.obj_classes():
+            obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
             for field, versions in obj_class.obj_relationships.items():
                 last_my_version = (0, 0)
                 last_child_version = (0, 0)

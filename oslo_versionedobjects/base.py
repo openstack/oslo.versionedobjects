@@ -93,31 +93,26 @@ def make_class_properties(cls):
         setattr(cls, name, property(getter, setter))
 
 
-class NovaObjectMetaclass(type):
-    """Metaclass that allows tracking of object classes."""
+class VersionedObjectRegistry(object):
+    _registry = None
 
-    # NOTE(danms): This is what controls whether object operations are
-    # remoted. If this is not None, use it to remote things over RPC.
-    indirection_api = None
+    def __new__(cls, *args, **kwargs):
+        if not VersionedObjectRegistry._registry:
+            VersionedObjectRegistry._registry = \
+                object.__new__(cls, *args, **kwargs)
+            VersionedObjectRegistry._registry._obj_classes = \
+                collections.defaultdict(list)
+        return VersionedObjectRegistry._registry
 
-    def __init__(cls, names, bases, dict_):
-        if not hasattr(cls, '_obj_classes'):
-            # This means this is a base class using the metaclass. I.e.,
-            # the 'NovaObject' class.
-            cls._obj_classes = collections.defaultdict(list)
-            return
-
+    def _register_class(self, cls):
         def _vers_tuple(obj):
             return tuple([int(x) for x in obj.VERSION.split(".")])
 
-        # Add the subclass to NovaObject._obj_classes. If the
-        # same version already exists, replace it. Otherwise,
-        # keep the list with newest version first.
         make_class_properties(cls)
         obj_name = cls.obj_name()
-        for i, obj in enumerate(cls._obj_classes[obj_name]):
+        for i, obj in enumerate(self._obj_classes[obj_name]):
             if cls.VERSION == obj.VERSION:
-                cls._obj_classes[obj_name][i] = cls
+                self._obj_classes[obj_name][i] = cls
                 # Update nova.objects with this newer class.
                 # FIXME(dhellmann): We can't store library state in
                 # the application module.
@@ -125,7 +120,7 @@ class NovaObjectMetaclass(type):
                 break
             if _vers_tuple(cls) > _vers_tuple(obj):
                 # Insert before.
-                cls._obj_classes[obj_name].insert(i, cls)
+                self._obj_classes[obj_name].insert(i, cls)
                 # FIXME(dhellmann): We can't store library state in
                 # the application module.
                 # if i == 0:
@@ -134,7 +129,7 @@ class NovaObjectMetaclass(type):
                 #     setattr(objects, obj_name, cls)
                 break
         else:
-            cls._obj_classes[obj_name].append(cls)
+            self._obj_classes[obj_name].append(cls)
             # Either this is the first time we've seen the object or it's
             # an older version than anything we'e seen. Update nova.objects
             # only if it's the first time we've seen this object name.
@@ -142,6 +137,17 @@ class NovaObjectMetaclass(type):
             # the application module.
             # if not hasattr(objects, obj_name):
             #     setattr(objects, obj_name, cls)
+
+    @classmethod
+    def register(cls, obj_cls):
+        registry = cls()
+        registry._register_class(obj_cls)
+        return obj_cls
+
+    @classmethod
+    def obj_classes(cls):
+        registry = cls()
+        return registry._obj_classes
 
 
 # These are decorators that mark an object's method as remotable.
@@ -215,7 +221,6 @@ def remotable(fn):
     return wrapper
 
 
-@six.add_metaclass(NovaObjectMetaclass)
 class NovaObject(object):
     """Base class and object factory.
 
@@ -299,7 +304,7 @@ class NovaObject(object):
     @classmethod
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
-        if objname not in cls._obj_classes:
+        if objname not in VersionedObjectRegistry.obj_classes():
             LOG.error(_LE('Unable to instantiate unregistered object type '
                           '%(objtype)s'), dict(objtype=objname))
             raise exception.UnsupportedObjectError(objtype=objname)
@@ -310,7 +315,7 @@ class NovaObject(object):
         # once below.
         compatible_match = None
 
-        for objclass in cls._obj_classes[objname]:
+        for objclass in VersionedObjectRegistry.obj_classes()[objname]:
             if objclass.VERSION == objver:
                 return objclass
             if (not compatible_match and
@@ -321,7 +326,7 @@ class NovaObject(object):
             return compatible_match
 
         # As mentioned above, latest version is always first in the list.
-        latest_ver = cls._obj_classes[objname][0].VERSION
+        latest_ver = VersionedObjectRegistry.obj_classes()[objname][0].VERSION
         raise exception.IncompatibleObjectVersion(objname=objname,
                                                   objver=objver,
                                                   supported=latest_ver)

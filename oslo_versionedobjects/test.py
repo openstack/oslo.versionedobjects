@@ -24,7 +24,6 @@ inline callbacks.
 import eventlet
 eventlet.monkey_patch(os=False)
 
-import copy
 import inspect
 import mock
 import os
@@ -43,7 +42,6 @@ import testtools
 #from nova import db
 #from nova.network import manager as network_manager
 #from nova import objects
-from oslo_versionedobjects import base as objects_base
 from oslo_versionedobjects.tests import obj_fixtures
 from oslo_versionedobjects import utils
 
@@ -177,14 +175,6 @@ class TestCase(testtools.TestCase):
         # because sqlalchemy-migrate messes with the warnings filters.
         self.useFixture(obj_fixtures.WarningsFixture())
 
-        # NOTE(danms): Make sure to reset us back to non-remote objects
-        # for each test to avoid interactions. Also, backup the object
-        # registry.
-        objects_base.NovaObject.indirection_api = None
-        self._base_test_obj_backup = copy.copy(
-            objects_base.NovaObject._obj_classes)
-        self.addCleanup(self._restore_obj_registry)
-
         # NOTE(mnaser): All calls to utils.is_neutron() are cached in
         # nova.utils._IS_NEUTRON.  We set it to None to avoid any
         # caching of that value.
@@ -195,9 +185,6 @@ class TestCase(testtools.TestCase):
         self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
-
-    def _restore_obj_registry(self):
-        objects_base.NovaObject._obj_classes = self._base_test_obj_backup
 
     def _clear_attrs(self):
         # Delete attributes that don't start with _ so they don't pin

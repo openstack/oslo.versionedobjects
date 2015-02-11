@@ -331,6 +331,7 @@ class TestObject(TestField):
     def setUp(self):
         super(TestObject, self).setUp()
 
+        @obj_base.VersionedObjectRegistry.register
         class TestableObject(obj_base.NovaObject):
             fields = {
                 'uuid': fields.StringField(),
