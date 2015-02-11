@@ -86,11 +86,11 @@ class MyObj(base.NovaPersistentObject, base.NovaObject,
         return obj
 
     @base.remotable
-    def marco(self, context):
+    def marco(self):
         return 'polo'
 
     @base.remotable
-    def _update_test(self, context):
+    def _update_test(self):
         project_id = getattr(context, 'tenant', None)
         if project_id is None:
             project_id = getattr(context, 'project_id', None)
@@ -100,17 +100,17 @@ class MyObj(base.NovaPersistentObject, base.NovaObject,
             self.bar = 'updated'
 
     @base.remotable
-    def save(self, context):
+    def save(self):
         self.obj_reset_changes()
 
     @base.remotable
-    def refresh(self, context):
+    def refresh(self):
         self.foo = 321
         self.bar = 'refreshed'
         self.obj_reset_changes()
 
     @base.remotable
-    def modify_save_modify(self, context):
+    def modify_save_modify(self):
         self.bar = 'meow'
         self.save()
         self.foo = 42
@@ -589,14 +589,6 @@ class _TestObject(object):
         self.assertIsNotNone(error)
         self.assertEqual('1.6', error.kwargs['supported'])
 
-    def test_with_alternate_context(self):
-        ctxt1 = context.RequestContext(None, 'foo', 'foo')
-        ctxt2 = context.RequestContext(None, 'bar', 'alternate')
-        obj = MyObj.query(ctxt1)
-        obj._update_test(ctxt2)
-        self.assertEqual(obj.bar, 'alternate-context')
-        self.assertRemotes()
-
     def test_orphaned_object(self):
         obj = MyObj.query(self.context)
         obj._context = None
@@ -608,7 +600,7 @@ class _TestObject(object):
         obj = MyObj.query(self.context)
         obj.foo = 123
         self.assertEqual(obj.obj_what_changed(), set(['foo']))
-        obj._update_test(self.context)
+        obj._update_test()
         self.assertEqual(obj.obj_what_changed(), set(['foo', 'bar']))
         self.assertEqual(obj.foo, 123)
         self.assertRemotes()
@@ -636,7 +628,7 @@ class _TestObject(object):
         obj = MyObj.query(self.context)
         obj.bar = 'something'
         self.assertEqual(obj.obj_what_changed(), set(['bar']))
-        obj.modify_save_modify(self.context)
+        obj.modify_save_modify()
         self.assertEqual(obj.obj_what_changed(), set(['foo', 'rel_object']))
         self.assertEqual(obj.foo, 42)
         self.assertEqual(obj.bar, 'meow')
