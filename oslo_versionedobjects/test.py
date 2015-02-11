@@ -44,7 +44,7 @@ import testtools
 #from nova.network import manager as network_manager
 #from nova import objects
 from oslo_versionedobjects import base as objects_base
-from oslo_versionedobjects.tests import fixtures as nova_fixtures
+from oslo_versionedobjects.tests import obj_fixtures
 from oslo_versionedobjects import utils
 
 
@@ -136,18 +136,18 @@ class TestCase(testtools.TestCase):
     def setUp(self):
         """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
-        self.useFixture(nova_fixtures.Timeout(
+        self.useFixture(obj_fixtures.Timeout(
             os.environ.get('OS_TEST_TIMEOUT', 0),
             self.TIMEOUT_SCALING_FACTOR))
 
         self.useFixture(fixtures.NestedTempfile())
         self.useFixture(fixtures.TempHomeDir())
-        self.useFixture(nova_fixtures.TranslationFixture())
+        self.useFixture(obj_fixtures.TranslationFixture())
         self.useFixture(logging_error.get_logging_handle_error_fixture())
 
-        self.useFixture(nova_fixtures.OutputStreamCapture())
+        self.useFixture(obj_fixtures.OutputStreamCapture())
 
-        self.useFixture(nova_fixtures.StandardLogging())
+        self.useFixture(obj_fixtures.StandardLogging())
 
         # NOTE(sdague): because of the way we were using the lock
         # wrapper we eneded up with a lot of tests that started
@@ -168,14 +168,14 @@ class TestCase(testtools.TestCase):
                                 group='oslo_concurrency')
 
         # self.useFixture(config_fixture.ConfFixture(CONF))
-        # self.useFixture(nova_fixtures.RPCFixture('nova.test'))
+        # self.useFixture(obj_fixtures.RPCFixture('nova.test'))
 
         # if self.USES_DB:
-        #     self.useFixture(nova_fixtures.Database())
+        #     self.useFixture(obj_fixtures.Database())
 
         # NOTE(blk-u): WarningsFixture must be after the Database fixture
         # because sqlalchemy-migrate messes with the warnings filters.
-        self.useFixture(nova_fixtures.WarningsFixture())
+        self.useFixture(obj_fixtures.WarningsFixture())
 
         # NOTE(danms): Make sure to reset us back to non-remote objects
         # for each test to avoid interactions. Also, backup the object
@@ -214,7 +214,7 @@ class TestCase(testtools.TestCase):
 
     def start_service(self, name, host=None, **kwargs):
         svc = self.useFixture(
-            nova_fixtures.ServiceFixture(name, host, **kwargs))
+            obj_fixtures.ServiceFixture(name, host, **kwargs))
         return svc.service
 
     def assertPublicAPISignatures(self, baseinst, inst):
