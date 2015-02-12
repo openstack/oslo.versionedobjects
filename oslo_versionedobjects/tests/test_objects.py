@@ -25,7 +25,6 @@ import six
 import mock
 from oslo_context import context
 from oslo_serialization import jsonutils
-from oslo_utils import timeutils
 from testtools import matchers
 
 from oslo_versionedobjects import base
@@ -47,14 +46,13 @@ def is_test_object(cls):
 
 
 @base.VersionedObjectRegistry.register
-class MyOwnedObject(base.VersionedPersistentObject, base.VersionedObject):
+class MyOwnedObject(base.VersionedObject):
     VERSION = '1.0'
     fields = {'baz': fields.Field(fields.Integer())}
 
 
 @base.VersionedObjectRegistry.register
-class MyObj(base.VersionedPersistentObject, base.VersionedObject,
-            base.VersionedObjectDictCompat):
+class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
     VERSION = '1.6'
     fields = {'foo': fields.Field(fields.Integer(), default=1),
               'bar': fields.Field(fields.String()),
@@ -218,43 +216,6 @@ class TestRegistry(test.TestCase):
                           create_class, fields.DateTime)
         self.assertRaises(exception.ObjectFieldInvalid,
                           create_class, int)
-
-
-class TestObjToPrimitive(test.TestCase):
-
-    def test_obj_to_primitive_list(self):
-        @base.VersionedObjectRegistry.register
-        class MyObjElement(base.VersionedObject):
-            fields = {'foo': fields.IntegerField()}
-
-            def __init__(self, foo):
-                super(MyObjElement, self).__init__()
-                self.foo = foo
-
-        @base.VersionedObjectRegistry.register
-        class MyList(base.ObjectListBase, base.VersionedObject):
-            fields = {'objects': fields.ListOfObjectsField('MyObjElement')}
-
-        mylist = MyList()
-        mylist.objects = [MyObjElement(1), MyObjElement(2), MyObjElement(3)]
-        self.assertEqual([1, 2, 3],
-                         [x['foo'] for x in base.obj_to_primitive(mylist)])
-
-    def test_obj_to_primitive_dict(self):
-        myobj = MyObj(foo=1, bar='foo')
-        self.assertEqual({'foo': 1, 'bar': 'foo'},
-                         base.obj_to_primitive(myobj))
-
-    def test_obj_to_primitive_recursive(self):
-        @base.VersionedObjectRegistry.register
-        class MyList(base.ObjectListBase, base.VersionedObject):
-            fields = {'objects': fields.ListOfObjectsField('MyObj')}
-
-        mylist = MyList(objects=[MyObj(), MyObj()])
-        for i, value in enumerate(mylist):
-            value.foo = i
-        self.assertEqual([{'foo': 0}, {'foo': 1}],
-                         base.obj_to_primitive(mylist))
 
 
 class TestObjMakeList(test.TestCase):
@@ -656,29 +617,6 @@ class _TestObject(object):
         self.assertEqual(obj.bar, 'updated')
         self.assertRemotes()
 
-    def test_base_attributes(self):
-        dt = datetime.datetime(1955, 11, 5)
-        obj = MyObj(created_at=dt, updated_at=dt, deleted_at=None,
-                    deleted=False)
-        expected = {
-            'versioned_object.name': 'MyObj',
-            'versioned_object.namespace': 'versionedobjects',
-            'versioned_object.version': '1.6',
-            'versioned_object.changes': [
-                'created_at', 'deleted', 'deleted_at', 'updated_at',
-            ],
-            'versioned_object.data': {
-                'created_at': timeutils.isotime(dt),
-                'updated_at': timeutils.isotime(dt),
-                'deleted_at': None,
-                'deleted': False,
-            },
-        }
-
-        got = obj.obj_to_primitive()
-        got['versioned_object.changes'].sort()
-        self.assertEqual(got, expected)
-
     def test_contains(self):
         obj = MyObj()
         self.assertNotIn('foo', obj)
@@ -710,7 +648,7 @@ class _TestObject(object):
         self.assertRaises(AttributeError, obj.get, 'nothing', 3)
 
     def test_object_inheritance(self):
-        base_fields = list(base.VersionedPersistentObject.fields.keys())
+        base_fields = []
         myobj_fields = (['foo', 'bar', 'missing',
                          'readonly', 'rel_object', 'rel_objects'] +
                         base_fields)
@@ -737,13 +675,6 @@ class _TestObject(object):
             self.assertTrue(mock_fn.called)
 
         self.assertFalse(obj._context.is_admin)
-
-    def test_obj_as_admin_orphaned(self):
-        def testme():
-            obj = MyObj()
-            with obj.obj_as_admin():
-                pass
-        self.assertRaises(exception.OrphanedObjectError, testme)
 
     def test_get_changes(self):
         obj = MyObj()
@@ -781,9 +712,8 @@ class _TestObject(object):
 
     def test_obj_repr(self):
         obj = MyObj(foo=123)
-        self.assertEqual('MyObj(bar=<?>,created_at=<?>,deleted=<?>,'
-                         'deleted_at=<?>,foo=123,missing=<?>,readonly=<?>,'
-                         'rel_object=<?>,rel_objects=<?>,updated_at=<?>)',
+        self.assertEqual('MyObj(bar=<?>,foo=123,missing=<?>,readonly=<?>,'
+                         'rel_object=<?>,rel_objects=<?>)',
                          repr(obj))
 
     def test_obj_make_obj_compatible(self):
@@ -881,7 +811,7 @@ class TestObject(_LocalTest, _TestObject):
     def test_set_all_defaults(self):
         obj = MyObj()
         obj.obj_set_defaults()
-        self.assertEqual(set(['deleted', 'foo']), obj.obj_what_changed())
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
         self.assertEqual(1, obj.foo)
 
 

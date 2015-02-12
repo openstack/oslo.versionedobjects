@@ -15,14 +15,12 @@
 """Common internal object model"""
 
 import collections
-import contextlib
 import copy
 import datetime
 import functools
 import logging
 import traceback
 
-import netaddr
 import oslo_messaging as messaging
 from oslo_utils import timeutils
 import six
@@ -632,41 +630,6 @@ class VersionedObjectDictCompat(object):
             setattr(self, key, value)
 
 
-class VersionedPersistentObject(object):
-    """Mixin class for Persistent objects.
-    This adds the fields that we use in common for all persistent objects.
-    """
-    fields = {
-        'created_at': fields.DateTimeField(nullable=True),
-        'updated_at': fields.DateTimeField(nullable=True),
-        'deleted_at': fields.DateTimeField(nullable=True),
-        'deleted': fields.BooleanField(default=False),
-        }
-
-    @contextlib.contextmanager
-    def obj_as_admin(self):
-        """Context manager to make an object call as an admin.
-
-        This temporarily modifies the context embedded in an object to
-        be elevated() and restores it after the call completes. Example
-        usage:
-
-           with obj.obj_as_admin():
-               obj.save()
-
-        """
-        if self._context is None:
-            raise exception.OrphanedObjectError(method='obj_as_admin',
-                                                objtype=self.obj_name())
-
-        original_context = self._context
-        self._context = self._context.elevated()
-        try:
-            yield
-        finally:
-            self._context = original_context
-
-
 class ObjectListBase(object):
     """Mixin class for lists of objects.
 
@@ -812,28 +775,6 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
             entity = self._process_iterable(context, self.deserialize_entity,
                                             entity)
         return entity
-
-
-def obj_to_primitive(obj):
-    """Recursively turn an object into a python primitive.
-
-    A VersionedObject becomes a dict, and anything that implements
-    ObjectListBase becomes a list.
-    """
-    if isinstance(obj, ObjectListBase):
-        return [obj_to_primitive(x) for x in obj]
-    elif isinstance(obj, VersionedObject):
-        result = {}
-        for key in obj.obj_fields:
-            if obj.obj_attr_is_set(key) or key in obj.obj_extra_fields:
-                result[key] = obj_to_primitive(getattr(obj, key))
-        return result
-    elif isinstance(obj, netaddr.IPAddress):
-        return str(obj)
-    elif isinstance(obj, netaddr.IPNetwork):
-        return str(obj)
-    else:
-        return obj
 
 
 def obj_make_list(context, list_obj, item_cls, db_list, **extra_args):
