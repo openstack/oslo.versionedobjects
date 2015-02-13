@@ -22,7 +22,6 @@ SHOULD include dedicated exception logging.
 
 """
 
-import functools
 import logging
 import sys
 
@@ -80,7 +79,7 @@ def wrap_exception(notifier=None, get_notifier=None):
                         payload.update({'args': cleansed})
 
                         # If f has multiple decorators, they must use
-                        # functools.wraps to ensure the name is
+                        # six.wraps to ensure the name is
                         # propagated.
                         event_type = f.__name__
 
@@ -88,7 +87,7 @@ def wrap_exception(notifier=None, get_notifier=None):
                                                            event_type,
                                                            payload)
 
-        return functools.wraps(f)(wrapped)
+        return six.wraps(f)(wrapped)
     return inner
 
 
