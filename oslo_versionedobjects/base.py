@@ -34,16 +34,16 @@ from oslo_versionedobjects import utils
 LOG = logging.getLogger('object')
 
 
-class NotSpecifiedSentinel(object):
+class _NotSpecifiedSentinel(object):
     pass
 
 
-def get_attrname(name):
+def _get_attrname(name):
     """Return the mangled name of the attribute's underlying storage."""
-    return '_' + name
+    return '_obj_' + name
 
 
-def make_class_properties(cls):
+def _make_class_properties(cls):
     # NOTE(danms/comstud): Inherit fields from super classes.
     # mro() returns the current class first and returns 'object' last, so
     # those can be skipped.  Also be careful to not overwrite any fields
@@ -62,13 +62,13 @@ def make_class_properties(cls):
                 field=name, objname=cls.obj_name())
 
         def getter(self, name=name):
-            attrname = get_attrname(name)
+            attrname = _get_attrname(name)
             if not hasattr(self, attrname):
                 self.obj_load_attr(name)
             return getattr(self, attrname)
 
         def setter(self, value, name=name, field=field):
-            attrname = get_attrname(name)
+            attrname = _get_attrname(name)
             field_value = field.coerce(self, name, value)
             if field.read_only and hasattr(self, attrname):
                 # Note(yjiang5): _from_db_object() may iterate
@@ -104,7 +104,7 @@ class VersionedObjectRegistry(object):
         def _vers_tuple(obj):
             return tuple([int(x) for x in obj.VERSION.split(".")])
 
-        make_class_properties(cls)
+        _make_class_properties(cls)
         obj_name = cls.obj_name()
         for i, obj in enumerate(self._obj_classes[obj_name]):
             if cls.VERSION == obj.VERSION:
@@ -551,7 +551,7 @@ class VersionedObject(object):
             raise AttributeError(
                 _("%(objname)s object has no attribute '%(attrname)s'") %
                 {'objname': self.obj_name(), 'attrname': attrname})
-        return hasattr(self, get_attrname(attrname))
+        return hasattr(self, _get_attrname(attrname))
 
     @property
     def obj_fields(self):
@@ -607,7 +607,7 @@ class VersionedObjectDictCompat(object):
         except AttributeError:
             return False
 
-    def get(self, key, value=NotSpecifiedSentinel):
+    def get(self, key, value=_NotSpecifiedSentinel):
         """For backwards-compatibility with dict-based objects.
 
         NOTE(danms): May be removed in the future.
@@ -615,7 +615,7 @@ class VersionedObjectDictCompat(object):
         if key not in self.obj_fields:
             raise AttributeError("'%s' object has no attribute '%s'" % (
                 self.__class__, key))
-        if value != NotSpecifiedSentinel and not self.obj_attr_is_set(key):
+        if value != _NotSpecifiedSentinel and not self.obj_attr_is_set(key):
             return value
         else:
             return getattr(self, key)
