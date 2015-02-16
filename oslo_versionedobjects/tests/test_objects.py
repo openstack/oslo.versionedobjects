@@ -194,6 +194,14 @@ class TestRegistry(test.TestCase):
         class Fake1TestObj5(Fake1TestObj1):
             VERSION = '1.1'
 
+        @base.VersionedObjectRegistry.register_if(False)
+        class ConditionalObj1(NewBaseClass):
+            fields = {'foo': fields.IntegerField()}
+
+        @base.VersionedObjectRegistry.register_if(True)
+        class ConditionalObj2(NewBaseClass):
+            fields = {'foo': fields.IntegerField()}
+
         # Newest versions first in the list. Duplicate versions take the
         # newest object.
         expected = {'fake1': [Fake1TestObj4, Fake1TestObj5, Fake1TestObj2],
@@ -202,6 +210,14 @@ class TestRegistry(test.TestCase):
                          base.VersionedObjectRegistry.obj_classes()['fake1'])
         self.assertEqual(expected['fake2'],
                          base.VersionedObjectRegistry.obj_classes()['fake2'])
+        self.assertEqual(
+            [],
+            base.VersionedObjectRegistry.obj_classes()['ConditionalObj1'])
+        self.assertTrue(hasattr(ConditionalObj1, 'foo'))
+        self.assertEqual(
+            [ConditionalObj2],
+            base.VersionedObjectRegistry.obj_classes()['ConditionalObj2'])
+        self.assertTrue(hasattr(ConditionalObj2, 'foo'))
 
     def test_field_checking(self):
         def create_class(field):

@@ -132,6 +132,17 @@ class VersionedObjectRegistry(object):
         return obj_cls
 
     @classmethod
+    def register_if(cls, condition):
+        def wraps(obj_cls):
+            if condition:
+                registry = cls()
+                registry._register_class(obj_cls)
+            else:
+                _make_class_properties(obj_cls)
+            return obj_cls
+        return wraps
+
+    @classmethod
     def obj_classes(cls):
         registry = cls()
         return registry._obj_classes
