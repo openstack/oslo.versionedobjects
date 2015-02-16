@@ -17,7 +17,6 @@
 import collections
 import copy
 import datetime
-import functools
 import logging
 import traceback
 
@@ -155,7 +154,7 @@ class VersionedObjectRegistry(object):
 # requested action and the result will be returned here.
 def remotable_classmethod(fn):
     """Decorator for remotable classmethods."""
-    @functools.wraps(fn)
+    @six.wraps(fn)
     def wrapper(cls, context, *args, **kwargs):
         if VersionedObject.indirection_api:
             result = VersionedObject.indirection_api.object_class_action(
@@ -180,7 +179,7 @@ def remotable_classmethod(fn):
 # "orphaned" and remotable methods cannot be called.
 def remotable(fn):
     """Decorator for remotable object methods."""
-    @functools.wraps(fn)
+    @six.wraps(fn)
     def wrapper(self, *args, **kwargs):
         ctxt = self._context
         if ctxt is None:
@@ -820,5 +819,5 @@ def serialize_args(fn):
     # NOTE(danms): Make this discoverable
     wrapper.remotable = getattr(fn, 'remotable', False)
     wrapper.original_fn = fn
-    return (functools.wraps(fn)(wrapper) if hasattr(fn, '__call__')
+    return (six.wraps(fn)(wrapper) if hasattr(fn, '__call__')
             else classmethod(wrapper))
