@@ -10,6 +10,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
+import inspect
 import mock
 import six
 
@@ -76,3 +78,79 @@ class IndirectionFixture(fixtures.Fixture):
         self.useFixture(fixtures.MonkeyPatch(
             'oslo_versionedobjects.base.VersionedObject.indirection_api',
             self.indirection_api))
+
+
+class ObjectHashMismatch(Exception):
+    def __init__(self, expected, actual):
+        self.expected = expected
+        self.actual = actual
+
+    def __str__(self):
+        return 'Hashes have changed for %s' % (
+            ','.join(set(self.expected.keys() + self.actual.keys())))
+
+
+class ObjectVersionChecker(object):
+    def _find_remotable_method(self, cls, thing, parent_was_remotable=False):
+        """Follow a chain of remotable things down to the original function."""
+        if isinstance(thing, classmethod):
+            return self._find_remotable_method(cls, thing.__get__(None, cls))
+        elif (inspect.ismethod(thing)
+              or inspect.isfunction(thing)) and hasattr(thing, 'remotable'):
+            return self._find_remotable_method(cls, thing.original_fn,
+                                               parent_was_remotable=True)
+        elif parent_was_remotable:
+            # We must be the first non-remotable thing underneath a stack of
+            # remotable things (i.e. the actual implementation method)
+            return thing
+        else:
+            # This means the top-level thing never hit a remotable layer
+            return None
+
+    def _get_fingerprint(self, obj_name):
+        obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
+        fields = list(obj_class.fields.items())
+        fields.sort()
+        methods = []
+        for name in dir(obj_class):
+            thing = getattr(obj_class, name)
+            if inspect.ismethod(thing) or inspect.isfunction(thing) \
+               or isinstance(thing, classmethod):
+                method = self._find_remotable_method(obj_class, thing)
+                if method:
+                    methods.append((name, inspect.getargspec(method)))
+        methods.sort()
+        # NOTE(danms): Things that need a version bump are any fields
+        # and their types, or the signatures of any remotable methods.
+        # Of course, these are just the mechanical changes we can detect,
+        # but many other things may require a version bump (method behavior
+        # and return value changes, for example).
+        if hasattr(obj_class, 'child_versions'):
+            relevant_data = (fields, methods, obj_class.child_versions)
+        else:
+            relevant_data = (fields, methods)
+        fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
+            six.binary_type(repr(relevant_data).encode())).hexdigest())
+        return fingerprint
+
+    def get_hashes(self):
+        """Return a dict of computed object hashes."""
+
+        fingerprints = {}
+        for obj_name in sorted(base.VersionedObjectRegistry.obj_classes()):
+            fingerprints[obj_name] = self._get_fingerprint(obj_name)
+        return fingerprints
+
+    def test_hashes(self, expected_hashes):
+        fingerprints = self.get_hashes()
+
+        stored = set(expected_hashes.items())
+        computed = set(fingerprints.items())
+        changed = stored.symmetric_difference(computed)
+        expected = {}
+        actual = {}
+        for name, hash in changed:
+            expected[name] = expected_hashes.get(name)
+            actual[name] = fingerprints.get(name)
+
+        return expected, actual

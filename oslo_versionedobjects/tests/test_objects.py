@@ -14,11 +14,7 @@
 
 import copy
 import datetime
-import hashlib
-import inspect
 import logging
-import os
-import pprint
 import six
 
 import mock
@@ -369,6 +365,25 @@ class TestChecks(_BaseTestCase):
                                                  'MyObj', 'query',
                                                  MyObj.VERSION,
                                                  (), {})
+
+    def test_get_hashes(self):
+        checker = checks.ObjectVersionChecker()
+        hashes = checker.get_hashes()
+        # NOTE(danms): If this object's version or hash changes, this needs
+        # to change. Otherwise, leave it alone.
+        self.assertEqual('1.6-69d0534216ba3bcb601e9be3b534fcd5',
+                         hashes['TestSubclassedObject'])
+
+    def test_check_hashes(self):
+        checker = checks.ObjectVersionChecker()
+        hashes = checker.get_hashes()
+        actual_hash = hashes['TestSubclassedObject']
+        hashes['TestSubclassedObject'] = 'foo'
+        expected, actual = checker.test_hashes(hashes)
+        self.assertEqual(['TestSubclassedObject'], list(expected.keys()))
+        self.assertEqual(['TestSubclassedObject'], list(actual.keys()))
+        self.assertEqual('foo', expected['TestSubclassedObject'])
+        self.assertEqual(actual_hash, actual['TestSubclassedObject'])
 
 
 class _LocalTest(_BaseTestCase):
@@ -1055,16 +1070,6 @@ class TestObjectSerializer(_BaseTestCase):
         self.assertIsInstance(thing2['foo'], base.VersionedObject)
 
 
-# NOTE(danms): The hashes in this list should only be changed if
-# they come with a corresponding version bump in the affected
-# objects
-object_data = {
-    'MyObj': '1.6-b733cfefd8dcf706843d6bce5cd1be22',
-    'MyOwnedObject': '1.0-fec853730bd02d54cc32771dd67f08a0',
-    'TestSubclassedObject': '1.6-6c1976a36987b9832b3183a7d9163655',
-}
-object_data = {}
-
 object_relationships = {
     'BlockDeviceMapping': {'Instance': '1.18'},
     'ComputeNode': {'PciDevicePoolList': '1.0'},
@@ -1091,77 +1096,6 @@ object_relationships = {
 class TestObjectVersions(test.TestCase):
     def setUp(self):
         self.skip('disabled in the library for now')
-
-    def _find_remotable_method(self, cls, thing, parent_was_remotable=False):
-        """Follow a chain of remotable things down to the original function."""
-        if isinstance(thing, classmethod):
-            return self._find_remotable_method(cls, thing.__get__(None, cls))
-        elif (inspect.ismethod(thing)
-              or inspect.isfunction(thing)) and hasattr(thing, 'remotable'):
-            return self._find_remotable_method(cls, thing.original_fn,
-                                               parent_was_remotable=True)
-        elif parent_was_remotable:
-            # We must be the first non-remotable thing underneath a stack of
-            # remotable things (i.e. the actual implementation method)
-            return thing
-        else:
-            # This means the top-level thing never hit a remotable layer
-            return None
-
-    def _get_fingerprint(self, obj_name):
-        obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
-        fields = list(obj_class.fields.items())
-        fields.sort()
-        methods = []
-        for name in dir(obj_class):
-            thing = getattr(obj_class, name)
-            if inspect.ismethod(thing) or inspect.isfunction(thing) \
-               or isinstance(thing, classmethod):
-                method = self._find_remotable_method(obj_class, thing)
-                if method:
-                    methods.append((name, inspect.getargspec(method)))
-        methods.sort()
-        # NOTE(danms): Things that need a version bump are any fields
-        # and their types, or the signatures of any remotable methods.
-        # Of course, these are just the mechanical changes we can detect,
-        # but many other things may require a version bump (method behavior
-        # and return value changes, for example).
-        if hasattr(obj_class, 'child_versions'):
-            relevant_data = (fields, methods, obj_class.child_versions)
-        else:
-            relevant_data = (fields, methods)
-        fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
-            six.binary_type(repr(relevant_data).encode())).hexdigest())
-        return fingerprint
-
-    def test_versions(self):
-        fingerprints = {}
-        for obj_name in sorted(base.VersionedObjectRegistry.obj_classes()):
-            obj_classes = base.VersionedObjectRegistry._registry._obj_classes
-            obj_cls = obj_classes[obj_name][0]
-            if is_test_object(obj_cls):
-                continue
-            fingerprints[obj_name] = self._get_fingerprint(obj_name)
-
-        if os.getenv('GENERATE_HASHES'):
-            with open('object_hashes.txt', 'w') as fp:
-                fp.write(pprint.pformat(fingerprints))
-            raise test.TestingException(
-                'Generated hashes in object_hashes.txt')
-
-        stored = set(object_data.items())
-        computed = set(fingerprints.items())
-        changed = stored.symmetric_difference(computed)
-        expected = {}
-        actual = {}
-        for name, hash in changed:
-            expected[name] = object_data.get(name)
-            actual[name] = fingerprints.get(name)
-
-        self.assertEqual(expected, actual,
-                         'Some objects have changed; please make sure the '
-                         'versions have been bumped, and then update their '
-                         'hashes here.')
 
     def _build_tree(self, tree, obj_class):
         obj_name = obj_class.obj_name()
