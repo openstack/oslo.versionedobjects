@@ -18,6 +18,7 @@ import six
 import fixtures
 from oslo_serialization import jsonutils
 from oslo_versionedobjects import base
+from oslo_versionedobjects import fields
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
@@ -109,8 +110,8 @@ class ObjectVersionChecker(object):
 
     def _get_fingerprint(self, obj_name):
         obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
-        fields = list(obj_class.fields.items())
-        fields.sort()
+        obj_fields = list(obj_class.fields.items())
+        obj_fields.sort()
         methods = []
         for name in dir(obj_class):
             thing = getattr(obj_class, name)
@@ -126,9 +127,9 @@ class ObjectVersionChecker(object):
         # but many other things may require a version bump (method behavior
         # and return value changes, for example).
         if hasattr(obj_class, 'child_versions'):
-            relevant_data = (fields, methods, obj_class.child_versions)
+            relevant_data = (obj_fields, methods, obj_class.child_versions)
         else:
-            relevant_data = (fields, methods)
+            relevant_data = (obj_fields, methods)
         fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
             six.binary_type(repr(relevant_data).encode())).hexdigest())
         return fingerprint
@@ -152,5 +153,40 @@ class ObjectVersionChecker(object):
         for name, hash in changed:
             expected[name] = expected_hashes.get(name)
             actual[name] = fingerprints.get(name)
+
+        return expected, actual
+
+    def _get_dependencies(self, tree, obj_class):
+        obj_name = obj_class.obj_name()
+        if obj_name in tree:
+            return
+
+        for name, field in obj_class.fields.items():
+            if isinstance(field._type, fields.Object):
+                sub_obj_name = field._type._obj_name
+                obj_classes = base.VersionedObjectRegistry.obj_classes()
+                sub_obj_class = obj_classes[sub_obj_name][0]
+                self._get_dependencies(tree, sub_obj_class)
+                tree.setdefault(obj_name, {})
+                tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
+
+    def get_dependency_tree(self):
+        tree = {}
+        obj_classes = base.VersionedObjectRegistry.obj_classes()
+        for obj_name in base.VersionedObjectRegistry.obj_classes().keys():
+            self._get_dependencies(tree, obj_classes[obj_name][0])
+        return tree
+
+    def test_relationships(self, expected_tree):
+        actual_tree = self.get_dependency_tree()
+
+        stored = set([(x, str(y)) for x, y in expected_tree.items()])
+        computed = set([(x, str(y)) for x, y in actual_tree.items()])
+        changed = stored.symmetric_difference(computed)
+        expected = {}
+        actual = {}
+        for name, deps in changed:
+            expected[name] = expected_tree.get(name)
+            actual[name] = actual_tree.get(name)
 
         return expected, actual

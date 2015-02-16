@@ -374,7 +374,7 @@ class TestChecks(_BaseTestCase):
         self.assertEqual('1.6-69d0534216ba3bcb601e9be3b534fcd5',
                          hashes['TestSubclassedObject'])
 
-    def test_check_hashes(self):
+    def test_test_hashes(self):
         checker = checks.ObjectVersionChecker()
         hashes = checker.get_hashes()
         actual_hash = hashes['TestSubclassedObject']
@@ -384,6 +384,29 @@ class TestChecks(_BaseTestCase):
         self.assertEqual(['TestSubclassedObject'], list(actual.keys()))
         self.assertEqual('foo', expected['TestSubclassedObject'])
         self.assertEqual(actual_hash, actual['TestSubclassedObject'])
+
+    def test_get_dependency_tree(self):
+        checker = checks.ObjectVersionChecker()
+        tree = checker.get_dependency_tree()
+
+        # NOTE(danms): If this object's dependencies change, this n eeds
+        # to change. Otherwise, leave it alone.
+        self.assertEqual({'MyOwnedObject': '1.0'},
+                         tree['TestSubclassedObject'])
+
+    def test_test_relationships(self):
+        checker = checks.ObjectVersionChecker()
+        tree = checker.get_dependency_tree()
+        actual = tree['TestSubclassedObject']
+        tree['TestSubclassedObject']['Foo'] = '9.8'
+        expected, actual = checker.test_relationships(tree)
+        self.assertEqual(['TestSubclassedObject'], list(expected.keys()))
+        self.assertEqual(['TestSubclassedObject'], list(actual.keys()))
+        self.assertEqual({'MyOwnedObject': '1.0',
+                          'Foo': '9.8'},
+                         expected['TestSubclassedObject'])
+        self.assertEqual({'MyOwnedObject': '1.0'},
+                         actual['TestSubclassedObject'])
 
 
 class _LocalTest(_BaseTestCase):
@@ -1070,68 +1093,9 @@ class TestObjectSerializer(_BaseTestCase):
         self.assertIsInstance(thing2['foo'], base.VersionedObject)
 
 
-object_relationships = {
-    'BlockDeviceMapping': {'Instance': '1.18'},
-    'ComputeNode': {'PciDevicePoolList': '1.0'},
-    'FixedIP': {'Instance': '1.18', 'Network': '1.2',
-                'VirtualInterface': '1.0',
-                'FloatingIPList': '1.7'},
-    'FloatingIP': {'FixedIP': '1.8'},
-    'Instance': {'InstanceFault': '1.2',
-                 'InstanceInfoCache': '1.5',
-                 'InstanceNUMATopology': '1.1',
-                 'PciDeviceList': '1.1',
-                 'TagList': '1.0',
-                 'SecurityGroupList': '1.0',
-                 'Flavor': '1.1',
-                 'InstancePCIRequests': '1.1'},
-    'InstanceNUMACell': {'VirtCPUTopology': '1.0'},
-    'MyObj': {'MyOwnedObject': '1.0'},
-    'SecurityGroupRule': {'SecurityGroup': '1.1'},
-    'Service': {'ComputeNode': '1.10'},
-    'TestSubclassedObject': {'MyOwnedObject': '1.0'}
-}
-
-
 class TestObjectVersions(test.TestCase):
     def setUp(self):
         self.skip('disabled in the library for now')
-
-    def _build_tree(self, tree, obj_class):
-        obj_name = obj_class.obj_name()
-        if obj_name in tree:
-            return
-
-        for name, field in obj_class.fields.items():
-            if isinstance(field._type, fields.Object):
-                sub_obj_name = field._type._obj_name
-                obj_classes = base.VersionedObjectRegistry.obj_classes()
-                sub_obj_class = obj_classes[sub_obj_name][0]
-                self._build_tree(tree, sub_obj_class)
-                tree.setdefault(obj_name, {})
-                tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
-
-    def test_relationships(self):
-        self.skip('relationship test needs to be rewritten')
-        tree = {}
-        obj_classes = base.VersionedObjectRegistry.obj_classes()
-        for obj_name in base.VersionedObjectRegistry.obj_classes().keys():
-            self._build_tree(tree, obj_classes[obj_name][0])
-
-        stored = set([(x, str(y)) for x, y in object_relationships.items()])
-        computed = set([(x, str(y)) for x, y in tree.items()])
-        changed = stored.symmetric_difference(computed)
-        expected = {}
-        actual = {}
-        for name, deps in changed:
-            expected[name] = object_relationships.get(name)
-            actual[name] = tree.get(name)
-        self.assertEqual(expected, actual,
-                         'Some objects have changed dependencies. '
-                         'Please make sure to bump the versions of '
-                         'parent objects and provide a rule in their '
-                         'obj_make_compatible() routines to backlevel '
-                         'the child object.')
 
     def test_obj_make_compatible(self):
         # Iterate all object classes and verify that we can run
