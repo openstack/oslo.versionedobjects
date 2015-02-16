@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
 import copy
 import datetime
 import hashlib
@@ -29,6 +28,7 @@ from testtools import matchers
 
 from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
+from oslo_versionedobjects import checks
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
 from oslo_versionedobjects import test
@@ -129,7 +129,7 @@ class MyObjDiffVers(MyObj):
         return 'MyObj'
 
 
-@base.VersionedObjectRegistry.register
+@base.VersionedObjectRegistry.register_if(False)
 class MyObj2(base.VersionedObject):
     @classmethod
     def obj_name(cls):
@@ -318,10 +318,6 @@ class _BaseTestCase(test.TestCase):
         self.user_id = 'fake-user'
         self.project_id = 'fake-project'
         self.context = context.RequestContext(self.user_id, self.project_id)
-        # FIXME(dhellmann): See work items in
-        # adopt-oslo-versionedobjects spec.
-        # fake_notifier.stub_notifier(self.stubs)
-        # self.addCleanup(fake_notifier.reset)
 
     def compare_obj(self, obj, db_obj, subs=None, allow_missing=None,
                     comparators=None):
@@ -351,78 +347,40 @@ class _BaseTestCase(test.TestCase):
             f(obj, cls, msg=msg)
 
 
+class TestChecks(_BaseTestCase):
+    def test_indirection_action(self):
+        self.useFixture(checks.IndirectionFixture())
+        obj = MyObj(context=self.context)
+        with mock.patch.object(base.VersionedObject.indirection_api,
+                               'object_action') as mock_action:
+            mock_action.return_value = ({}, 'foo')
+            obj.marco()
+            mock_action.assert_called_once_with(self.context,
+                                                obj, 'marco',
+                                                (), {})
+
+    def test_indirection_class_action(self):
+        self.useFixture(checks.IndirectionFixture())
+        with mock.patch.object(base.VersionedObject.indirection_api,
+                               'object_class_action') as mock_caction:
+            mock_caction.return_value = 'foo'
+            MyObj.query(self.context)
+            mock_caction.assert_called_once_with(self.context,
+                                                 'MyObj', 'query',
+                                                 MyObj.VERSION,
+                                                 (), {})
+
+
 class _LocalTest(_BaseTestCase):
     def setUp(self):
         super(_LocalTest, self).setUp()
-        # Just in case
-        base.VersionedObject.indirection_api = None
-
-    def assertRemotes(self):
-        self.assertEqual(self.remote_object_calls, [])
-
-
-@contextlib.contextmanager
-def things_temporarily_local():
-    # Temporarily go non-remote so the conductor handles
-    # this request directly
-    _api = base.VersionedObject.indirection_api
-    base.VersionedObject.indirection_api = None
-    yield
-    base.VersionedObject.indirection_api = _api
+        self.assertIsNone(base.VersionedObject.indirection_api)
 
 
 class _RemoteTest(_BaseTestCase):
-    def _testable_conductor(self):
-        self.conductor_service = self.start_service(
-            'conductor', manager='nova.conductor.manager.ConductorManager')
-        self.remote_object_calls = list()
-
-        orig_object_class_action = \
-            self.conductor_service.manager.object_class_action
-        orig_object_action = \
-            self.conductor_service.manager.object_action
-
-        def fake_object_class_action(*args, **kwargs):
-            self.remote_object_calls.append((kwargs.get('objname'),
-                                             kwargs.get('objmethod')))
-            with things_temporarily_local():
-                result = orig_object_class_action(*args, **kwargs)
-            return (base.VersionedObject.obj_from_primitive(result,
-                                                            context=args[0])
-                    if isinstance(result, base.VersionedObject) else result)
-        self.stubs.Set(self.conductor_service.manager, 'object_class_action',
-                       fake_object_class_action)
-
-        def fake_object_action(*args, **kwargs):
-            self.remote_object_calls.append((kwargs.get('objinst'),
-                                             kwargs.get('objmethod')))
-            with things_temporarily_local():
-                result = orig_object_action(*args, **kwargs)
-            return result
-        self.stubs.Set(self.conductor_service.manager, 'object_action',
-                       fake_object_action)
-
-        # Things are remoted by default in this session
-        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
-        # base.VersionedObject.indirection_api =conductor_rpcapi.ConductorAPI()
-
-        # To make sure local and remote contexts match
-        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
-        # self.stubs.Set(rpc.RequestContextSerializer,
-        #                'serialize_context',
-        #                lambda s, c: c)
-        # self.stubs.Set(rpc.RequestContextSerializer,
-        #                'deserialize_context',
-        #                lambda s, c: c)
-
     def setUp(self):
-        # FIXME(dhellmann): See work items in adopt-oslo-versionedobjects.
-        self.skip('remote tests need to be rewritten')
         super(_RemoteTest, self).setUp()
-        self._testable_conductor()
-
-    def assertRemotes(self):
-        self.assertNotEqual(self.remote_object_calls, [])
+        self.useFixture(checks.IndirectionFixture())
 
 
 class _TestObject(object):
@@ -580,7 +538,6 @@ class _TestObject(object):
         obj._context = None
         self.assertRaises(exception.OrphanedObjectError,
                           obj._update_test)
-        self.assertRemotes()
 
     def test_changed_1(self):
         obj = MyObj.query(self.context)
@@ -589,7 +546,6 @@ class _TestObject(object):
         obj._update_test()
         self.assertEqual(obj.obj_what_changed(), set(['foo', 'bar']))
         self.assertEqual(obj.foo, 123)
-        self.assertRemotes()
 
     def test_changed_2(self):
         obj = MyObj.query(self.context)
@@ -598,7 +554,6 @@ class _TestObject(object):
         obj.save()
         self.assertEqual(obj.obj_what_changed(), set([]))
         self.assertEqual(obj.foo, 123)
-        self.assertRemotes()
 
     def test_changed_3(self):
         obj = MyObj.query(self.context)
@@ -608,7 +563,6 @@ class _TestObject(object):
         self.assertEqual(obj.obj_what_changed(), set([]))
         self.assertEqual(obj.foo, 321)
         self.assertEqual(obj.bar, 'refreshed')
-        self.assertRemotes()
 
     def test_changed_4(self):
         obj = MyObj.query(self.context)
@@ -619,7 +573,6 @@ class _TestObject(object):
         self.assertEqual(obj.foo, 42)
         self.assertEqual(obj.bar, 'meow')
         self.assertIsInstance(obj.rel_object, MyOwnedObject)
-        self.assertRemotes()
 
     def test_changed_with_sub_object(self):
         @base.VersionedObjectRegistry.register
@@ -644,14 +597,12 @@ class _TestObject(object):
         self.assertEqual(obj.bar, 'bar')
         result = obj.marco()
         self.assertEqual(result, 'polo')
-        self.assertRemotes()
 
     def test_updates(self):
         obj = MyObj.query(self.context)
         self.assertEqual(obj.foo, 1)
         obj._update_test()
         self.assertEqual(obj.bar, 'updated')
-        self.assertRemotes()
 
     def test_contains(self):
         obj = MyObj()
@@ -866,7 +817,6 @@ class TestRemoteObject(_RemoteTest, _TestObject):
         MyObj2.VERSION = '1.2'
         obj = MyObj2.query(self.context)
         self.assertEqual(obj.bar, 'bar')
-        self.assertRemotes()
 
     def test_compat(self):
         MyObj2.VERSION = '1.1'
