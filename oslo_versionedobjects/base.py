@@ -101,6 +101,9 @@ class VersionedObjectRegistry(object):
                 collections.defaultdict(list)
         return VersionedObjectRegistry._registry
 
+    def registration_hook(self, cls, index):
+        pass
+
     def _register_class(self, cls):
         def _vers_tuple(obj):
             return tuple([int(x) for x in obj.VERSION.split(".")])
@@ -108,32 +111,19 @@ class VersionedObjectRegistry(object):
         _make_class_properties(cls)
         obj_name = cls.obj_name()
         for i, obj in enumerate(self._obj_classes[obj_name]):
+            self.registration_hook(cls, i)
             if cls.VERSION == obj.VERSION:
                 self._obj_classes[obj_name][i] = cls
-                # Update nova.objects with this newer class.
-                # FIXME(dhellmann): We can't store library state in
-                # the application module.
-                # setattr(objects, obj_name, cls)
                 break
             if _vers_tuple(cls) > _vers_tuple(obj):
                 # Insert before.
                 self._obj_classes[obj_name].insert(i, cls)
-                # FIXME(dhellmann): We can't store library state in
-                # the application module.
-                # if i == 0:
-                #     # Later version than we've seen before. Update
-                #     # nova.objects.
-                #     setattr(objects, obj_name, cls)
                 break
         else:
-            self._obj_classes[obj_name].append(cls)
             # Either this is the first time we've seen the object or it's
-            # an older version than anything we'e seen. Update nova.objects
-            # only if it's the first time we've seen this object name.
-            # FIXME(dhellmann): We can't store library state in
-            # the application module.
-            # if not hasattr(objects, obj_name):
-            #     setattr(objects, obj_name, cls)
+            # an older version than anything we'e seen.
+            self._obj_classes[obj_name].append(cls)
+            self.registration_hook(cls, 0)
 
     @classmethod
     def register(cls, obj_cls):

@@ -217,6 +217,26 @@ class TestRegistry(test.TestCase):
         self.assertRaises(exception.ObjectFieldInvalid,
                           create_class, int)
 
+    def test_registration_hook(self):
+        class TestObject(base.VersionedObject):
+            VERSION = '1.0'
+
+        class TestObjectNewer(base.VersionedObject):
+            VERSION = '1.1'
+
+            @classmethod
+            def obj_name(cls):
+                return 'TestObject'
+
+        registry = base.VersionedObjectRegistry()
+        with mock.patch.object(registry, 'registration_hook') as mock_hook:
+            registry._register_class(TestObject)
+            mock_hook.assert_called_once_with(TestObject, 0)
+
+        with mock.patch.object(registry, 'registration_hook') as mock_hook:
+            registry._register_class(TestObjectNewer)
+            mock_hook.assert_called_once_with(TestObjectNewer, 0)
+
 
 class TestObjMakeList(test.TestCase):
 
