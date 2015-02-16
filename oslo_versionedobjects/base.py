@@ -14,6 +14,7 @@
 
 """Common internal object model"""
 
+import abc
 import collections
 import copy
 import datetime
@@ -218,6 +219,8 @@ class VersionedObject(object):
     necessary "get" classmethod routines as well as "save" object methods
     as appropriate.
     """
+
+    indirection_api = None
 
     # Object versioning rules
     #
@@ -499,7 +502,7 @@ class VersionedObject(object):
     def obj_load_attr(self, attrname):
         """Load an additional attribute from the real object.
 
-        This should use self._conductor, and cache any data that might
+        This should load self.$attrname and cache any data that might
         be useful for future load operations.
         """
         raise NotImplementedError(
@@ -713,16 +716,9 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
     values should pass this to its RPCClient and RPCServer objects.
     """
 
-    @property
-    def conductor(self):
-        if not hasattr(self, '_conductor'):
-            from nova import conductor
-            self._conductor = conductor.API()
-        return self._conductor
-
     def _process_object(self, context, objprim):
         try:
-            objinst = VersionedObject.obj_from_primitive(
+            return VersionedObject.obj_from_primitive(
                 objprim, context=context)
         except exception.IncompatibleObjectVersion as e:
             objver = objprim['versioned_object.version']
@@ -732,9 +728,11 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
                 objprim['versioned_object.version'] = \
                     '.'.join(objver.split('.')[:2])
                 return self._process_object(context, objprim)
-            objinst = self.conductor.object_backport(context, objprim,
-                                                     e.kwargs['supported'])
-        return objinst
+            if VersionedObject.indirection_api:
+                return VersionedObject.indirection_api.object_backport(
+                    context, objprim, e.kwargs['supported'])
+            else:
+                raise
 
     def _process_iterable(self, context, action_fn, values):
         """Process an iterable, taking an action on each value.
@@ -774,6 +772,68 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
             entity = self._process_iterable(context, self.deserialize_entity,
                                             entity)
         return entity
+
+
+@six.add_metaclass(abc.ABCMeta)
+class VersionedObjectIndirectionAPI(object):
+    def object_action(self, context, objinst, objmethod, args, kwargs):
+        """Perform an action on a VersionedObject instance.
+
+        When indirection_api is set on a VersionedObject (to a class
+        implementing this interface), method calls on remotable methods
+        will cause this to be executed to actually make the desired
+        call. This often involves performing RPC.
+
+        :param context: The context within which to perform the action
+        :param objinst: The object instance on which to perform the action
+        :param objmethod: The name of the action method to call
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :returns: The result of the action method
+        """
+        pass
+
+    def object_class_action(self, context, objname, objmethod, objver,
+                            args, kwargs):
+        """Perform an action on a VersionedObject class.
+
+        When indirection_api is set on a VersionedObject (to a class
+        implementing this interface), classmethod calls on
+        remotable_classmethod methods will cause this to be executed to
+        actually make the desired call. This usually involves performing
+        RPC.
+
+        :param context: The context within which to perform the action
+        :param objname: The registry name of the object
+        :param objmethod: The name of the action method to call
+        :param objver: The (remote) version of the object on which the
+                       action is being taken
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :returns: The result of the action method, which may (or may not)
+                  be an instance of the implementing VersionedObject class.
+        """
+        pass
+
+    def object_backport(self, context, objinst, target_version):
+        """Perform a backport of an object instance to a specified version.
+
+        When indirection_api is set on a VersionedObject (to a class
+        implementing this interface), the default behavior of the base
+        VersionedObjectSerializer, upon receiving an object with a version
+        newer than what is in the lcoal registry, is to call this method to
+        request a backport of the object. In an environment where there is
+        an RPC-able service on the bus which can gracefully downgrade newer
+        objects for older services, this method services as a translation
+        mechanism for older code when receiving objects from newer code.
+
+        :param context: The context within which to perform the backport
+        :param objinst: An instance of a VersionedObject to be backported
+        :param target_version: The maximum version of the objinst's class
+                               that is understood by the requesting host.
+        :returns: The downgraded instance of objinst
+        """
+        pass
 
 
 def obj_make_list(context, list_obj, item_cls, db_list, **extra_args):

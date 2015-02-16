@@ -975,11 +975,12 @@ class TestObjectSerializer(_BaseTestCase):
         ser = base.VersionedObjectSerializer()
         self.assertEqual([1, 2], ser.serialize_entity(None, set([1, 2])))
 
+    @mock.patch('oslo_versionedobjects.base.VersionedObject.indirection_api')
     def _test_deserialize_entity_newer(self, obj_version, backported_to,
+                                       mock_iapi,
                                        my_version='1.6'):
         ser = base.VersionedObjectSerializer()
-        ser._conductor = mock.Mock()
-        ser._conductor.object_backport.return_value = 'backported'
+        mock_iapi.object_backport.return_value = 'backported'
 
         @base.VersionedObjectRegistry.register
         class MyTestObj(MyObj):
@@ -990,12 +991,12 @@ class TestObjectSerializer(_BaseTestCase):
         primitive = obj.obj_to_primitive()
         result = ser.deserialize_entity(self.context, primitive)
         if backported_to is None:
-            self.assertFalse(ser._conductor.object_backport.called)
+            self.assertFalse(mock_iapi.object_backport.called)
         else:
             self.assertEqual('backported', result)
-            ser._conductor.object_backport.assert_called_with(self.context,
-                                                              primitive,
-                                                              backported_to)
+            mock_iapi.object_backport.assert_called_with(self.context,
+                                                         primitive,
+                                                         backported_to)
 
     def test_deserialize_entity_newer_version_backports(self):
         self._test_deserialize_entity_newer('1.25', '1.6')
@@ -1007,7 +1008,7 @@ class TestObjectSerializer(_BaseTestCase):
         self._test_deserialize_entity_newer('1.6.1', None)
 
     def test_deserialize_entity_newer_version_passes_revision(self):
-        self._test_deserialize_entity_newer('1.7', '1.6.1', '1.6.1')
+        self._test_deserialize_entity_newer('1.7', '1.6.1', my_version='1.6.1')
 
     def test_deserialize_dot_z_with_extra_stuff(self):
         primitive = {'versioned_object.name': 'MyObj',
