@@ -188,7 +188,7 @@ def remotable(fn):
         if VersionedObject.indirection_api:
             updates, result = VersionedObject.indirection_api.object_action(
                 ctxt, self, fn.__name__, args, kwargs)
-            for key, value in updates.iteritems():
+            for key, value in six.iteritems(updates):
                 if key in self.fields:
                     field = self.fields[key]
                     # NOTE(ndipanov): Since VersionedObjectSerializer will have
