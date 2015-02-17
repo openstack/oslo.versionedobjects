@@ -249,6 +249,23 @@ class TestRegistry(test.TestCase):
             registry._register_class(TestObjectNewer)
             mock_hook.assert_called_once_with(TestObjectNewer, 0)
 
+    def test_subclassability(self):
+        class MyRegistry(base.VersionedObjectRegistry):
+            pass
+
+        @MyRegistry.register
+        class ObjectInSubclassedRegistry(object):
+            fields = {}
+
+            @classmethod
+            def obj_name(cls):
+                return cls.__name__
+
+        self.assertIn('ObjectInSubclassedRegistry',
+                      MyRegistry.obj_classes())
+        self.assertIn('ObjectInSubclassedRegistry',
+                      base.VersionedObjectRegistry.obj_classes())
+
 
 class TestObjMakeList(test.TestCase):
 
