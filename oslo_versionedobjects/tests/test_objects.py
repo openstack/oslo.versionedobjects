@@ -27,11 +27,11 @@ from oslo_context import context
 from oslo_serialization import jsonutils
 from testtools import matchers
 
+from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
 from oslo_versionedobjects import test
-from oslo_versionedobjects import utils
 
 
 LOG = logging.getLogger(__name__)

@@ -25,10 +25,10 @@ from oslo_utils import timeutils
 import six
 
 from oslo_versionedobjects._i18n import _, _LE
+from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
 from oslo_versionedobjects.openstack.common import versionutils
-from oslo_versionedobjects import utils
 
 
 LOG = logging.getLogger('object')
