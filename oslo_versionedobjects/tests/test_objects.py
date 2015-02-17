@@ -908,6 +908,7 @@ class TestObjectListBase(test.TestCase):
                     list_obj_class.__name__))
 
     def test_object_version_mappings(self):
+        self.skip('this needs to be generalized')
         # Find all object list classes and make sure that they at least handle
         # all the current object versions
         for obj_classes in base.VersionedObjectRegistry.obj_classes().values():
@@ -1101,6 +1102,9 @@ object_relationships = {
 
 
 class TestObjectVersions(test.TestCase):
+    def setUp(self):
+        self.skip('disabled in the library for now')
+
     def _find_remotable_method(self, cls, thing, parent_was_remotable=False):
         """Follow a chain of remotable things down to the original function."""
         if isinstance(thing, classmethod):
