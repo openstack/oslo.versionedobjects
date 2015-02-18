@@ -22,7 +22,6 @@ from oslo_context import context
 from oslo_serialization import jsonutils
 from testtools import matchers
 
-from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import checks
 from oslo_versionedobjects import exception
@@ -463,6 +462,59 @@ class TestChecks(_BaseTestCase):
              mock.call(target_version='1.1'),
              mock.call(target_version='1.2'),
              mock.call(target_version='1.3')])
+
+    def test_test_relationships_in_order(self):
+        registry = base.VersionedObjectRegistry()
+        checker = checks.ObjectVersionChecker()
+        fake_classes = {mock.sentinel.class_one: [mock.sentinel.impl_one_one,
+                                                  mock.sentinel.impl_one_two],
+                        mock.sentinel.class_two: [mock.sentinel.impl_two_one,
+                                                  mock.sentinel.impl_two_two],
+                        }
+
+        @mock.patch.object(checker, '_test_relationships_in_order')
+        def test(mock_compat):
+            checker.test_relationships_in_order()
+            mock_compat.assert_has_calls(
+                [mock.call(mock.sentinel.impl_one_one),
+                 mock.call(mock.sentinel.impl_one_two),
+                 mock.call(mock.sentinel.impl_two_one),
+                 mock.call(mock.sentinel.impl_two_two)],
+                any_order=True)
+
+        with mock.patch.object(registry, '_obj_classes', new=fake_classes):
+            test()
+
+    def test_test_relationships_in_order_good(self):
+        fake = mock.MagicMock()
+        fake.VERSION = '1.5'
+        fake.fields = {'foo': fields.ObjectField('bar')}
+        fake.obj_relationships = {'foo': [('1.2', '1.0'),
+                                          ('1.3', '1.2')]}
+
+        checker = checks.ObjectVersionChecker()
+        checker._test_relationships_in_order(fake)
+
+    def _test_test_relationships_in_order_bad(self, fake_rels):
+        fake = mock.MagicMock()
+        fake.VERSION = '1.5'
+        fake.fields = {'foo': fields.ObjectField('bar')}
+        fake.obj_relationships = fake_rels
+        checker = checks.ObjectVersionChecker()
+        self.assertRaises(AssertionError,
+                          checker._test_relationships_in_order, fake)
+
+    def test_test_relationships_in_order_bad_my_version(self):
+        self._test_test_relationships_in_order_bad(
+            {'foo': [('1.4', '1.1'), ('1.3', '1.2')]})
+
+    def test_test_relationships_in_order_bad_child_version(self):
+        self._test_test_relationships_in_order_bad(
+            {'foo': [('1.2', '1.3'), ('1.3', '1.2')]})
+
+    def test_test_relationships_in_order_bad_both_versions(self):
+        self._test_test_relationships_in_order_bad(
+            {'foo': [('1.5', '1.4'), ('1.3', '1.2')]})
 
 
 class _LocalTest(_BaseTestCase):
@@ -1154,31 +1206,3 @@ class TestObjectSerializer(_BaseTestCase):
         self.assertEqual(thing, primitive)
         thing2 = ser.deserialize_entity(self.context, thing)
         self.assertIsInstance(thing2['foo'], base.VersionedObject)
-
-
-class TestObjectVersions(test.TestCase):
-    def setUp(self):
-        self.skip('disabled in the library for now')
-
-    def test_obj_relationships_in_order(self):
-        # Iterate all object classes and verify that we can run
-        # obj_make_compatible with every older version than current.
-        # This doesn't actually test the data conversions, but it at least
-        # makes sure the method doesn't blow up on something basic like
-        # expecting the wrong version format.
-        for obj_name in base.VersionedObjectRegistry.obj_classes():
-            obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
-            for field, versions in obj_class.obj_relationships.items():
-                last_my_version = (0, 0)
-                last_child_version = (0, 0)
-                for my_version, child_version in versions:
-                    _my_version = utils.convert_version_to_tuple(my_version)
-                    _ch_version = utils.convert_version_to_tuple(child_version)
-                    self.assertTrue((last_my_version < _my_version
-                                     and last_child_version <= _ch_version),
-                                    'Object %s relationship '
-                                    '%s->%s for field %s is out of order' % (
-                                        obj_name, my_version, child_version,
-                                        field))
-                    last_my_version = _my_version
-                    last_child_version = _ch_version
