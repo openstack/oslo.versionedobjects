@@ -562,6 +562,18 @@ class VersionedObject(object):
         return list(self.fields.keys()) + self.obj_extra_fields
 
 
+class ComparableVersionedObject(object):
+    """Mix-in to provide comparason methods
+
+    When objects are to be compared with each other (in tests for example),
+    this mixin can be used.
+    """
+    def __eq__(self, obj):
+        # FIXME(inc0): this can return incorrect value if we consider partially
+        # loaded objects from db and fields which are dropped out differ
+        return self.obj_to_primitive() == obj.obj_to_primitive()
+
+
 class VersionedObjectDictCompat(object):
     """Mix-in to provide dictionary key access compat
 
