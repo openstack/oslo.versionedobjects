@@ -23,9 +23,9 @@ from oslo_serialization import jsonutils
 from testtools import matchers
 
 from oslo_versionedobjects import base
-from oslo_versionedobjects import checks
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
+from oslo_versionedobjects import fixture
 from oslo_versionedobjects import test
 
 
@@ -364,9 +364,9 @@ class _BaseTestCase(test.TestCase):
             f(obj, cls, msg=msg)
 
 
-class TestChecks(_BaseTestCase):
+class TestFixture(_BaseTestCase):
     def test_indirection_action(self):
-        self.useFixture(checks.IndirectionFixture())
+        self.useFixture(fixture.IndirectionFixture())
         obj = MyObj(context=self.context)
         with mock.patch.object(base.VersionedObject.indirection_api,
                                'object_action') as mock_action:
@@ -377,7 +377,7 @@ class TestChecks(_BaseTestCase):
                                                 (), {})
 
     def test_indirection_class_action(self):
-        self.useFixture(checks.IndirectionFixture())
+        self.useFixture(fixture.IndirectionFixture())
         with mock.patch.object(base.VersionedObject.indirection_api,
                                'object_class_action') as mock_caction:
             mock_caction.return_value = 'foo'
@@ -388,7 +388,7 @@ class TestChecks(_BaseTestCase):
                                                  (), {})
 
     def test_get_hashes(self):
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         hashes = checker.get_hashes()
         # NOTE(danms): If this object's version or hash changes, this needs
         # to change. Otherwise, leave it alone.
@@ -396,7 +396,7 @@ class TestChecks(_BaseTestCase):
                          hashes['TestSubclassedObject'])
 
     def test_test_hashes(self):
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         hashes = checker.get_hashes()
         actual_hash = hashes['TestSubclassedObject']
         hashes['TestSubclassedObject'] = 'foo'
@@ -407,7 +407,7 @@ class TestChecks(_BaseTestCase):
         self.assertEqual(actual_hash, actual['TestSubclassedObject'])
 
     def test_get_dependency_tree(self):
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         tree = checker.get_dependency_tree()
 
         # NOTE(danms): If this object's dependencies change, this n eeds
@@ -416,7 +416,7 @@ class TestChecks(_BaseTestCase):
                          tree['TestSubclassedObject'])
 
     def test_test_relationships(self):
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         tree = checker.get_dependency_tree()
         actual = tree['TestSubclassedObject']
         tree['TestSubclassedObject']['Foo'] = '9.8'
@@ -431,7 +431,7 @@ class TestChecks(_BaseTestCase):
 
     def test_test_compatibility(self):
         registry = base.VersionedObjectRegistry()
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         fake_classes = {mock.sentinel.class_one: [mock.sentinel.impl_one_one,
                                                   mock.sentinel.impl_one_two],
                         mock.sentinel.class_two: [mock.sentinel.impl_two_one,
@@ -455,7 +455,7 @@ class TestChecks(_BaseTestCase):
         fake = mock.MagicMock()
         fake.VERSION = '1.3'
 
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         checker._test_object_compatibility(fake)
         fake().obj_to_primitive.assert_has_calls(
             [mock.call(target_version='1.0'),
@@ -465,7 +465,7 @@ class TestChecks(_BaseTestCase):
 
     def test_test_relationships_in_order(self):
         registry = base.VersionedObjectRegistry()
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         fake_classes = {mock.sentinel.class_one: [mock.sentinel.impl_one_one,
                                                   mock.sentinel.impl_one_two],
                         mock.sentinel.class_two: [mock.sentinel.impl_two_one,
@@ -492,7 +492,7 @@ class TestChecks(_BaseTestCase):
         fake.obj_relationships = {'foo': [('1.2', '1.0'),
                                           ('1.3', '1.2')]}
 
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         checker._test_relationships_in_order(fake)
 
     def _test_test_relationships_in_order_bad(self, fake_rels):
@@ -500,7 +500,7 @@ class TestChecks(_BaseTestCase):
         fake.VERSION = '1.5'
         fake.fields = {'foo': fields.ObjectField('bar')}
         fake.obj_relationships = fake_rels
-        checker = checks.ObjectVersionChecker()
+        checker = fixture.ObjectVersionChecker()
         self.assertRaises(AssertionError,
                           checker._test_relationships_in_order, fake)
 
@@ -526,7 +526,7 @@ class _LocalTest(_BaseTestCase):
 class _RemoteTest(_BaseTestCase):
     def setUp(self):
         super(_RemoteTest, self).setUp()
-        self.useFixture(checks.IndirectionFixture())
+        self.useFixture(fixture.IndirectionFixture())
 
 
 class _TestObject(object):
