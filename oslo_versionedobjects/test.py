@@ -16,8 +16,7 @@
 
 """Base classes for our unit tests.
 
-Allows overriding of flags for use of fakes, and some black magic for
-inline callbacks.
+Some black magic for inline callbacks.
 
 """
 
@@ -33,32 +32,15 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error
-import oslo_log.log as logging
 from oslo_utils import timeutils
 from oslotest import moxstubout
 import six
 import testtools
 
-from oslo_versionedobjects import _utils as utils
-#from nova import db
-#from nova.network import manager as network_manager
-#from nova import objects
 from oslo_versionedobjects.tests import obj_fixtures
 
 
 CONF = cfg.CONF
-# CONF.import_opt('enabled', 'nova.api.openstack', group='osapi_v3')
-# CONF.set_override('use_stderr', False)
-
-logging.register_options(CONF)
-logging.setup(CONF, 'versionedobjects')
-
-# NOTE(comstud): Make sure we have all of the objects loaded. We do this
-# at module import time, because we may be using mock decorators in our
-# tests that run at import time.
-# FIXME(dhellmann): We can't store library state in
-# the application module.
-# objects.register_all()
 
 
 class TestingException(Exception):
@@ -121,12 +103,7 @@ _patch_mock_to_raise_for_invalid_assert_calls()
 
 
 class TestCase(testtools.TestCase):
-    """Test case base class for all unit tests.
-
-    Due to the slowness of DB access, please consider deriving from
-    `NoDBTestCase` first.
-    """
-    USES_DB = True
+    """Test case base class for all unit tests."""
     REQUIRES_LOCKING = False
 
     TIMEOUT_SCALING_FACTOR = 1
@@ -165,20 +142,9 @@ class TestCase(testtools.TestCase):
             self.fixture.config(lock_path=lock_path,
                                 group='oslo_concurrency')
 
-        # self.useFixture(config_fixture.ConfFixture(CONF))
-        # self.useFixture(obj_fixtures.RPCFixture('nova.test'))
-
-        # if self.USES_DB:
-        #     self.useFixture(obj_fixtures.Database())
-
         # NOTE(blk-u): WarningsFixture must be after the Database fixture
         # because sqlalchemy-migrate messes with the warnings filters.
         self.useFixture(obj_fixtures.WarningsFixture())
-
-        # NOTE(mnaser): All calls to utils.is_neutron() are cached in
-        # nova.utils._IS_NEUTRON.  We set it to None to avoid any
-        # caching of that value.
-        utils._IS_NEUTRON = None
 
         mox_fixture = self.useFixture(moxstubout.MoxStubout())
         self.mox = mox_fixture.mox
@@ -192,17 +158,6 @@ class TestCase(testtools.TestCase):
         # suite
         for key in [k for k in self.__dict__.keys() if k[0] != '_']:
             del self.__dict__[key]
-
-    def flags(self, **kw):
-        """Override flag variables for a test."""
-        group = kw.pop('group', None)
-        for k, v in kw.iteritems():
-            CONF.set_override(k, v, group)
-
-    def start_service(self, name, host=None, **kwargs):
-        svc = self.useFixture(
-            obj_fixtures.ServiceFixture(name, host, **kwargs))
-        return svc.service
 
     def assertPublicAPISignatures(self, baseinst, inst):
         def get_public_apis(inst):
@@ -259,15 +214,7 @@ class TimeOverride(fixtures.Fixture):
         self.addCleanup(timeutils.clear_time_override)
 
 
-class NoDBTestCase(TestCase):
-    """`NoDBTestCase` differs from TestCase in that DB access is not supported.
-    This makes tests run significantly faster. If possible, all new tests
-    should derive from this class.
-    """
-    USES_DB = False
-
-
-class BaseHookTestCase(NoDBTestCase):
+class BaseHookTestCase(TestCase):
     def assert_has_hook(self, expected_name, func):
         self.assertTrue(hasattr(func, '__hook_name__'))
         self.assertEqual(expected_name, func.__hook_name__)

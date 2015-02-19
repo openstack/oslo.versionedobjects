@@ -34,7 +34,7 @@ class FakeFieldType(fields.FieldType):
         return value[1:-1]
 
 
-class TestField(test.NoDBTestCase):
+class TestField(test.TestCase):
     def setUp(self):
         super(TestField, self).setUp()
         self.field = fields.Field(FakeFieldType())

@@ -20,40 +20,16 @@ from __future__ import absolute_import
 import gettext
 import logging
 import os
-import uuid
 import warnings
 
 import fixtures
 from oslo_config import cfg
 
-# from nova.db import migration
-# from nova.db.sqlalchemy import api as session
-# from nova import rpc
-# from nova import service
 
 _TRUE_VALUES = ('True', 'true', '1', 'yes')
 
 CONF = cfg.CONF
 DB_SCHEMA = ""
-
-
-class ServiceFixture(fixtures.Fixture):
-    """Run a service as a test fixture."""
-
-    def __init__(self, name, host=None, **kwargs):
-        name = name
-        host = host or uuid.uuid4().hex
-        kwargs.setdefault('host', host)
-        kwargs.setdefault('binary', 'versionedobjects-%s' % name)
-        self.kwargs = kwargs
-
-    def setUp(self):
-        super(ServiceFixture, self).setUp()
-        # FIXME(dhellmann): See work items in
-        # adopt-oslo-versionedobjects spec.
-        # self.service = service.Service.create(**self.kwargs)
-        # self.service.start()
-        # self.addCleanup(self.service.kill)
 
 
 class TranslationFixture(fixtures.Fixture):
@@ -139,10 +115,6 @@ class StandardLogging(fixtures.Fixture):
             self.useFixture(fixtures.LogHandler(handler, nuke_handlers=False))
             handler.setLevel(logging.DEBUG)
 
-            # Don't log every single DB migration step
-            logging.getLogger(
-                'migrate.versioning.api').setLevel(logging.WARNING)
-
 
 class OutputStreamCapture(fixtures.Fixture):
     """Capture output streams during tests.
@@ -199,45 +171,6 @@ class Timeout(fixtures.Fixture):
         super(Timeout, self).setUp()
         if self.test_timeout > 0:
             self.useFixture(fixtures.Timeout(self.test_timeout, gentle=True))
-
-
-# class Database(fixtures.Fixture):
-#     def _cache_schema(self):
-#         global DB_SCHEMA
-#         if not DB_SCHEMA:
-#             engine = session.get_engine()
-#             conn = engine.connect()
-#             migration.db_sync()
-#             DB_SCHEMA = "".join(line for line in conn.connection.iterdump())
-#             engine.dispose()
-
-#     def reset(self):
-#         self._cache_schema()
-#         engine = session.get_engine()
-#         engine.dispose()
-#         conn = engine.connect()
-#         conn.connection.executescript(DB_SCHEMA)
-
-#     def setUp(self):
-#         super(Database, self).setUp()
-#         self.reset()
-
-
-# class RPCFixture(fixtures.Fixture):
-#     def __init__(self, *exmods):
-#         super(RPCFixture, self).__init__()
-#         self.exmods = []
-#         self.exmods.extend(exmods)
-
-#     def setUp(self):
-#         super(RPCFixture, self).setUp()
-#         self.addCleanup(rpc.cleanup)
-#         rpc.add_extra_exmods(*self.exmods)
-#         self.addCleanup(rpc.clear_extra_exmods)
-#         self.messaging_conf = messaging_conffixture.ConfFixture(CONF)
-#         self.messaging_conf.transport_driver = 'fake'
-#         self.useFixture(self.messaging_conf)
-#         rpc.init(CONF)
 
 
 class WarningsFixture(fixtures.Fixture):

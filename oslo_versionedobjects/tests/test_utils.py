@@ -21,7 +21,7 @@ from oslo_versionedobjects import test
 CONF = cfg.CONF
 
 
-class VersionTestCase(test.NoDBTestCase):
+class VersionTestCase(test.TestCase):
     def test_convert_version_to_int(self):
         self.assertEqual(utils.convert_version_to_int('6.2.0'), 6002000)
         self.assertEqual(utils.convert_version_to_int((6, 4, 3)), 6004003)
