@@ -498,7 +498,8 @@ class VersionedObject(object):
                 raise exception.ObjectActionError(
                     action='set_defaults',
                     reason='No default set for field %s' % attr)
-            setattr(self, attr, default)
+            if not self.obj_attr_is_set(attr):
+                setattr(self, attr, default)
 
     def obj_load_attr(self, attrname):
         """Load an additional attribute from the real object.
