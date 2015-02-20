@@ -28,7 +28,7 @@ import six
 from oslo_versionedobjects._i18n import _, _LE
 from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import exception
-from oslo_versionedobjects import fields
+from oslo_versionedobjects import fields as obj_fields
 from oslo_versionedobjects.openstack.common import versionutils
 
 
@@ -58,7 +58,7 @@ def _make_class_properties(cls):
             if name not in cls.fields:
                 cls.fields[name] = field
     for name, field in six.iteritems(cls.fields):
-        if not isinstance(field, fields.Field):
+        if not isinstance(field, obj_fields.Field):
             raise exception.ObjectFieldInvalid(
                 field=name, objname=cls.obj_name())
 
@@ -239,8 +239,8 @@ class VersionedObject(object):
 
     # The fields present in this object as key:field pairs. For example:
     #
-    # fields = { 'foo': fields.IntegerField(),
-    #            'bar': fields.StringField(),
+    # fields = { 'foo': obj_fields.IntegerField(),
+    #            'bar': obj_fields.StringField(),
     #          }
     fields = {}
     obj_extra_fields = []
@@ -454,8 +454,8 @@ class VersionedObject(object):
         if conversion is not possible for some reason
         """
         for key, field in self.fields.items():
-            if not isinstance(field, (fields.ObjectField,
-                                      fields.ListOfObjectsField)):
+            if not isinstance(field, (obj_fields.ObjectField,
+                                      obj_fields.ListOfObjectsField)):
                 continue
             if not self.obj_attr_is_set(key):
                 continue
@@ -490,11 +490,11 @@ class VersionedObject(object):
     def obj_set_defaults(self, *attrs):
         if not attrs:
             attrs = [name for name, field in self.fields.items()
-                     if field.default != fields.UnspecifiedDefault]
+                     if field.default != obj_fields.UnspecifiedDefault]
 
         for attr in attrs:
             default = self.fields[attr].default
-            if default is fields.UnspecifiedDefault:
+            if default is obj_fields.UnspecifiedDefault:
                 raise exception.ObjectActionError(
                     action='set_defaults',
                     reason='No default set for field %s' % attr)
@@ -534,11 +534,44 @@ class VersionedObject(object):
             changes[key] = getattr(self, key)
         return changes
 
-    def obj_reset_changes(self, fields=None):
+    def obj_reset_changes(self, fields=None, recursive=False):
         """Reset the list of fields that have been changed.
 
-        Note that this is NOT "revert to previous values"
+        :param fields: List of fields to reset, or "all" if None.
+        :param recursive: Call obj_reset_changes(recursive=True) on
+                          any sub-objects within the list of fields
+                          being reset.
+
+        NOTE: This is NOT "revert to previous values"
+        NOTE: Specifying fields on recursive resets will only be
+              honored at the top level. Everything below the top
+              will reset all.
         """
+        if recursive:
+            for field in self.obj_get_changes():
+
+                # Ignore fields not in requested set (if applicable)
+                if fields and field not in fields:
+                    continue
+
+                # Skip any fields that are unset
+                if not self.obj_attr_is_set(field):
+                    continue
+
+                value = getattr(self, field)
+
+                # Don't reset nulled fields
+                if value is None:
+                    continue
+
+                # Reset straight Object and ListOfObjects fields
+                if isinstance(self.fields[field], obj_fields.ObjectField):
+                    value.obj_reset_changes(recursive=True)
+                elif isinstance(self.fields[field],
+                                obj_fields.ListOfObjectsField):
+                    for thing in value:
+                        thing.obj_reset_changes(recursive=True)
+
         if fields:
             self._changed_fields -= set(fields)
         else:
@@ -654,7 +687,7 @@ class ObjectListBase(object):
     serialization of the list of objects automatically.
     """
     fields = {
-        'objects': fields.ListOfObjectsField('VersionedObject'),
+        'objects': obj_fields.ListOfObjectsField('VersionedObject'),
         }
 
     # This is a dictionary of my_version:child_version mappings so that
