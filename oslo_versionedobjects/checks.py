@@ -12,13 +12,18 @@
 
 import hashlib
 import inspect
+import logging
 import mock
 import six
 
 import fixtures
 from oslo_serialization import jsonutils
+from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
+
+
+LOG = logging.getLogger(__name__)
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
@@ -190,3 +195,23 @@ class ObjectVersionChecker(object):
             actual[name] = actual_tree.get(name)
 
         return expected, actual
+
+    def _test_object_compatibility(self, obj_class):
+        version = utils.convert_version_to_tuple(obj_class.VERSION)
+        for n in range(version[1] + 1):
+            test_version = '%d.%d' % (version[0], n)
+            LOG.info('testing obj: %s version: %s' %
+                     (obj_class.obj_name(), test_version))
+            obj_class().obj_to_primitive(target_version=test_version)
+
+    def test_compatibility_routines(self):
+        # Iterate all object classes and verify that we can run
+        # obj_make_compatible with every older version than current.
+        # This doesn't actually test the data conversions, but it at least
+        # makes sure the method doesn't blow up on something basic like
+        # expecting the wrong version format.
+        all_obj_classes = base.VersionedObjectRegistry.obj_classes()
+        for obj_name in all_obj_classes:
+            obj_classes = base.VersionedObjectRegistry.obj_classes()[obj_name]
+            for obj_class in obj_classes:
+                self._test_object_compatibility(obj_class)

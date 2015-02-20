@@ -430,6 +430,40 @@ class TestChecks(_BaseTestCase):
         self.assertEqual({'MyOwnedObject': '1.0'},
                          actual['TestSubclassedObject'])
 
+    def test_test_compatibility(self):
+        registry = base.VersionedObjectRegistry()
+        checker = checks.ObjectVersionChecker()
+        fake_classes = {mock.sentinel.class_one: [mock.sentinel.impl_one_one,
+                                                  mock.sentinel.impl_one_two],
+                        mock.sentinel.class_two: [mock.sentinel.impl_two_one,
+                                                  mock.sentinel.impl_two_two],
+                        }
+
+        @mock.patch.object(checker, '_test_object_compatibility')
+        def test(mock_compat):
+            checker.test_compatibility_routines()
+            mock_compat.assert_has_calls(
+                [mock.call(mock.sentinel.impl_one_one),
+                 mock.call(mock.sentinel.impl_one_two),
+                 mock.call(mock.sentinel.impl_two_one),
+                 mock.call(mock.sentinel.impl_two_two)],
+                any_order=True)
+
+        with mock.patch.object(registry, '_obj_classes', new=fake_classes):
+            test()
+
+    def test_test_compatibility_checks_obj_to_primitive(self):
+        fake = mock.MagicMock()
+        fake.VERSION = '1.3'
+
+        checker = checks.ObjectVersionChecker()
+        checker._test_object_compatibility(fake)
+        fake().obj_to_primitive.assert_has_calls(
+            [mock.call(target_version='1.0'),
+             mock.call(target_version='1.1'),
+             mock.call(target_version='1.2'),
+             mock.call(target_version='1.3')])
+
 
 class _LocalTest(_BaseTestCase):
     def setUp(self):
@@ -1125,21 +1159,6 @@ class TestObjectSerializer(_BaseTestCase):
 class TestObjectVersions(test.TestCase):
     def setUp(self):
         self.skip('disabled in the library for now')
-
-    def test_obj_make_compatible(self):
-        # Iterate all object classes and verify that we can run
-        # obj_make_compatible with every older version than current.
-        # This doesn't actually test the data conversions, but it at least
-        # makes sure the method doesn't blow up on something basic like
-        # expecting the wrong version format.
-        for obj_name in base.VersionedObjectRegistry.obj_classes():
-            obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
-            version = utils.convert_version_to_tuple(obj_class.VERSION)
-            for n in range(version[1]):
-                test_version = '%d.%d' % (version[0], n)
-                LOG.info('testing obj: %s version: %s' %
-                         (obj_name, test_version))
-                obj_class().obj_to_primitive(target_version=test_version)
 
     def test_obj_relationships_in_order(self):
         # Iterate all object classes and verify that we can run
