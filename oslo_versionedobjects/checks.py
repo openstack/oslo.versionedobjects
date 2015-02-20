@@ -215,3 +215,31 @@ class ObjectVersionChecker(object):
             obj_classes = base.VersionedObjectRegistry.obj_classes()[obj_name]
             for obj_class in obj_classes:
                 self._test_object_compatibility(obj_class)
+
+    def _test_relationships_in_order(self, obj_class):
+        for field, versions in obj_class.obj_relationships.items():
+            last_my_version = (0, 0)
+            last_child_version = (0, 0)
+            for my_version, child_version in versions:
+                _my_version = utils.convert_version_to_tuple(my_version)
+                _ch_version = utils.convert_version_to_tuple(child_version)
+                assert (last_my_version < _my_version
+                        and last_child_version <= _ch_version), \
+                    ('Object %s relationship '
+                     '%s->%s for field %s is out of order') % (
+                         obj_class.obj_name(), my_version,
+                         child_version, field)
+                last_my_version = _my_version
+                last_child_version = _ch_version
+
+    def test_relationships_in_order(self):
+        # Iterate all object classes and verify that we can run
+        # obj_make_compatible with every older version than current.
+        # This doesn't actually test the data conversions, but it at least
+        # makes sure the method doesn't blow up on something basic like
+        # expecting the wrong version format.
+        all_obj_classes = base.VersionedObjectRegistry.obj_classes()
+        for obj_name in all_obj_classes:
+            obj_classes = base.VersionedObjectRegistry.obj_classes()[obj_name]
+            for obj_class in obj_classes:
+                self._test_relationships_in_order(obj_class)
