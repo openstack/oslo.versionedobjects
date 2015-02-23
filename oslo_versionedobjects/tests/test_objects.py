@@ -945,6 +945,18 @@ class _TestObject(object):
             obj.obj_to_primitive('1.0')
             self.assertTrue(mock_mc.called)
 
+    def test_obj_make_compatible_on_list_base(self):
+        @base.VersionedObjectRegistry.register_if(False)
+        class MyList(base.ObjectListBase, base.VersionedObject):
+            VERSION = '1.1'
+            fields = {'objects': fields.ListOfObjectsField('MyObj')}
+
+        childobj = MyObj(foo=1)
+        listobj = MyList(objects=[childobj])
+        with mock.patch.object(childobj, 'obj_make_compatible') as mock_compat:
+            listobj.obj_to_primitive(target_version='1.0')
+            mock_compat.assert_called_once_with({'foo': 1}, '1.0')
+
     def test_comparable_objects(self):
         obj1 = MyComparableObj(foo=1)
         obj2 = MyComparableObj(foo=1)
@@ -1231,3 +1243,83 @@ class TestObjectSerializer(_BaseTestCase):
         self.assertEqual(thing, primitive)
         thing2 = ser.deserialize_entity(self.context, thing)
         self.assertIsInstance(thing2['foo'], base.VersionedObject)
+
+    def test_serializer_subclass_namespace(self):
+        @base.VersionedObjectRegistry.register
+        class MyNSObj(base.VersionedObject):
+            OBJ_SERIAL_NAMESPACE = 'foo'
+            fields = {'foo': fields.IntegerField()}
+
+        class MySerializer(base.VersionedObjectSerializer):
+            OBJ_BASE_CLASS = MyNSObj
+
+        ser = MySerializer()
+        obj = MyNSObj(foo=123)
+        obj2 = ser.deserialize_entity(None, ser.serialize_entity(None, obj))
+        self.assertIsInstance(obj2, MyNSObj)
+        self.assertEqual(obj.foo, obj2.foo)
+
+    def test_serializer_subclass_namespace_mismatch(self):
+        @base.VersionedObjectRegistry.register
+        class MyNSObj(base.VersionedObject):
+            OBJ_SERIAL_NAMESPACE = 'foo'
+            fields = {'foo': fields.IntegerField()}
+
+        class MySerializer(base.VersionedObjectSerializer):
+            OBJ_BASE_CLASS = MyNSObj
+
+        myser = MySerializer()
+        voser = base.VersionedObjectSerializer()
+        obj = MyObj(foo=123)
+        obj2 = myser.deserialize_entity(None,
+                                        voser.serialize_entity(None, obj))
+
+        # NOTE(danms): The new serializer should have ignored the objects
+        # serialized by the base serializer, so obj2 here should be a dict
+        # primitive and not a hydrated object
+        self.assertNotIsInstance(obj2, MyNSObj)
+        self.assertIn('versioned_object.name', obj2)
+
+
+class TestNamespaceCompatibility(test.TestCase):
+    def setUp(self):
+        super(TestNamespaceCompatibility, self).setUp()
+
+        @base.VersionedObjectRegistry.register_if(False)
+        class TestObject(base.VersionedObject):
+            OBJ_SERIAL_NAMESPACE = 'foo'
+            OBJ_PROJECT_NAMESPACE = 'tests'
+
+        self.test_class = TestObject
+
+    def test_obj_primitive_key(self):
+        self.assertEqual('foo.data',
+                         self.test_class._obj_primitive_key('data'))
+
+    def test_obj_primitive_field(self):
+        primitive = {
+            'foo.data': mock.sentinel.data,
+        }
+        self.assertEqual(mock.sentinel.data,
+                         self.test_class._obj_primitive_field(primitive,
+                                                              'data'))
+
+    def test_obj_primitive_field_namespace(self):
+        primitive = {
+            'foo.name': 'TestObject',
+            'foo.namespace': 'tests',
+            'foo.version': '1.0',
+            'foo.data': {},
+        }
+        with mock.patch.object(self.test_class, 'obj_class_from_name'):
+            self.test_class.obj_from_primitive(primitive)
+
+    def test_obj_primitive_field_namespace_wrong(self):
+        primitive = {
+            'foo.name': 'TestObject',
+            'foo.namespace': 'wrong',
+            'foo.version': '1.0',
+            'foo.data': {},
+        }
+        self.assertRaises(exception.UnsupportedObjectError,
+                          self.test_class.obj_from_primitive, primitive)

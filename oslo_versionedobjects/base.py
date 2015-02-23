@@ -237,6 +237,16 @@ class VersionedObject(object):
     # about X.Y can consider X.Y.Z equivalent.
     VERSION = '1.0'
 
+    # Object namespace for serialization
+    # NB: Generally this should not be changed, but is needed for backwards
+    #     compatibility
+    OBJ_SERIAL_NAMESPACE = 'versioned_object'
+
+    # Object project namespace for serialization
+    # This is used to disambiguate owners of objects sharing a common RPC
+    # medium
+    OBJ_PROJECT_NAMESPACE = 'versionedobjects'
+
     # The fields present in this object as key:field pairs. For example:
     #
     # fields = { 'foo': obj_fields.IntegerField(),
@@ -294,6 +304,19 @@ class VersionedObject(object):
         return cls.__name__
 
     @classmethod
+    def _obj_primitive_key(cls, field):
+        return '%s.%s' % (cls.OBJ_SERIAL_NAMESPACE, field)
+
+    @classmethod
+    def _obj_primitive_field(cls, primitive, field,
+                             default=obj_fields.UnspecifiedDefault):
+        key = cls._obj_primitive_key(field)
+        if default == obj_fields.UnspecifiedDefault:
+            return primitive[key]
+        else:
+            return primitive.get(key, default)
+
+    @classmethod
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
         if objname not in VersionedObjectRegistry.obj_classes():
@@ -328,8 +351,8 @@ class VersionedObject(object):
         self = cls()
         self._context = context
         self.VERSION = objver
-        objdata = primitive['versioned_object.data']
-        changes = primitive.get('versioned_object.changes', [])
+        objdata = cls._obj_primitive_field(primitive, 'data')
+        changes = cls._obj_primitive_field(primitive, 'changes', [])
         for name, field in self.fields.items():
             if name in objdata:
                 setattr(self, name, field.from_primitive(self, name,
@@ -340,14 +363,14 @@ class VersionedObject(object):
     @classmethod
     def obj_from_primitive(cls, primitive, context=None):
         """Object field-by-field hydration."""
-        if primitive['versioned_object.namespace'] != 'versionedobjects':
+        objns = cls._obj_primitive_field(primitive, 'namespace')
+        objname = cls._obj_primitive_field(primitive, 'name')
+        objver = cls._obj_primitive_field(primitive, 'version')
+        if objns != cls.OBJ_PROJECT_NAMESPACE:
             # NOTE(danms): We don't do anything with this now, but it's
             # there for "the future"
             raise exception.UnsupportedObjectError(
-                objtype='%s.%s' % (primitive['versioned_object.namespace'],
-                                   primitive['versioned_object.name']))
-        objname = primitive['versioned_object.name']
-        objver = primitive['versioned_object.version']
+                objtype='%s.%s' % (objns, objname))
         objclass = cls.obj_class_from_name(objname, objver)
         return objclass._obj_from_primitive(context, objver, primitive)
 
@@ -394,16 +417,18 @@ class VersionedObject(object):
                 return
             if isinstance(obj, VersionedObject):
                 obj.obj_make_compatible(
-                    primitive[field]['versioned_object.data'],
+                    obj._obj_primitive_field(primitive[field], 'data'),
                     to_version)
-                primitive[field]['versioned_object.version'] = to_version
+                ver_key = obj._obj_primitive_key('version')
+                primitive[field][ver_key] = to_version
             elif isinstance(obj, list):
                 for i, element in enumerate(obj):
                     element.obj_make_compatible(
-                        primitive[field][i]['versioned_object.data'],
+                        element._obj_primitive_field(primitive[field][i],
+                                                     'data'),
                         to_version)
-                    primitive[field][i][
-                        'versioned_object.version'] = to_version
+                    ver_key = element._obj_primitive_key('version')
+                    primitive[field][i][ver_key] = to_version
 
         target_version = utils.convert_version_to_tuple(target_version)
         for index, versions in enumerate(self.obj_relationships[field]):
@@ -479,12 +504,15 @@ class VersionedObject(object):
                                                      getattr(self, name))
         if target_version:
             self.obj_make_compatible(primitive, target_version)
-        obj = {'versioned_object.name': self.obj_name(),
-               'versioned_object.namespace': 'versionedobjects',
-               'versioned_object.version': target_version or self.VERSION,
-               'versioned_object.data': primitive}
+        obj = {self._obj_primitive_key('name'): self.obj_name(),
+               self._obj_primitive_key('namespace'): (
+                   self.OBJ_PROJECT_NAMESPACE),
+               self._obj_primitive_key('version'): (target_version or
+                                                    self.VERSION),
+               self._obj_primitive_key('data'): primitive}
         if self.obj_what_changed():
-            obj['versioned_object.changes'] = list(self.obj_what_changed())
+            obj[self._obj_primitive_key('changes')] = list(
+                self.obj_what_changed())
         return obj
 
     def obj_set_defaults(self, *attrs):
@@ -741,10 +769,10 @@ class ObjectListBase(object):
         child_target_version = self.child_versions.get(target_version, '1.0')
         for index, item in enumerate(self.objects):
             self.objects[index].obj_make_compatible(
-                primitives[index]['versioned_object.data'],
+                self._obj_primitive_field(primitives[index], 'data'),
                 child_target_version)
-            primitives[index][
-                'versioned_object.version'] = child_target_version
+            verkey = self._obj_primitive_key('version')
+            primitives[index][verkey] = child_target_version
 
     def obj_what_changed(self):
         changes = set(self._changed_fields)
@@ -763,16 +791,20 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
     values should pass this to its RPCClient and RPCServer objects.
     """
 
+    # Base class to use for object hydration
+    OBJ_BASE_CLASS = VersionedObject
+
     def _process_object(self, context, objprim):
         try:
-            return VersionedObject.obj_from_primitive(
+            return self.OBJ_BASE_CLASS.obj_from_primitive(
                 objprim, context=context)
         except exception.IncompatibleObjectVersion as e:
-            objver = objprim['versioned_object.version']
+            verkey = '%s.version' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
+            objver = objprim[verkey]
             if objver.count('.') == 2:
                 # NOTE(danms): For our purposes, the .z part of the version
                 # should be safe to accept without requiring a backport
-                objprim['versioned_object.version'] = \
+                objprim[verkey] = \
                     '.'.join(objver.split('.')[:2])
                 return self._process_object(context, objprim)
             if VersionedObject.indirection_api:
@@ -813,7 +845,8 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
         return entity
 
     def deserialize_entity(self, context, entity):
-        if isinstance(entity, dict) and 'versioned_object.name' in entity:
+        namekey = '%s.name' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
+        if isinstance(entity, dict) and namekey in entity:
             entity = self._process_object(context, entity)
         elif isinstance(entity, (tuple, list, set, dict)):
             entity = self._process_iterable(context, self.deserialize_entity,
