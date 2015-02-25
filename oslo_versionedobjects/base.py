@@ -17,12 +17,9 @@
 import abc
 import collections
 import copy
-import datetime
 import logging
-import traceback
 
 import oslo_messaging as messaging
-from oslo_utils import timeutils
 import six
 
 from oslo_versionedobjects._i18n import _, _LE
@@ -937,27 +934,3 @@ def obj_make_list(context, list_obj, item_cls, db_list, **extra_args):
     list_obj._context = context
     list_obj.obj_reset_changes()
     return list_obj
-
-
-def serialize_args(fn):
-    """Decorator that will do the arguments serialization before remoting."""
-    def wrapper(obj, *args, **kwargs):
-        for kw in kwargs:
-            value_arg = kwargs.get(kw)
-            if kw == 'exc_val' and value_arg:
-                kwargs[kw] = str(value_arg)
-            elif kw == 'exc_tb' and (
-                    not isinstance(value_arg, six.string_types) and value_arg):
-                kwargs[kw] = ''.join(traceback.format_tb(value_arg))
-            elif isinstance(value_arg, datetime.datetime):
-                kwargs[kw] = timeutils.isotime(value_arg)
-        if hasattr(fn, '__call__'):
-            return fn(obj, *args, **kwargs)
-        # NOTE(danms): We wrap a descriptor, so use that protocol
-        return fn.__get__(None, obj)(*args, **kwargs)
-
-    # NOTE(danms): Make this discoverable
-    wrapper.remotable = getattr(fn, 'remotable', False)
-    wrapper.original_fn = fn
-    return (six.wraps(fn)(wrapper) if hasattr(fn, '__call__')
-            else classmethod(wrapper))
