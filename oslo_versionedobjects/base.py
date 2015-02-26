@@ -804,8 +804,8 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
                 objprim[verkey] = \
                     '.'.join(objver.split('.')[:2])
                 return self._process_object(context, objprim)
-            if VersionedObject.indirection_api:
-                return VersionedObject.indirection_api.object_backport(
+            if self.OBJ_BASE_CLASS.indirection_api:
+                return self.OBJ_BASE_CLASS.indirection_api.object_backport(
                     context, objprim, e.kwargs['supported'])
             else:
                 raise

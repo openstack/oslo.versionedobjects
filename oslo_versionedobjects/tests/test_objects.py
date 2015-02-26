@@ -1280,6 +1280,23 @@ class TestObjectSerializer(_BaseTestCase):
         self.assertNotIsInstance(obj2, MyNSObj)
         self.assertIn('versioned_object.name', obj2)
 
+    def test_serializer_subclass_base_object_indirection(self):
+        @base.VersionedObjectRegistry.register
+        class MyNSObj(base.VersionedObject):
+            OBJ_SERIAL_NAMESPACE = 'foo'
+            fields = {'foo': fields.IntegerField()}
+            indirection_api = mock.MagicMock()
+
+        class MySerializer(base.VersionedObjectSerializer):
+            OBJ_BASE_CLASS = MyNSObj
+
+        ser = MySerializer()
+        prim = MyNSObj(foo=1).obj_to_primitive()
+        prim['foo.version'] = '2.0'
+        ser.deserialize_entity(mock.sentinel.context, prim)
+        MyNSObj.indirection_api.object_backport.assert_called_once_with(
+            mock.sentinel.context, prim, '1.0')
+
 
 class TestNamespaceCompatibility(test.TestCase):
     def setUp(self):
