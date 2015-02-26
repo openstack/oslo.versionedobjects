@@ -17,7 +17,6 @@ import mock
 import six
 
 import fixtures
-from oslo_serialization import jsonutils
 from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
@@ -42,13 +41,23 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
                                                    getattr(new_obj, name))
         return updates
 
+    def _canonicalize_args(self, context, args, kwargs):
+        args = tuple(
+            [self._ser.deserialize_entity(
+                context, self._ser.serialize_entity(context, arg))
+             for arg in args])
+        kwargs = dict(
+            [(argname, self._ser.deserialize_entity(
+                context, self._ser.serialize_entity(context, arg)))
+             for argname, arg in six.iteritems(kwargs)])
+        return args, kwargs
+
     def object_action(self, context, objinst, objmethod, args, kwargs):
         objinst = self._ser.deserialize_entity(
             context, self._ser.serialize_entity(
                 context, objinst))
         objmethod = six.text_type(objmethod)
-        args = jsonutils.loads(jsonutils.dumps(args))
-        kwargs = jsonutils.loads(jsonutils.dumps(kwargs))
+        args, kwargs = self._canonicalize_args(context, args, kwargs)
         original = objinst.obj_clone()
         with mock.patch('oslo_versionedobjects.base.VersionedObject.'
                         'indirection_api', new=None):
@@ -62,8 +71,7 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         objname = six.text_type(objname)
         objmethod = six.text_type(objmethod)
         objver = six.text_type(objver)
-        args = jsonutils.loads(jsonutils.dumps(args))
-        kwargs = jsonutils.loads(jsonutils.dumps(kwargs))
+        args, kwargs = self._canonicalize_args(context, args, kwargs)
         cls = base.VersionedObject.obj_class_from_name(objname, objver)
         with mock.patch('oslo_versionedobjects.base.VersionedObject.'
                         'indirection_api', new=None):

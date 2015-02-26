@@ -403,6 +403,16 @@ class TestFixture(_BaseTestCase):
                                                  MyObj.VERSION,
                                                  (), {})
 
+    def test_fake_indirection_serializes_arguments(self):
+        ser = mock.MagicMock()
+        iapi = fixture.FakeIndirectionAPI(serializer=ser)
+        arg1 = mock.MagicMock()
+        arg2 = mock.MagicMock()
+        iapi.object_action(mock.sentinel.context, mock.sentinel.objinst,
+                           mock.sentinel.objmethod, (arg1,), {'foo': arg2})
+        ser.serialize_entity.assert_any_call(mock.sentinel.context, arg1)
+        ser.serialize_entity.assert_any_call(mock.sentinel.context, arg2)
+
     def test_get_hashes(self):
         checker = fixture.ObjectVersionChecker()
         hashes = checker.get_hashes()
