@@ -365,6 +365,22 @@ class _BaseTestCase(test.TestCase):
 
 
 class TestFixture(_BaseTestCase):
+    def test_fake_indirection_takes_serializer(self):
+        ser = mock.MagicMock()
+        iapi = fixture.FakeIndirectionAPI(ser)
+        ser.serialize_entity.return_value = mock.sentinel.serial
+        iapi.object_action(mock.sentinel.context, mock.sentinel.objinst,
+                           mock.sentinel.objmethod, (), {})
+        ser.serialize_entity.assert_called_once_with(mock.sentinel.context,
+                                                     mock.sentinel.objinst)
+        ser.deserialize_entity.assert_called_once_with(mock.sentinel.context,
+                                                       mock.sentinel.serial)
+
+    def test_indirection_fixture_takes_indirection_api(self):
+        iapi = mock.sentinel.iapi
+        self.useFixture(fixture.IndirectionFixture(iapi))
+        self.assertEqual(iapi, base.VersionedObject.indirection_api)
+
     def test_indirection_action(self):
         self.useFixture(fixture.IndirectionFixture())
         obj = MyObj(context=self.context)

@@ -27,9 +27,9 @@ LOG = logging.getLogger(__name__)
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
-    def __init__(self):
+    def __init__(self, serializer=None):
         super(FakeIndirectionAPI, self).__init__()
-        self._ser = base.VersionedObjectSerializer()
+        self._ser = serializer or base.VersionedObjectSerializer()
 
     def _get_changes(self, orig_obj, new_obj):
         updates = dict()
@@ -78,9 +78,11 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
 
 
 class IndirectionFixture(fixtures.Fixture):
+    def __init__(self, indirection_api=None):
+        self.indirection_api = indirection_api or FakeIndirectionAPI()
+
     def setUp(self):
         super(IndirectionFixture, self).setUp()
-        self.indirection_api = FakeIndirectionAPI()
         self.useFixture(fixtures.MonkeyPatch(
             'oslo_versionedobjects.base.VersionedObject.indirection_api',
             self.indirection_api))
