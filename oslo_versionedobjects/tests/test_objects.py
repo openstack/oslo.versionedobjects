@@ -56,6 +56,7 @@ class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
               'rel_object': fields.ObjectField('MyOwnedObject', nullable=True),
               'rel_objects': fields.ListOfObjectsField('MyOwnedObject',
                                                        nullable=True),
+              'mutable_default': fields.ListOfStringsField(default=[]),
               }
 
     @staticmethod
@@ -418,7 +419,7 @@ class TestFixture(_BaseTestCase):
         hashes = checker.get_hashes()
         # NOTE(danms): If this object's version or hash changes, this needs
         # to change. Otherwise, leave it alone.
-        self.assertEqual('1.6-69d0534216ba3bcb601e9be3b534fcd5',
+        self.assertEqual('1.6-b56dbb7efe42a7ceb137d958fc4066cf',
                          hashes['TestSubclassedObject'])
 
     def test_test_hashes(self):
@@ -826,7 +827,8 @@ class _TestObject(object):
     def test_object_inheritance(self):
         base_fields = []
         myobj_fields = (['foo', 'bar', 'missing',
-                         'readonly', 'rel_object', 'rel_objects'] +
+                         'readonly', 'rel_object',
+                         'rel_objects', 'mutable_default'] +
                         base_fields)
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))
@@ -886,9 +888,34 @@ class _TestObject(object):
         self.assertRaises(exception.ReadOnlyFieldError, setattr,
                           obj, 'readonly', 2)
 
+    def test_obj_mutable_default(self):
+        obj = MyObj(context=self.context, foo=123, bar='abc')
+        obj.mutable_default = None
+        obj.mutable_default.append('s1')
+        self.assertEqual(obj.mutable_default, ['s1'])
+
+        obj1 = MyObj(context=self.context, foo=123, bar='abc')
+        obj1.mutable_default = None
+        obj1.mutable_default.append('s2')
+        self.assertEqual(obj1.mutable_default, ['s2'])
+
+    def test_obj_mutable_default_set_default(self):
+        obj1 = MyObj(context=self.context, foo=123, bar='abc')
+        obj1.obj_set_defaults('mutable_default')
+        self.assertEqual(obj1.mutable_default, [])
+        obj1.mutable_default.append('s1')
+        self.assertEqual(obj1.mutable_default, ['s1'])
+
+        obj2 = MyObj(context=self.context, foo=123, bar='abc')
+        obj2.obj_set_defaults('mutable_default')
+        self.assertEqual(obj2.mutable_default, [])
+        obj2.mutable_default.append('s2')
+        self.assertEqual(obj2.mutable_default, ['s2'])
+
     def test_obj_repr(self):
         obj = MyObj(foo=123)
-        self.assertEqual('MyObj(bar=<?>,foo=123,missing=<?>,readonly=<?>,'
+        self.assertEqual('MyObj(bar=<?>,foo=123,missing=<?>,'
+                         'mutable_default=<?>,readonly=<?>,'
                          'rel_object=<?>,rel_objects=<?>)',
                          repr(obj))
 
@@ -1006,7 +1033,8 @@ class TestObject(_LocalTest, _TestObject):
     def test_set_all_defaults(self):
         obj = MyObj()
         obj.obj_set_defaults()
-        self.assertEqual(set(['foo']), obj.obj_what_changed())
+        self.assertEqual(set(['mutable_default', 'foo']),
+                         obj.obj_what_changed())
         self.assertEqual(1, obj.foo)
 
     def test_set_defaults_not_overwrite(self):
