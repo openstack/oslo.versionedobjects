@@ -21,6 +21,7 @@ from oslo_utils import timeutils
 import six
 
 from oslo_versionedobjects._i18n import _
+from oslo_versionedobjects import exception
 
 
 class KeyTypeError(TypeError):
@@ -245,6 +246,32 @@ class String(FieldType):
     @staticmethod
     def stringify(value):
         return '\'%s\'' % value
+
+
+class Enum(String):
+    def __init__(self, valid_values, **kwargs):
+        if not valid_values:
+            raise exception.EnumRequiresValidValuesError()
+        try:
+            # Test validity of the values
+            for value in valid_values:
+                super(Enum, self).coerce(None, 'init', value)
+        except (TypeError, ValueError):
+            raise exception.EnumValidValuesInvalidError()
+        self._valid_values = valid_values
+        super(Enum, self).__init__(**kwargs)
+
+    def coerce(self, obj, attr, value):
+        if value not in self._valid_values:
+            msg = _("Field value %s is invalid") % value
+            raise ValueError(msg)
+        return super(Enum, self).coerce(obj, attr, value)
+
+    def stringify(self, value):
+        if value not in self._valid_values:
+            msg = _("Field value %s is invalid") % value
+            raise ValueError(msg)
+        return super(Enum, self).stringify(value)
 
 
 class UUID(FieldType):
@@ -479,6 +506,23 @@ class StringField(AutoTypedField):
     AUTO_TYPE = String()
 
 
+class EnumField(AutoTypedField):
+    def __init__(self, valid_values, **kwargs):
+        self.AUTO_TYPE = Enum(valid_values)
+        super(EnumField, self).__init__(**kwargs)
+
+    def __repr__(self):
+        valid_values = self._type._valid_values
+        args = {
+            'nullable': self._nullable,
+            'default': self._default,
+            }
+        args.update({'valid_values': valid_values})
+        return '%s(%s)' % (self._type.__class__.__name__,
+                           ','.join(['%s=%s' % (k, v)
+                                     for k, v in sorted(args.items())]))
+
+
 class UUIDField(AutoTypedField):
     AUTO_TYPE = UUID()
 
@@ -515,6 +559,23 @@ class DictOfIntegersField(AutoTypedField):
 
 class ListOfStringsField(AutoTypedField):
     AUTO_TYPE = List(String())
+
+
+class ListOfEnumField(AutoTypedField):
+    def __init__(self, valid_values, **kwargs):
+        self.AUTO_TYPE = List(Enum(valid_values))
+        super(ListOfEnumField, self).__init__(**kwargs)
+
+    def __repr__(self):
+        valid_values = self._type._element_type._type._valid_values
+        args = {
+            'nullable': self._nullable,
+            'default': self._default,
+            }
+        args.update({'valid_values': valid_values})
+        return '%s(%s)' % (self._type.__class__.__name__,
+                           ','.join(['%s=%s' % (k, v)
+                                     for k, v in sorted(args.items())]))
 
 
 class SetOfIntegersField(AutoTypedField):

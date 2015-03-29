@@ -164,3 +164,11 @@ class ReadOnlyFieldError(VersionedObjectsException):
 
 class UnsupportedObjectError(VersionedObjectsException):
     msg_fmt = _('Unsupported object type %(objtype)s')
+
+
+class EnumRequiresValidValuesError(VersionedObjectsException):
+    msg_fmt = _('Enum fields require a list of valid_values')
+
+
+class EnumValidValuesInvalidError(VersionedObjectsException):
+    msg_fmt = _('Enum valid values are not valid')
