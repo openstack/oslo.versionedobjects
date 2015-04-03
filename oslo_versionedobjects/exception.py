@@ -59,7 +59,9 @@ def _cleanse_dict(original):
 
 
 def wrap_exception(notifier=None, get_notifier=None):
-    """This decorator wraps a method to catch any exceptions that may
+    """Catch all exceptions in wrapped method
+
+    This decorator wraps a method to catch any exceptions that may
     get thrown. It also optionally sends the exception to the notification
     system.
     """

@@ -347,7 +347,9 @@ class _BaseTestCase(test.TestCase):
         self.assertEqual(expected, jsonutils.dumps(obj_val))
 
     def str_comparator(self, expected, obj_val):
-        """Compare an object field to a string in the db by performing
+        """Compare a field to a string value
+
+        Compare an object field to a string in the db by performing
         a simple coercion on the object field value.
         """
         self.assertEqual(expected, str(obj_val))
