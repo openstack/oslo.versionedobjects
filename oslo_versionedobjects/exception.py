@@ -42,7 +42,7 @@ exc_log_opts = [
 ]
 
 CONF = cfg.CONF
-CONF.register_opts(exc_log_opts)
+CONF.register_opts(exc_log_opts, group='oslo_versionedobjects')
 
 
 class ConvertedException(webob.exc.WSGIHTTPException):
@@ -127,7 +127,7 @@ class VersionedObjectsException(Exception):
                 for name, value in kwargs.iteritems():
                     LOG.error("%s: %s" % (name, value))    # noqa
 
-                if CONF.fatal_exception_format_errors:
+                if CONF.oslo_versionedobjects.fatal_exception_format_errors:
                     raise six.reraise(*exc_info)
                 else:
                     # at least get the core message out if something happened
