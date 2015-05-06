@@ -155,8 +155,8 @@ def remotable_classmethod(fn):
     """Decorator for remotable classmethods."""
     @six.wraps(fn)
     def wrapper(cls, context, *args, **kwargs):
-        if VersionedObject.indirection_api:
-            result = VersionedObject.indirection_api.object_class_action(
+        if cls.indirection_api:
+            result = cls.indirection_api.object_class_action(
                 context, cls.obj_name(), fn.__name__, cls.VERSION,
                 args, kwargs)
         else:
@@ -184,8 +184,8 @@ def remotable(fn):
         if ctxt is None:
             raise exception.OrphanedObjectError(method=fn.__name__,
                                                 objtype=self.obj_name())
-        if VersionedObject.indirection_api:
-            updates, result = VersionedObject.indirection_api.object_action(
+        if self.indirection_api:
+            updates, result = self.indirection_api.object_action(
                 ctxt, self, fn.__name__, args, kwargs)
             for key, value in six.iteritems(updates):
                 if key in self.fields:
