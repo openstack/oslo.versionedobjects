@@ -240,8 +240,9 @@ class String(FieldType):
         if isinstance(value, accepted_types):
             return six.text_type(value)
         else:
-            raise ValueError(_('A string is required here, not %s') %
-                             value.__class__.__name__)
+            raise ValueError(_('A string is required in field %(attr)s, '
+                               'not %(type)s') %
+                             {'attr': attr, 'type': value.__class__.__name__})
 
     @staticmethod
     def stringify(value):
@@ -309,7 +310,8 @@ class DateTime(FieldType):
             # during our objects transition
             value = timeutils.parse_isotime(value)
         elif not isinstance(value, datetime.datetime):
-            raise ValueError(_('A datetime.datetime is required here'))
+            raise ValueError(_('A datetime.datetime is required '
+                               'in field %s') % attr)
 
         if value.utcoffset() is None and self.tzinfo_aware:
             # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
@@ -340,7 +342,7 @@ class CompoundFieldType(FieldType):
 class List(CompoundFieldType):
     def coerce(self, obj, attr, value):
         if not isinstance(value, list):
-            raise ValueError(_('A list is required here'))
+            raise ValueError(_('A list is required in field %s') % attr)
         for index, element in enumerate(list(value)):
             value[index] = self._element_type.coerce(
                 obj, '%s[%i]' % (attr, index), element)
@@ -360,7 +362,7 @@ class List(CompoundFieldType):
 class Dict(CompoundFieldType):
     def coerce(self, obj, attr, value):
         if not isinstance(value, dict):
-            raise ValueError(_('A dict is required here'))
+            raise ValueError(_('A dict is required in field %s') % attr)
         for key, element in value.items():
             if not isinstance(key, six.string_types):
                 # NOTE(guohliu) In order to keep compatibility with python3
@@ -428,7 +430,7 @@ class DictProxyField(object):
 class Set(CompoundFieldType):
     def coerce(self, obj, attr, value):
         if not isinstance(value, set):
-            raise ValueError(_('A set is required here'))
+            raise ValueError(_('A set is required in field %s') % attr)
 
         coerced = set()
         for element in value:
@@ -461,8 +463,9 @@ class Object(FieldType):
             obj_name = ""
 
         if obj_name != self._obj_name:
-            raise ValueError(_('An object of type %s is required here') %
-                             self._obj_name)
+            raise ValueError(_('An object of type %(type)s is required '
+                               'in field %(attr)s') %
+                             {'type': self._obj_name, 'attr': attr})
         return value
 
     @staticmethod
