@@ -636,23 +636,16 @@ class ComparableVersionedObject(object):
 
 
 class VersionedObjectDictCompat(object):
-    """Mix-in to provide dictionary key access compat
+    """Mix-in to provide dictionary key access compatibility
 
     If an object needs to support attribute access using
     dictionary items instead of object attributes, inherit
     from this class. This should only be used as a temporary
     measure until all callers are converted to use modern
     attribute access.
-
-    NOTE(berrange) This class will eventually be deleted.
     """
 
-    # dictish syntactic sugar
     def iteritems(self):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         for name in self.obj_fields:
             if (self.obj_attr_is_set(name) or
                     name in self.obj_extra_fields):
@@ -661,34 +654,18 @@ class VersionedObjectDictCompat(object):
     items = lambda self: list(self.iteritems())
 
     def __getitem__(self, name):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         return getattr(self, name)
 
     def __setitem__(self, name, value):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         setattr(self, name, value)
 
     def __contains__(self, name):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         try:
             return self.obj_attr_is_set(name)
         except AttributeError:
             return False
 
     def get(self, key, value=_NotSpecifiedSentinel):
-        """For backwards-compatibility with dict-based objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         if key not in self.obj_fields:
             raise AttributeError("'%s' object has no attribute '%s'" % (
                 self.__class__, key))
@@ -698,10 +675,6 @@ class VersionedObjectDictCompat(object):
             return getattr(self, key)
 
     def update(self, updates):
-        """For backwards-compatibility with dict-base objects.
-
-        NOTE(danms): May be removed in the future.
-        """
         for key, value in updates.items():
             setattr(self, key, value)
 
