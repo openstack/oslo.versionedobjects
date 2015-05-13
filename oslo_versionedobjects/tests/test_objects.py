@@ -645,12 +645,26 @@ class _TestObject(object):
         self.assertRaises(ValueError, fail)
 
     def test_object_dict_syntax(self):
-        obj = MyObj(foo=123, bar='bar')
+        obj = MyObj(foo=123, bar=u'text')
         self.assertEqual(obj['foo'], 123)
-        self.assertEqual(sorted(obj.items(), key=lambda x: x[0]),
-                         [('bar', 'bar'), ('foo', 123)])
-        self.assertEqual(sorted(list(obj.iteritems()), key=lambda x: x[0]),
-                         [('bar', 'bar'), ('foo', 123)])
+        self.assertIn('bar', obj)
+        self.assertNotIn('missing', obj)
+        self.assertEqual(sorted(iter(obj)),
+                         ['bar', 'foo'])
+        self.assertEqual(sorted(obj.keys()),
+                         ['bar', 'foo'])
+        self.assertEqual(sorted(obj.iterkeys()),
+                         ['bar', 'foo'])
+        self.assertEqual(sorted(obj.values(), key=str),
+                         [123, u'text'])
+        self.assertEqual(sorted(obj.itervalues(), key=str),
+                         [123, u'text'])
+        self.assertEqual(sorted(obj.items()),
+                         [('bar', u'text'), ('foo', 123)])
+        self.assertEqual(sorted(list(obj.iteritems())),
+                         [('bar', u'text'), ('foo', 123)])
+        self.assertEqual(dict(obj),
+                         {'foo': 123, 'bar': u'text'})
 
     def test_load(self):
         obj = MyObj()
