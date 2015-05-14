@@ -7,9 +7,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: oslo.versionedobjects 0.2.0\n"
+"Project-Id-Version: oslo.versionedobjects 0.2.1.dev10\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-03 06:03+0000\n"
+"POT-Creation-Date: 2015-05-14 06:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -71,45 +71,62 @@ msgstr ""
 msgid "Unsupported object type %(objtype)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:29
+#: oslo_versionedobjects/exception.py:170
+msgid "Enum fields require a list of valid_values"
+msgstr ""
+
+#: oslo_versionedobjects/exception.py:174
+msgid "Enum valid values are not valid"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:30
 #, python-format
 msgid "Key %(key)s must be of type %(expected)s not %(actual)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:39
+#: oslo_versionedobjects/fields.py:40
 #, python-format
 msgid "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:160
+#: oslo_versionedobjects/fields.py:161
 #, python-format
 msgid "Field `%s' cannot be None"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:242
+#: oslo_versionedobjects/fields.py:243
 #, python-format
-msgid "A string is required here, not %s"
+msgid "A string is required in field %(attr)s, not %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:285
-msgid "A datetime.datetime is required here"
-msgstr ""
-
-#: oslo_versionedobjects/fields.py:316
-msgid "A list is required here"
-msgstr ""
-
-#: oslo_versionedobjects/fields.py:336
-msgid "A dict is required here"
-msgstr ""
-
-#: oslo_versionedobjects/fields.py:404
-msgid "A set is required here"
-msgstr ""
-
-#: oslo_versionedobjects/fields.py:437
+#: oslo_versionedobjects/fields.py:267 oslo_versionedobjects/fields.py:273
 #, python-format
-msgid "An object of type %s is required here"
+msgid "Field value %s is invalid"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:313
+#, python-format
+msgid "A datetime.datetime is required in field %s"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:345
+#, python-format
+msgid "A list is required in field %s"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:365
+#, python-format
+msgid "A dict is required in field %s"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:433
+#, python-format
+msgid "A set is required in field %s"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:466
+#, python-format
+msgid "An object of type %(type)s is required in field %(attr)s"
 msgstr ""
 
 #: oslo_versionedobjects/openstack/common/versionutils.py:108

@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-03 06:03+0000\n"
-"PO-Revision-Date: 2015-04-28 22:40+0000\n"
-"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"POT-Creation-Date: 2015-05-14 06:08+0000\n"
+"PO-Revision-Date: 2015-05-12 15:04+0000\n"
+"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "osloversionedobjects/language/en_GB/)\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
@@ -73,26 +73,6 @@ msgstr "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
 #, python-format
 msgid "Field `%s' cannot be None"
 msgstr "Field `%s' cannot be None"
-
-#, python-format
-msgid "A string is required here, not %s"
-msgstr "A string is required here, not %s"
-
-msgid "A datetime.datetime is required here"
-msgstr "A datetime.datetime is required here"
-
-msgid "A list is required here"
-msgstr "A list is required here"
-
-msgid "A dict is required here"
-msgstr "A dict is required here"
-
-msgid "A set is required here"
-msgstr "A set is required here"
-
-#, python-format
-msgid "An object of type %s is required here"
-msgstr "An object of type %s is required here"
 
 #, python-format
 msgid ""
