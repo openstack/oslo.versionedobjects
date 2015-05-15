@@ -477,11 +477,11 @@ class VersionedObject(object):
           if the requested version of this object is older than the version
           where the new dependent object was added.
 
-        :param:primitive: The result of self.obj_to_primitive()
-        :param:target_version: The version string requested by the recipient
-        of the object
-        :raises: oslo_versionedobjects.exception.UnsupportedObjectError
-        if conversion is not possible for some reason
+        :param primitive: The result of :meth:`obj_to_primitive`
+        :param target_version: The version string requested by the recipient
+                               of the object
+        :raises: :exc:`oslo_versionedobjects.exception.UnsupportedObjectError`
+                 if conversion is not possible for some reason
         """
         for key, field in self.fields.items():
             if not isinstance(field, (obj_fields.ObjectField,
@@ -576,10 +576,10 @@ class VersionedObject(object):
                           any sub-objects within the list of fields
                           being reset.
 
-        NOTE: This is NOT "revert to previous values"
-        NOTE: Specifying fields on recursive resets will only be
-              honored at the top level. Everything below the top
-              will reset all.
+        This is NOT "revert to previous values".
+
+        Specifying fields on recursive resets will only be honored at the top
+        level. Everything below the top will reset all.
         """
         if recursive:
             for field in self.obj_get_changes():

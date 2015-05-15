@@ -2,12 +2,11 @@
 oslo.versionedobjects
 ===================================
 
-oslo.versionedobjects library deals with DB schema being at different versions
-than the code expects, allowing services to be operated safely during upgrades.
-It enables DB independent schema by providing an abstraction layer, which
-allows us to support SQL and NoSQL Databases. oslo.versionedobjects is also
-used in RPC APIs, to ensure upgrades happen without spreading version dependent
-code across different services and projects.
+The oslo.versionedobjects library provides a generic versioned object model
+that is RPC-friendly, with inbuilt serialization, field typing, and remotable
+method calls. It can be used to define a data model within a project
+independent of external APIs or database schema for the purposes of providing
+upgrade compatibility across distributed services.
 
 * Free software: Apache license
 * Documentation: http://docs.openstack.org/developer/oslo.versionedobjects
