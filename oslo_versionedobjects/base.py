@@ -84,7 +84,13 @@ def _make_class_properties(cls):
                 LOG.exception(_LE('Error setting %(attr)s'), {'attr': attr})
                 raise
 
-        setattr(cls, name, property(getter, setter))
+        def deleter(self, name=name):
+            attrname = _get_attrname(name)
+            if not hasattr(self, attrname):
+                raise AttributeError("No such attribute `%s'" % name)
+            delattr(self, attrname)
+
+        setattr(cls, name, property(getter, setter, deleter))
 
 
 class VersionedObjectRegistry(object):

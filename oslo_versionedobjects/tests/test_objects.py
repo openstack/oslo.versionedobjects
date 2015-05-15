@@ -1014,6 +1014,20 @@ class _TestObject(object):
             obj.obj_to_primitive('1.0')
             self.assertTrue(mock_mc.called)
 
+    def test_delattr(self):
+        obj = MyObj(bar='foo')
+        del obj.bar
+
+        # Should appear unset now
+        self.assertFalse(obj.obj_attr_is_set('bar'))
+
+        # Make sure post-delete, references trigger lazy loads
+        self.assertEqual('loaded!', getattr(obj, 'bar'))
+
+    def test_delattr_unset(self):
+        obj = MyObj()
+        self.assertRaises(AttributeError, delattr, obj, 'bar')
+
     def test_obj_make_compatible_on_list_base(self):
         @base.VersionedObjectRegistry.register_if(False)
         class MyList(base.ObjectListBase, base.VersionedObject):
