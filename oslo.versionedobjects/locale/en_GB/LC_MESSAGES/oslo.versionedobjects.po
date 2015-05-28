@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-14 06:08+0000\n"
+"POT-Creation-Date: 2015-05-28 06:03+0000\n"
 "PO-Revision-Date: 2015-05-12 15:04+0000\n"
 "Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
@@ -21,58 +21,16 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 
 #, python-format
-msgid "Hypervisor version %s is invalid."
-msgstr "Hypervisor version %s is invalid."
-
-#, python-format
-msgid "Cannot load '%s' in the base class"
-msgstr "Cannot load '%s' in the base class"
-
-msgid "Cannot save anything in the base class"
-msgstr "Cannot save anything in the base class"
-
-#, python-format
 msgid "%(objname)s object has no attribute '%(attrname)s'"
 msgstr "%(objname)s object has no attribute '%(attrname)s'"
 
-msgid "An unknown exception occurred."
-msgstr "An unknown exception occurred."
-
 #, python-format
-msgid "Object action %(action)s failed because: %(reason)s"
-msgstr "Object action %(action)s failed because: %(reason)s"
-
-#, python-format
-msgid "Field %(field)s of %(objname)s is not an instance of Field"
-msgstr "Field %(field)s of %(objname)s is not an instance of Field"
-
-#, python-format
-msgid "Cannot call %(method)s on orphaned %(objtype)s object"
-msgstr "Cannot call %(method)s on orphaned %(objtype)s object"
-
-#, python-format
-msgid "Version %(objver)s of %(objname)s is not supported"
-msgstr "Version %(objver)s of %(objname)s is not supported"
-
-#, python-format
-msgid "Cannot modify readonly field %(field)s"
-msgstr "Cannot modify readonly field %(field)s"
-
-#, python-format
-msgid "Unsupported object type %(objtype)s"
-msgstr "Unsupported object type %(objtype)s"
-
-#, python-format
-msgid "Key %(key)s must be of type %(expected)s not %(actual)s"
-msgstr "Key %(key)s must be of type %(expected)s not %(actual)s"
-
-#, python-format
-msgid "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
-msgstr "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
-
-#, python-format
-msgid "Field `%s' cannot be None"
-msgstr "Field `%s' cannot be None"
+msgid ""
+"%(what)s is deprecated as of %(as_of)s and may be removed in %(remove_in)s. "
+"It will not be superseded."
+msgstr ""
+"%(what)s is deprecated as of %(as_of)s and may be removed in %(remove_in)s. "
+"It will not be superseded."
 
 #, python-format
 msgid ""
@@ -83,14 +41,6 @@ msgstr ""
 "be removed in %(remove_in)s."
 
 #, python-format
-msgid ""
-"%(what)s is deprecated as of %(as_of)s and may be removed in %(remove_in)s. "
-"It will not be superseded."
-msgstr ""
-"%(what)s is deprecated as of %(as_of)s and may be removed in %(remove_in)s. "
-"It will not be superseded."
-
-#, python-format
 msgid "%(what)s is deprecated as of %(as_of)s in favor of %(in_favor_of)s."
 msgstr "%(what)s is deprecated as of %(as_of)s in favour of %(in_favor_of)s."
 
@@ -98,10 +48,60 @@ msgstr "%(what)s is deprecated as of %(as_of)s in favour of %(in_favor_of)s."
 msgid "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 msgstr "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 
+msgid "An unknown exception occurred."
+msgstr "An unknown exception occurred."
+
+#, python-format
+msgid "Cannot call %(method)s on orphaned %(objtype)s object"
+msgstr "Cannot call %(method)s on orphaned %(objtype)s object"
+
+#, python-format
+msgid "Cannot load '%s' in the base class"
+msgstr "Cannot load '%s' in the base class"
+
+#, python-format
+msgid "Cannot modify readonly field %(field)s"
+msgstr "Cannot modify readonly field %(field)s"
+
+msgid "Cannot save anything in the base class"
+msgstr "Cannot save anything in the base class"
+
 #, python-format
 msgid "Deprecated: %s"
 msgstr "Deprecated: %s"
 
 #, python-format
+msgid "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
+msgstr "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
+
+#, python-format
 msgid "Fatal call to deprecated config: %(msg)s"
 msgstr "Fatal call to deprecated config: %(msg)s"
+
+#, python-format
+msgid "Field %(field)s of %(objname)s is not an instance of Field"
+msgstr "Field %(field)s of %(objname)s is not an instance of Field"
+
+#, python-format
+msgid "Field `%s' cannot be None"
+msgstr "Field `%s' cannot be None"
+
+#, python-format
+msgid "Hypervisor version %s is invalid."
+msgstr "Hypervisor version %s is invalid."
+
+#, python-format
+msgid "Key %(key)s must be of type %(expected)s not %(actual)s"
+msgstr "Key %(key)s must be of type %(expected)s not %(actual)s"
+
+#, python-format
+msgid "Object action %(action)s failed because: %(reason)s"
+msgstr "Object action %(action)s failed because: %(reason)s"
+
+#, python-format
+msgid "Unsupported object type %(objtype)s"
+msgstr "Unsupported object type %(objtype)s"
+
+#, python-format
+msgid "Version %(objver)s of %(objname)s is not supported"
+msgstr "Version %(objver)s of %(objname)s is not supported"

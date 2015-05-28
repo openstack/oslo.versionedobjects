@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-03 06:03+0000\n"
+"POT-Creation-Date: 2015-05-28 06:03+0000\n"
 "PO-Revision-Date: 2015-04-28 22:38+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
@@ -25,9 +25,9 @@ msgstr ""
 msgid "Error setting %(attr)s"
 msgstr "Error setting %(attr)s"
 
+msgid "Exception in string format operation"
+msgstr "Exception in string format operation"
+
 #, python-format
 msgid "Unable to instantiate unregistered object type %(objtype)s"
 msgstr "Unable to instantiate unregistered object type %(objtype)s"
-
-msgid "Exception in string format operation"
-msgstr "Exception in string format operation"
