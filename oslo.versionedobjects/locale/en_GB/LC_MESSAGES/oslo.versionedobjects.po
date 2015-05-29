@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-28 06:03+0000\n"
-"PO-Revision-Date: 2015-05-12 15:04+0000\n"
-"Last-Translator: openstackjenkins <jenkins@openstack.org>\n"
+"POT-Creation-Date: 2015-05-29 06:03+0000\n"
+"PO-Revision-Date: 2015-05-28 15:02+0000\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "osloversionedobjects/language/en_GB/)\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
@@ -48,6 +48,30 @@ msgstr "%(what)s is deprecated as of %(as_of)s in favour of %(in_favor_of)s."
 msgid "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 msgstr "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 
+#, python-format
+msgid "A datetime.datetime is required in field %s"
+msgstr "A datetime.datetime is required in field %s"
+
+#, python-format
+msgid "A dict is required in field %s"
+msgstr "A dict is required in field %s"
+
+#, python-format
+msgid "A list is required in field %s"
+msgstr "A list is required in field %s"
+
+#, python-format
+msgid "A set is required in field %s"
+msgstr "A set is required in field %s"
+
+#, python-format
+msgid "A string is required in field %(attr)s, not %(type)s"
+msgstr "A string is required in field %(attr)s, not %(type)s"
+
+#, python-format
+msgid "An object of type %(type)s is required in field %(attr)s"
+msgstr "An object of type %(type)s is required in field %(attr)s"
+
 msgid "An unknown exception occurred."
 msgstr "An unknown exception occurred."
 
@@ -74,6 +98,12 @@ msgstr "Deprecated: %s"
 msgid "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
 msgstr "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
 
+msgid "Enum fields require a list of valid_values"
+msgstr "Enum fields require a list of valid_values"
+
+msgid "Enum valid values are not valid"
+msgstr "Enum valid values are not valid"
+
 #, python-format
 msgid "Fatal call to deprecated config: %(msg)s"
 msgstr "Fatal call to deprecated config: %(msg)s"
@@ -85,6 +115,10 @@ msgstr "Field %(field)s of %(objname)s is not an instance of Field"
 #, python-format
 msgid "Field `%s' cannot be None"
 msgstr "Field `%s' cannot be None"
+
+#, python-format
+msgid "Field value %s is invalid"
+msgstr "Field value %s is invalid"
 
 #, python-format
 msgid "Hypervisor version %s is invalid."
