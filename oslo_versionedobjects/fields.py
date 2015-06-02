@@ -516,10 +516,25 @@ class StringField(AutoTypedField):
     AUTO_TYPE = String()
 
 
-class EnumField(AutoTypedField):
-    def __init__(self, valid_values, **kwargs):
-        self.AUTO_TYPE = Enum(valid_values)
-        super(EnumField, self).__init__(**kwargs)
+class BaseEnumField(AutoTypedField):
+    '''Base class for all enum field types
+
+    This class should not be directly instantiated. Instead
+    subclass it and set AUTO_TYPE to be a SomeEnum()
+    where SomeEnum is a subclass of Enum.
+    '''
+
+    def __init__(self, **kwargs):
+        if self.AUTO_TYPE is None:
+            raise exception.EnumFieldUnset(
+                fieldname=self.__class__.__name__)
+
+        if not isinstance(self.AUTO_TYPE, Enum):
+            raise exception.EnumFieldInvalid(
+                typename=self.AUTO_TYPE.__class__.__name,
+                fieldname=self.__class__.__name__)
+
+        super(BaseEnumField, self).__init__(**kwargs)
 
     def __repr__(self):
         valid_values = self._type._valid_values
@@ -531,6 +546,21 @@ class EnumField(AutoTypedField):
         return '%s(%s)' % (self._type.__class__.__name__,
                            ','.join(['%s=%s' % (k, v)
                                      for k, v in sorted(args.items())]))
+
+
+class EnumField(BaseEnumField):
+    '''Anonymous enum field type
+
+    This class allows for anonymous enum types to be
+    declared, simply by passing in a list of valid values
+    to its constructor. It is generally preferrable though,
+    to create an explicit named enum type by sub-classing
+    the BaseEnumField type directly.
+    '''
+
+    def __init__(self, valid_values, **kwargs):
+        self.AUTO_TYPE = Enum(valid_values=valid_values)
+        super(EnumField, self).__init__(**kwargs)
 
 
 class UUIDField(AutoTypedField):

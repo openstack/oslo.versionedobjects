@@ -172,3 +172,11 @@ class EnumRequiresValidValuesError(VersionedObjectsException):
 
 class EnumValidValuesInvalidError(VersionedObjectsException):
     msg_fmt = _('Enum valid values are not valid')
+
+
+class EnumFieldInvalid(VersionedObjectsException):
+    msg_fmt = _('%(typename)s in %(fieldname)s is not an instance of Enum')
+
+
+class EnumFieldUnset(VersionedObjectsException):
+    msg_fmt = _('%(fieldname)s missing field type')
