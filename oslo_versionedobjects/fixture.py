@@ -107,6 +107,9 @@ class ObjectHashMismatch(Exception):
 
 
 class ObjectVersionChecker(object):
+    def __init__(self, obj_classes=base.VersionedObjectRegistry.obj_classes()):
+        self.obj_classes = obj_classes
+
     def _find_remotable_method(self, cls, thing, parent_was_remotable=False):
         """Follow a chain of remotable things down to the original function."""
         if isinstance(thing, classmethod):
@@ -124,7 +127,7 @@ class ObjectVersionChecker(object):
             return None
 
     def _get_fingerprint(self, obj_name):
-        obj_class = base.VersionedObjectRegistry.obj_classes()[obj_name][0]
+        obj_class = self.obj_classes[obj_name][0]
         obj_fields = list(obj_class.fields.items())
         obj_fields.sort()
         methods = []
@@ -153,7 +156,7 @@ class ObjectVersionChecker(object):
         """Return a dict of computed object hashes."""
 
         fingerprints = {}
-        for obj_name in sorted(base.VersionedObjectRegistry.obj_classes()):
+        for obj_name in sorted(self.obj_classes):
             fingerprints[obj_name] = self._get_fingerprint(obj_name)
         return fingerprints
 
@@ -179,17 +182,15 @@ class ObjectVersionChecker(object):
         for name, field in obj_class.fields.items():
             if isinstance(field._type, fields.Object):
                 sub_obj_name = field._type._obj_name
-                obj_classes = base.VersionedObjectRegistry.obj_classes()
-                sub_obj_class = obj_classes[sub_obj_name][0]
+                sub_obj_class = self.obj_classes[sub_obj_name][0]
                 self._get_dependencies(tree, sub_obj_class)
                 tree.setdefault(obj_name, {})
                 tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
 
     def get_dependency_tree(self):
         tree = {}
-        obj_classes = base.VersionedObjectRegistry.obj_classes()
-        for obj_name in base.VersionedObjectRegistry.obj_classes().keys():
-            self._get_dependencies(tree, obj_classes[obj_name][0])
+        for obj_name in self.obj_classes.keys():
+            self._get_dependencies(tree, self.obj_classes[obj_name][0])
         return tree
 
     def test_relationships(self, expected_tree):
@@ -220,9 +221,8 @@ class ObjectVersionChecker(object):
         # This doesn't actually test the data conversions, but it at least
         # makes sure the method doesn't blow up on something basic like
         # expecting the wrong version format.
-        all_obj_classes = base.VersionedObjectRegistry.obj_classes()
-        for obj_name in all_obj_classes:
-            obj_classes = base.VersionedObjectRegistry.obj_classes()[obj_name]
+        for obj_name in self.obj_classes:
+            obj_classes = self.obj_classes[obj_name]
             for obj_class in obj_classes:
                 self._test_object_compatibility(obj_class)
 
@@ -248,8 +248,7 @@ class ObjectVersionChecker(object):
         # This doesn't actually test the data conversions, but it at least
         # makes sure the method doesn't blow up on something basic like
         # expecting the wrong version format.
-        all_obj_classes = base.VersionedObjectRegistry.obj_classes()
-        for obj_name in all_obj_classes:
-            obj_classes = base.VersionedObjectRegistry.obj_classes()[obj_name]
+        for obj_name in self.obj_classes:
+            obj_classes = self.obj_classes[obj_name]
             for obj_class in obj_classes:
                 self._test_relationships_in_order(obj_class)
