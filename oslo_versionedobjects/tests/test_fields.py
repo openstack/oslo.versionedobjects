@@ -476,3 +476,94 @@ class TestObject(TestField):
         obj = self._test_cls(uuid='fake-uuid')
         self.assertEqual('TestableObject(fake-uuid)',
                          self.field.stringify(obj))
+
+    def test_inheritance(self):
+        # We need a whole lot of classes in a hierarchy to
+        # test subclass recognition for the Object field
+        class TestAnimal(obj_base.VersionedObject):
+            pass
+
+        class TestMammal(TestAnimal):
+            pass
+
+        class TestReptile(TestAnimal):
+            pass
+
+        # We'll use this to create a diamond in the
+        # class hierarchy
+        class TestPet(TestAnimal):
+            pass
+
+        # Non-versioned object mixin
+        class TestScary(object):
+            pass
+
+        class TestCrocodile(TestReptile, TestPet, TestScary):
+            pass
+
+        class TestPig(TestMammal):
+            pass
+
+        class TestDog(TestMammal, TestPet):
+            pass
+
+        # Some fictional animals
+        wolfy = TestDog()  # Terminator-2
+        ticktock = TestCrocodile()  # Peter Pan
+        babe = TestPig()  # Babe
+
+        # The various classes
+        animals = fields.Object('TestAnimal', subclasses=True)
+        mammals = fields.Object('TestMammal', subclasses=True)
+        reptiles = fields.Object('TestReptile', subclasses=True)
+        pets = fields.Object('TestPet', subclasses=True)
+        pigs = fields.Object('TestPig', subclasses=True)
+        dogs = fields.Object('TestDog', subclasses=True)
+        crocs = fields.Object('TestCrocodile', subclasses=True)
+
+        self.assertEqual(["TestDog", "TestMammal", "TestPet",
+                          "TestAnimal", "VersionedObject"],
+                         fields.Object._get_all_obj_names(wolfy))
+
+        self.assertEqual(["TestCrocodile", "TestReptile", "TestPet",
+                          "TestAnimal", "VersionedObject"],
+                         fields.Object._get_all_obj_names(ticktock))
+
+        self.assertEqual(["TestPig", "TestMammal",
+                          "TestAnimal", "VersionedObject"],
+                         fields.Object._get_all_obj_names(babe))
+
+        # Everything is an animal
+        self.assertEqual(wolfy, animals.coerce(None, "animal", wolfy))
+        self.assertEqual(ticktock, animals.coerce(None, "animal", ticktock))
+        self.assertEqual(babe, animals.coerce(None, "animal", babe))
+
+        # crocodiles are not mammals
+        self.assertEqual(wolfy, mammals.coerce(None, "animal", wolfy))
+        self.assertRaises(ValueError, mammals.coerce, None, "animal", ticktock)
+        self.assertEqual(babe, mammals.coerce(None, "animal", babe))
+
+        # dogs and pigs are not reptiles
+        self.assertRaises(ValueError, reptiles.coerce, None, "animal", wolfy)
+        self.assertEqual(ticktock, reptiles.coerce(None, "animal", ticktock))
+        self.assertRaises(ValueError, reptiles.coerce, None, "animal", babe)
+
+        # pigs are not pets, but crocodiles (!) & dogs are
+        self.assertEqual(wolfy, pets.coerce(None, "animal", wolfy))
+        self.assertEqual(ticktock, pets.coerce(None, "animal", ticktock))
+        self.assertRaises(ValueError, pets.coerce, None, "animal", babe)
+
+        # Only dogs are dogs
+        self.assertEqual(wolfy, dogs.coerce(None, "animal", wolfy))
+        self.assertRaises(ValueError, dogs.coerce, None, "animal", ticktock)
+        self.assertRaises(ValueError, dogs.coerce, None, "animal", babe)
+
+        # Only crocs are crocs
+        self.assertRaises(ValueError, crocs.coerce, None, "animal", wolfy)
+        self.assertEqual(ticktock, crocs.coerce(None, "animal", ticktock))
+        self.assertRaises(ValueError, crocs.coerce, None, "animal", babe)
+
+        # Only pigs are pigs
+        self.assertRaises(ValueError, pigs.coerce, None, "animal", ticktock)
+        self.assertRaises(ValueError, pigs.coerce, None, "animal", wolfy)
+        self.assertEqual(babe, pigs.coerce(None, "animal", babe))
