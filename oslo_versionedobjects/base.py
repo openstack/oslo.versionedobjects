@@ -630,7 +630,7 @@ class VersionedObject(object):
 
 
 class ComparableVersionedObject(object):
-    """Mix-in to provide comparason methods
+    """Mix-in to provide comparison methods
 
     When objects are to be compared with each other (in tests for example),
     this mixin can be used.
