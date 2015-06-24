@@ -452,9 +452,20 @@ class Set(CompoundFieldType):
 
 
 class Object(FieldType):
-    def __init__(self, obj_name, **kwargs):
+    def __init__(self, obj_name, subclasses=False, **kwargs):
         self._obj_name = obj_name
+        self._subclasses = subclasses
         super(Object, self).__init__(**kwargs)
+
+    @staticmethod
+    def _get_all_obj_names(obj):
+        obj_names = []
+        for parent in obj.__class__.mro():
+            # Skip mix-ins which are not versioned object subclasses
+            if not hasattr(parent, "obj_name"):
+                continue
+            obj_names.append(parent.obj_name())
+        return obj_names
 
     def coerce(self, obj, attr, value):
         try:
@@ -462,7 +473,12 @@ class Object(FieldType):
         except AttributeError:
             obj_name = ""
 
-        if obj_name != self._obj_name:
+        if self._subclasses:
+            obj_names = self._get_all_obj_names(value)
+        else:
+            obj_names = [obj_name]
+
+        if self._obj_name not in obj_names:
             raise ValueError(_('An object of type %(type)s is required '
                                'in field %(attr)s, not a %(valtype)s') %
                              {'type': self._obj_name, 'attr': attr,
@@ -636,14 +652,14 @@ class ListOfDictOfNullableStringsField(AutoTypedField):
 
 
 class ObjectField(AutoTypedField):
-    def __init__(self, objtype, **kwargs):
-        self.AUTO_TYPE = Object(objtype)
+    def __init__(self, objtype, subclasses=False, **kwargs):
+        self.AUTO_TYPE = Object(objtype, subclasses)
         super(ObjectField, self).__init__(**kwargs)
 
 
 class ListOfObjectsField(AutoTypedField):
-    def __init__(self, objtype, **kwargs):
-        self.AUTO_TYPE = List(Object(objtype))
+    def __init__(self, objtype, subclasses=False, **kwargs):
+        self.AUTO_TYPE = List(Object(objtype, subclasses))
         super(ListOfObjectsField, self).__init__(**kwargs)
 
 
