@@ -10,6 +10,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from collections import OrderedDict
 import hashlib
 import inspect
 import logging
@@ -145,7 +146,9 @@ class ObjectVersionChecker(object):
         # but many other things may require a version bump (method behavior
         # and return value changes, for example).
         if hasattr(obj_class, 'child_versions'):
-            relevant_data = (obj_fields, methods, obj_class.child_versions)
+            relevant_data = (obj_fields, methods,
+                             OrderedDict(
+                                 sorted(obj_class.child_versions.items())))
         else:
             relevant_data = (obj_fields, methods)
         fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(

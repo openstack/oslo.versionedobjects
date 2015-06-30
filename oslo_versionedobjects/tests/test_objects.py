@@ -149,6 +149,16 @@ class RandomMixInWithNoFields(object):
 @base.VersionedObjectRegistry.register
 class TestSubclassedObject(RandomMixInWithNoFields, MyObj):
     fields = {'new_field': fields.Field(fields.String())}
+    child_versions = {
+        '1.0': '1.0',
+        '1.1': '1.1',
+        '1.2': '1.1',
+        '1.3': '1.2',
+        '1.4': '1.3',
+        '1.5': '1.4',
+        '1.6': '1.5',
+        '1.7': '1.6',
+        }
 
 
 class TestRegistry(test.TestCase):
@@ -421,7 +431,7 @@ class TestFixture(_BaseTestCase):
         hashes = checker.get_hashes()
         # NOTE(danms): If this object's version or hash changes, this needs
         # to change. Otherwise, leave it alone.
-        self.assertEqual('1.6-b56dbb7efe42a7ceb137d958fc4066cf',
+        self.assertEqual('1.6-7157ceb869f8f63fb9a955e6a7080ad7',
                          hashes['TestSubclassedObject'])
 
     def test_test_hashes(self):
