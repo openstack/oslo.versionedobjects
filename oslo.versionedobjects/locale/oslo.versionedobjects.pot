@@ -7,9 +7,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: oslo.versionedobjects 0.2.1.dev10\n"
+"Project-Id-Version: oslo.versionedobjects 0.5.2.dev1\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-14 06:08+0000\n"
+"POT-Creation-Date: 2015-07-06 06:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,16 +23,16 @@ msgstr ""
 msgid "Hypervisor version %s is invalid."
 msgstr ""
 
-#: oslo_versionedobjects/base.py:538
+#: oslo_versionedobjects/base.py:544
 #, python-format
 msgid "Cannot load '%s' in the base class"
 msgstr ""
 
-#: oslo_versionedobjects/base.py:546
+#: oslo_versionedobjects/base.py:552
 msgid "Cannot save anything in the base class"
 msgstr ""
 
-#: oslo_versionedobjects/base.py:617
+#: oslo_versionedobjects/base.py:623
 #, python-format
 msgid "%(objname)s object has no attribute '%(attrname)s'"
 msgstr ""
@@ -79,54 +79,66 @@ msgstr ""
 msgid "Enum valid values are not valid"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:30
+#: oslo_versionedobjects/exception.py:178
+#, python-format
+msgid "%(typename)s in %(fieldname)s is not an instance of Enum"
+msgstr ""
+
+#: oslo_versionedobjects/exception.py:182
+#, python-format
+msgid "%(fieldname)s missing field type"
+msgstr ""
+
+#: oslo_versionedobjects/fields.py:31
 #, python-format
 msgid "Key %(key)s must be of type %(expected)s not %(actual)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:40
+#: oslo_versionedobjects/fields.py:41
 #, python-format
 msgid "Element %(key)s:%(val)s must be of type %(expected)s not %(actual)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:161
+#: oslo_versionedobjects/fields.py:162
 #, python-format
 msgid "Field `%s' cannot be None"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:243
+#: oslo_versionedobjects/fields.py:244
 #, python-format
-msgid "A string is required in field %(attr)s, not %(type)s"
+msgid "A string is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:267 oslo_versionedobjects/fields.py:273
+#: oslo_versionedobjects/fields.py:268 oslo_versionedobjects/fields.py:274
 #, python-format
 msgid "Field value %s is invalid"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:313
+#: oslo_versionedobjects/fields.py:320
 #, python-format
-msgid "A datetime.datetime is required in field %s"
+msgid "A datetime.datetime is required in field %(attr)s, not a %(type)"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:345
+#: oslo_versionedobjects/fields.py:353
 #, python-format
-msgid "A list is required in field %s"
+msgid "A list is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:365
+#: oslo_versionedobjects/fields.py:375
 #, python-format
-msgid "A dict is required in field %s"
+msgid "A dict is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:433
+#: oslo_versionedobjects/fields.py:445
 #, python-format
-msgid "A set is required in field %s"
+msgid "A set is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:466
+#: oslo_versionedobjects/fields.py:496
 #, python-format
-msgid "An object of type %(type)s is required in field %(attr)s"
+msgid ""
+"An object of type %(type)s is required in field %(attr)s, not a "
+"%(valtype)s"
 msgstr ""
 
 #: oslo_versionedobjects/openstack/common/versionutils.py:108
