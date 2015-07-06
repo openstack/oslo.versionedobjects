@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-05-29 06:03+0000\n"
-"PO-Revision-Date: 2015-05-28 15:02+0000\n"
+"POT-Creation-Date: 2015-07-06 06:09+0000\n"
+"PO-Revision-Date: 2015-07-02 11:01+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
 "osloversionedobjects/language/en_GB/)\n"
@@ -21,8 +21,16 @@ msgstr ""
 "Generated-By: Babel 1.3\n"
 
 #, python-format
+msgid "%(fieldname)s missing field type"
+msgstr "%(fieldname)s missing field type"
+
+#, python-format
 msgid "%(objname)s object has no attribute '%(attrname)s'"
 msgstr "%(objname)s object has no attribute '%(attrname)s'"
+
+#, python-format
+msgid "%(typename)s in %(fieldname)s is not an instance of Enum"
+msgstr "%(typename)s in %(fieldname)s is not an instance of Enum"
 
 #, python-format
 msgid ""
@@ -49,28 +57,30 @@ msgid "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 msgstr "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
 
 #, python-format
-msgid "A datetime.datetime is required in field %s"
-msgstr "A datetime.datetime is required in field %s"
+msgid "A datetime.datetime is required in field %(attr)s, not a %(type)"
+msgstr "A datetime.datetime is required in field %(attr)s, not a %(type)"
 
 #, python-format
-msgid "A dict is required in field %s"
-msgstr "A dict is required in field %s"
+msgid "A dict is required in field %(attr)s, not a %(type)s"
+msgstr "A dict is required in field %(attr)s, not a %(type)s"
 
 #, python-format
-msgid "A list is required in field %s"
-msgstr "A list is required in field %s"
+msgid "A list is required in field %(attr)s, not a %(type)s"
+msgstr "A list is required in field %(attr)s, not a %(type)s"
 
 #, python-format
-msgid "A set is required in field %s"
-msgstr "A set is required in field %s"
+msgid "A set is required in field %(attr)s, not a %(type)s"
+msgstr "A set is required in field %(attr)s, not a %(type)s"
 
 #, python-format
-msgid "A string is required in field %(attr)s, not %(type)s"
-msgstr "A string is required in field %(attr)s, not %(type)s"
+msgid "A string is required in field %(attr)s, not a %(type)s"
+msgstr "A string is required in field %(attr)s, not a %(type)s"
 
 #, python-format
-msgid "An object of type %(type)s is required in field %(attr)s"
-msgstr "An object of type %(type)s is required in field %(attr)s"
+msgid ""
+"An object of type %(type)s is required in field %(attr)s, not a %(valtype)s"
+msgstr ""
+"An object of type %(type)s is required in field %(attr)s, not a %(valtype)s"
 
 msgid "An unknown exception occurred."
 msgstr "An unknown exception occurred."
