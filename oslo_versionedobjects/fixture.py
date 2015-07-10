@@ -9,6 +9,16 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+"""Fixtures for writing tests for code using oslo.versionedobjects
+
+.. note::
+
+   This module has several extra dependencies not needed at runtime
+   for production code, and therefore not installed by default. To
+   ensure those dependencies are present for your tests, add
+   ``oslo.versionedobjects[fixtures]`` to your list of test dependencies.
+
+"""
 
 from collections import OrderedDict
 import hashlib
