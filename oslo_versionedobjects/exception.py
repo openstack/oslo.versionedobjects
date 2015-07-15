@@ -184,3 +184,7 @@ class EnumFieldUnset(VersionedObjectsException):
 
 class InvalidTargetVersion(VersionedObjectsException):
     msg_fmt = _('Invalid target version %(version)s')
+
+
+class TargetBeforeSubobjectExistedException(VersionedObjectsException):
+    msg_fmt = _("No subobject existed at version %(target_version)s")
