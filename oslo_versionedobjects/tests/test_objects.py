@@ -681,6 +681,16 @@ class _TestObject(object):
         self.assertEqual(dict(obj),
                          {'foo': 123, 'bar': u'text'})
 
+    def test_non_dict_remotable(self):
+        @base.VersionedObjectRegistry.register
+        class TestObject(base.VersionedObject):
+            @base.remotable
+            def test_method(self):
+                return 123
+
+        obj = TestObject(context=self.context)
+        self.assertEqual(123, obj.test_method())
+
     def test_load(self):
         obj = MyObj()
         self.assertEqual(obj.bar, 'loaded!')
