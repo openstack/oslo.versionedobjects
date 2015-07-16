@@ -35,7 +35,7 @@ def convert_version_to_int(version):
         if isinstance(version, tuple):
             return functools.reduce(lambda x, y: (x * 1000) + y, version)
     except Exception:
-        msg = _("Hypervisor version %s is invalid.") % version
+        msg = _("Provided version %s is invalid.") % version
         raise exception.VersionedObjectsException(msg)
 
 
