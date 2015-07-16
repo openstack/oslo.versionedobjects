@@ -32,7 +32,6 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error
-from oslo_utils import timeutils
 from oslotest import moxstubout
 import six
 import testtools
@@ -203,15 +202,6 @@ class APICoverage(object):
         self.assertThat(
             test_methods,
             testtools.matchers.ContainsAll(api_methods))
-
-
-class TimeOverride(fixtures.Fixture):
-    """Fixture to start and remove time override."""
-
-    def setUp(self):
-        super(TimeOverride, self).setUp()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)
 
 
 class BaseHookTestCase(TestCase):
