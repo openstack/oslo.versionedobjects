@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  oslo.versionedobjects\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-07-09 06:12+0000\n"
-"PO-Revision-Date: 2015-07-02 11:01+0000\n"
+"POT-Creation-Date: 2015-07-18 06:08+0000\n"
+"PO-Revision-Date: 2015-07-17 13:28+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom) (http://www.transifex.com/p/"
 "osloversionedobjects/language/en_GB/)\n"
@@ -131,16 +131,16 @@ msgid "Field value %s is invalid"
 msgstr "Field value %s is invalid"
 
 #, python-format
-msgid "Hypervisor version %s is invalid."
-msgstr "Hypervisor version %s is invalid."
-
-#, python-format
 msgid "Key %(key)s must be of type %(expected)s not %(actual)s"
 msgstr "Key %(key)s must be of type %(expected)s not %(actual)s"
 
 #, python-format
 msgid "Object action %(action)s failed because: %(reason)s"
 msgstr "Object action %(action)s failed because: %(reason)s"
+
+#, python-format
+msgid "Provided version %s is invalid."
+msgstr "Provided version %s is invalid."
 
 #, python-format
 msgid "Unsupported object type %(objtype)s"

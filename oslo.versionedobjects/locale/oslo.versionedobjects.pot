@@ -7,9 +7,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: oslo.versionedobjects 0.5.2.dev1\n"
+"Project-Id-Version: oslo.versionedobjects 0.5.3.dev19\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2015-07-06 06:09+0000\n"
+"POT-Creation-Date: 2015-07-18 06:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,19 +20,19 @@ msgstr ""
 
 #: oslo_versionedobjects/_utils.py:38
 #, python-format
-msgid "Hypervisor version %s is invalid."
+msgid "Provided version %s is invalid."
 msgstr ""
 
-#: oslo_versionedobjects/base.py:544
+#: oslo_versionedobjects/base.py:545
 #, python-format
 msgid "Cannot load '%s' in the base class"
 msgstr ""
 
-#: oslo_versionedobjects/base.py:552
+#: oslo_versionedobjects/base.py:553
 msgid "Cannot save anything in the base class"
 msgstr ""
 
-#: oslo_versionedobjects/base.py:623
+#: oslo_versionedobjects/base.py:624
 #, python-format
 msgid "%(objname)s object has no attribute '%(attrname)s'"
 msgstr ""
@@ -129,12 +129,12 @@ msgstr ""
 msgid "A dict is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:445
+#: oslo_versionedobjects/fields.py:439
 #, python-format
 msgid "A set is required in field %(attr)s, not a %(type)s"
 msgstr ""
 
-#: oslo_versionedobjects/fields.py:496
+#: oslo_versionedobjects/fields.py:488
 #, python-format
 msgid ""
 "An object of type %(type)s is required in field %(attr)s, not a "
