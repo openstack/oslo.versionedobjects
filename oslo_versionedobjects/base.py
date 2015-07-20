@@ -945,3 +945,37 @@ def obj_make_list(context, list_obj, item_cls, db_list, **extra_args):
     list_obj._context = context
     list_obj.obj_reset_changes()
     return list_obj
+
+
+def obj_tree_get_versions(objname, tree=None):
+    """Construct a mapping of dependent object versions.
+
+    This method builds a list of dependent object versions given a top-
+    level object with other objects as fields. It walks the tree recursively
+    to deterine all the objects (by symbolic name) that could be contained
+    within the top-level object, and the maximum versions of each. The result
+    is a dict like:
+
+      {'MyObject': '1.23', ... }
+
+    :param:objname: The top-level object at which to start
+    :param:tree: Used internally, pass None here.
+    :returns: A dictionary of object names and versions
+    """
+    if tree is None:
+        tree = {}
+    if objname in tree:
+        return tree
+    objclass = VersionedObjectRegistry.obj_classes()[objname][0]
+    tree[objname] = objclass.VERSION
+    for field_name in objclass.fields:
+        field = objclass.fields[field_name]
+        if isinstance(field, obj_fields.ObjectField):
+            child_cls = field._type._obj_name
+        elif isinstance(field, obj_fields.ListOfObjectsField):
+            child_cls = field._type._element_type._type._obj_name
+        else:
+            continue
+
+        obj_tree_get_versions(child_cls, tree=tree)
+    return tree
