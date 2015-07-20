@@ -798,6 +798,17 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
     # Base class to use for object hydration
     OBJ_BASE_CLASS = VersionedObject
 
+    def _do_backport(self, context, objprim, objclass):
+        obj_versions = obj_tree_get_versions(objclass.obj_name())
+        indirection_api = self.OBJ_BASE_CLASS.indirection_api
+        try:
+            return indirection_api.object_backport_versions(
+                context, objprim, obj_versions)
+        except NotImplementedError:
+            # FIXME(danms): Maybe start to warn here about deprecation?
+            return indirection_api.object_backport(context, objprim,
+                                                   objclass.VERSION)
+
     def _process_object(self, context, objprim):
         try:
             return self.OBJ_BASE_CLASS.obj_from_primitive(
@@ -815,8 +826,7 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
             objname = objprim[namekey]
             supported = VersionedObjectRegistry.obj_classes().get(objname, [])
             if self.OBJ_BASE_CLASS.indirection_api and supported:
-                return self.OBJ_BASE_CLASS.indirection_api.object_backport(
-                    context, objprim, supported[0].VERSION)
+                return self._do_backport(context, objprim, supported[0])
             else:
                 raise
 
@@ -915,6 +925,11 @@ class VersionedObjectIndirectionAPI(object):
         objects for older services, this method services as a translation
         mechanism for older code when receiving objects from newer code.
 
+        NOTE: This older/original method is soon to be deprecated. When a
+        backport is required, the newer object_backport_versions() will be
+        tried, and if it raises NotImplementedError, then we will fall back
+        to this (less optimal) method.
+
         :param context: The context within which to perform the backport
         :param objinst: An instance of a VersionedObject to be backported
         :param target_version: The maximum version of the objinst's class
@@ -922,6 +937,29 @@ class VersionedObjectIndirectionAPI(object):
         :returns: The downgraded instance of objinst
         """
         pass
+
+    def object_backport_versions(self, context, objinst, object_versions):
+        """Perform a backport of an object instance.
+
+        This method is basically just like object_backport() but instead of
+        providing a specific target version for the toplevel object and
+        relying on the service-side mapping to handle sub-objects, this sends
+        a mapping of all the dependent objects and their client-supported
+        versions. The server will backport objects within the tree starting
+        at objinst to the versions specified in object_versions, removing
+        objects that have no entry. Use obj_tree_get_versions() to generate
+        this mapping.
+
+        NOTE: This was not in the initial spec for this interface, so the
+        base class raises NotImplementedError if you don't implement it.
+        For backports, this method will be tried first, and if unimplemented,
+        will fall back to object_backport().
+
+        :param context: The context within which to perform the backport
+        :param objinst: An instance of a VersionedObject to be backported
+        :param object_versions: A dict of {objname: version} mappings
+        """
+        raise NotImplementedError('Multi-version backport not supported')
 
 
 def obj_make_list(context, list_obj, item_cls, db_list, **extra_args):
