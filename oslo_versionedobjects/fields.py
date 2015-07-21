@@ -14,6 +14,8 @@
 
 import abc
 import datetime
+from distutils import versionpredicate
+
 
 import copy
 import iso8601
@@ -248,6 +250,18 @@ class String(FieldType):
     @staticmethod
     def stringify(value):
         return '\'%s\'' % value
+
+
+class VersionPredicate(String):
+    @staticmethod
+    def coerce(obj, attr, value):
+        try:
+            versionpredicate.VersionPredicate('check (%s)' % value)
+        except ValueError:
+            raise ValueError(_('Version %(val)s is not a valid predicate in '
+                               'field %(attr)s') %
+                             {'val': value, 'attr': attr})
+        return value
 
 
 class Enum(String):
@@ -530,6 +544,10 @@ class AutoTypedField(Field):
 
 class StringField(AutoTypedField):
     AUTO_TYPE = String()
+
+
+class VersionPredicateField(AutoTypedField):
+    AUTO_TYPE = VersionPredicate()
 
 
 class BaseEnumField(AutoTypedField):
