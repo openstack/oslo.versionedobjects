@@ -628,6 +628,10 @@ class ListOfStringsField(AutoTypedField):
     AUTO_TYPE = List(String())
 
 
+class DictOfListOfStringsField(AutoTypedField):
+    AUTO_TYPE = Dict(List(String()))
+
+
 class ListOfEnumField(AutoTypedField):
     def __init__(self, valid_values, **kwargs):
         self.AUTO_TYPE = List(Enum(valid_values))
