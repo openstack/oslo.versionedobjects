@@ -1322,11 +1322,17 @@ class _TestObject(object):
                                                 version_manifest=None)
 
     def test_comparable_objects(self):
+        class NonVersionedObject(object):
+            pass
+
         obj1 = MyComparableObj(foo=1)
         obj2 = MyComparableObj(foo=1)
         obj3 = MyComparableObj(foo=2)
+        obj4 = NonVersionedObject()
         self.assertTrue(obj1 == obj2)
         self.assertFalse(obj1 == obj3)
+        self.assertFalse(obj1 == obj4)
+        self.assertNotEqual(obj1, None)
 
     def test_compound_clone(self):
         obj = MyCompoundObject()

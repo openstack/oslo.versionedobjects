@@ -678,7 +678,14 @@ class ComparableVersionedObject(object):
     def __eq__(self, obj):
         # FIXME(inc0): this can return incorrect value if we consider partially
         # loaded objects from db and fields which are dropped out differ
-        return self.obj_to_primitive() == obj.obj_to_primitive()
+        if hasattr(obj, 'obj_to_primitive'):
+            return self.obj_to_primitive() == obj.obj_to_primitive()
+        return NotImplemented
+
+    def __ne__(self, obj):
+        if hasattr(obj, 'obj_to_primitive'):
+            return self.obj_to_primitive() != obj.obj_to_primitive()
+        return NotImplemented
 
 
 class VersionedObjectDictCompat(object):
