@@ -503,7 +503,7 @@ class Object(FieldType):
         # pass them back unchanged
         if isinstance(value, obj_base.VersionedObject):
             return value
-        return obj_base.VersionedObject.obj_from_primitive(value, obj._context)
+        return obj.obj_from_primitive(value, obj._context)
 
     def describe(self):
         return "Object<%s>" % self._obj_name
