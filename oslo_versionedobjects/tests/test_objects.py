@@ -1692,3 +1692,87 @@ class TestNamespaceCompatibility(test.TestCase):
         }
         self.assertRaises(exception.UnsupportedObjectError,
                           self.test_class.obj_from_primitive, primitive)
+
+
+class TestUtilityMethods(test.TestCase):
+    def test_flat(self):
+        @base.VersionedObjectRegistry.register
+        class TestObject(base.VersionedObject):
+            VERSION = '1.23'
+            fields = {}
+
+        tree = base.obj_tree_get_versions('TestObject')
+        self.assertEqual({'TestObject': '1.23'}, tree)
+
+    def test_parent_child(self):
+        @base.VersionedObjectRegistry.register
+        class TestChild(base.VersionedObject):
+            VERSION = '2.34'
+
+        @base.VersionedObjectRegistry.register
+        class TestObject(base.VersionedObject):
+            VERSION = '1.23'
+            fields = {
+                'child': fields.ObjectField('TestChild'),
+            }
+
+        tree = base.obj_tree_get_versions('TestObject')
+        self.assertEqual({'TestObject': '1.23',
+                          'TestChild': '2.34'},
+                         tree)
+
+    def test_complex(self):
+        @base.VersionedObjectRegistry.register
+        class TestChild(base.VersionedObject):
+            VERSION = '2.34'
+
+        @base.VersionedObjectRegistry.register
+        class TestChildTwo(base.VersionedObject):
+            VERSION = '4.56'
+            fields = {
+                'sibling': fields.ObjectField('TestChild'),
+            }
+
+        @base.VersionedObjectRegistry.register
+        class TestObject(base.VersionedObject):
+            VERSION = '1.23'
+            fields = {
+                'child': fields.ObjectField('TestChild'),
+                'childtwo': fields.ListOfObjectsField('TestChildTwo'),
+            }
+
+        tree = base.obj_tree_get_versions('TestObject')
+        self.assertEqual({'TestObject': '1.23',
+                          'TestChild': '2.34',
+                          'TestChildTwo': '4.56'},
+                         tree)
+
+    def test_complex_loopy(self):
+        @base.VersionedObjectRegistry.register
+        class TestChild(base.VersionedObject):
+            VERSION = '2.34'
+            fields = {
+                'sibling': fields.ObjectField('TestChildTwo'),
+            }
+
+        @base.VersionedObjectRegistry.register
+        class TestChildTwo(base.VersionedObject):
+            VERSION = '4.56'
+            fields = {
+                'sibling': fields.ObjectField('TestChild'),
+                'parents': fields.ListOfObjectsField('TestObject'),
+            }
+
+        @base.VersionedObjectRegistry.register
+        class TestObject(base.VersionedObject):
+            VERSION = '1.23'
+            fields = {
+                'child': fields.ObjectField('TestChild'),
+                'childtwo': fields.ListOfObjectsField('TestChildTwo'),
+            }
+
+        tree = base.obj_tree_get_versions('TestObject')
+        self.assertEqual({'TestObject': '1.23',
+                          'TestChild': '2.34',
+                          'TestChildTwo': '4.56'},
+                         tree)
