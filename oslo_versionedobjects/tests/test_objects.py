@@ -979,7 +979,7 @@ class _TestObject(object):
                          'rel_object=<?>,rel_objects=<?>)',
                          repr(obj))
 
-    def test_obj_make_obj_compatible(self):
+    def test_obj_make_obj_compatible_with_relationships(self):
         subobj = MyOwnedObject(baz=1)
         obj = MyObj(rel_object=subobj)
         obj.obj_relationships = {
@@ -1021,7 +1021,7 @@ class _TestObject(object):
             self.assertFalse(mock_compat.called)
             self.assertNotIn('rel_object', _prim)
 
-    def test_obj_make_compatible_hits_sub_objects(self):
+    def test_obj_make_compatible_hits_sub_objects_with_rels(self):
         subobj = MyOwnedObject(baz=1)
         obj = MyObj(foo=123, rel_object=subobj)
         obj.obj_relationships = {'rel_object': [('1.0', '1.0')]}
@@ -1030,26 +1030,26 @@ class _TestObject(object):
             mock_compat.assert_called_once_with({'rel_object': 'foo'}, '1.10',
                                                 'rel_object')
 
-    def test_obj_make_compatible_skips_unset_sub_objects(self):
+    def test_obj_make_compatible_skips_unset_sub_objects_with_rels(self):
         obj = MyObj(foo=123)
         obj.obj_relationships = {'rel_object': [('1.0', '1.0')]}
         with mock.patch.object(obj, '_obj_make_obj_compatible') as mock_compat:
             obj.obj_make_compatible({'rel_object': 'foo'}, '1.10')
             self.assertFalse(mock_compat.called)
 
-    def test_obj_make_compatible_complains_about_missing_rules(self):
+    def test_obj_make_compatible_complains_about_missing_rel_rules(self):
         subobj = MyOwnedObject(baz=1)
         obj = MyObj(foo=123, rel_object=subobj)
         obj.obj_relationships = {}
         self.assertRaises(exception.ObjectActionError,
                           obj.obj_make_compatible, {}, '1.0')
 
-    def test_obj_make_compatible_handles_list_of_objects(self):
+    def test_obj_make_compatible_handles_list_of_objects_with_rels(self):
         subobj = MyOwnedObject(baz=1)
         obj = MyObj(rel_objects=[subobj])
         obj.obj_relationships = {'rel_objects': [('1.0', '1.123')]}
 
-        def fake_make_compat(primitive, version):
+        def fake_make_compat(primitive, version, **k):
             self.assertEqual('1.123', version)
             self.assertIn('baz', primitive)
 
@@ -1057,6 +1057,41 @@ class _TestObject(object):
             mock_mc.side_effect = fake_make_compat
             obj.obj_to_primitive('1.0')
             self.assertTrue(mock_mc.called)
+
+    def test_obj_make_compatible_with_manifest(self):
+        subobj = MyOwnedObject(baz=1)
+        obj = MyObj(rel_object=subobj)
+        obj.obj_relationships = {}
+        orig_primitive = obj.obj_to_primitive()['versioned_object.data']
+
+        with mock.patch.object(subobj, 'obj_make_compatible') as mock_compat:
+            manifest = {'MyOwnedObject': '1.2'}
+            primitive = copy.deepcopy(orig_primitive)
+            obj.obj_make_compatible_from_manifest(primitive, '1.5', manifest)
+            mock_compat.assert_called_once_with(
+                primitive['rel_object']['versioned_object.data'], '1.2')
+            self.assertEqual(
+                '1.2',
+                primitive['rel_object']['versioned_object.version'])
+
+        with mock.patch.object(subobj, 'obj_make_compatible') as mock_compat:
+            manifest = {'MyOwnedObject': '1.0'}
+            primitive = copy.deepcopy(orig_primitive)
+            obj.obj_make_compatible_from_manifest(primitive, '1.5', manifest)
+            mock_compat.assert_called_once_with(
+                primitive['rel_object']['versioned_object.data'], '1.0')
+            self.assertEqual(
+                '1.0',
+                primitive['rel_object']['versioned_object.version'])
+
+        with mock.patch.object(subobj, 'obj_make_compatible') as mock_compat:
+            manifest = {}
+            primitive = copy.deepcopy(orig_primitive)
+            obj.obj_make_compatible_from_manifest(primitive, '1.5', manifest)
+            self.assertFalse(mock_compat.called)
+            self.assertEqual(
+                '1.0',
+                primitive['rel_object']['versioned_object.version'])
 
     def test_delattr(self):
         obj = MyObj(bar='foo')

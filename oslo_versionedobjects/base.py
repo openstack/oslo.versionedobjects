@@ -402,6 +402,25 @@ class VersionedObject(object):
         """Create a copy."""
         return copy.deepcopy(self)
 
+    def _obj_relationship_for(self, field, target_version):
+        # NOTE(danms): We need to be graceful about not having the temporary
+        # version manifest if called from obj_make_compatible().
+        if (not hasattr(self, '_obj_version_manifest') or
+                self._obj_version_manifest is None):
+            try:
+                return self.obj_relationships[field]
+            except KeyError:
+                raise exception.ObjectActionError(
+                    action='obj_make_compatible',
+                    reason='No rule for %s' % field)
+
+        objname = self.fields[field].objname
+        if objname not in self._obj_version_manifest:
+            return
+        # NOTE(danms): Compute a relationship mapping that looks like
+        # what the caller expects.
+        return [(target_version, self._obj_version_manifest[objname])]
+
     def _obj_make_obj_compatible(self, primitive, target_version, field):
         """Backlevel a sub-object based on our versioning rules.
 
@@ -421,10 +440,12 @@ class VersionedObject(object):
             obj = getattr(self, field)
             if not obj:
                 return
+            manifest = (hasattr(self, '_obj_version_manifest') and
+                        self._obj_version_manifest or None)
             if isinstance(obj, VersionedObject):
-                obj.obj_make_compatible(
+                obj.obj_make_compatible_from_manifest(
                     obj._obj_primitive_field(primitive[field], 'data'),
-                    to_version)
+                    to_version, version_manifest=manifest)
                 ver_key = obj._obj_primitive_key('version')
                 primitive[field][ver_key] = to_version
             elif isinstance(obj, list):
@@ -432,12 +453,19 @@ class VersionedObject(object):
                     element.obj_make_compatible(
                         element._obj_primitive_field(primitive[field][i],
                                                      'data'),
-                        to_version)
+                        to_version, version_manifest=manifest)
                     ver_key = element._obj_primitive_key('version')
                     primitive[field][i][ver_key] = to_version
 
+        relationship_map = self._obj_relationship_for(field, target_version)
+        if not relationship_map:
+            # NOTE(danms): This means the field was not specified in the
+            # version manifest from the client, so it must not want this
+            # field, so skip.
+            return
+
         target_version = utils.convert_version_to_tuple(target_version)
-        for index, versions in enumerate(self.obj_relationships[field]):
+        for index, versions in enumerate(relationship_map):
             my_version, child_version = versions
             my_version = utils.convert_version_to_tuple(my_version)
             if target_version < my_version:
@@ -449,7 +477,7 @@ class VersionedObject(object):
                     # We're in the gap between index-1 and index, so
                     # backport to the older version
                     last_child_version = \
-                        self.obj_relationships[field][index - 1][1]
+                        relationship_map[index - 1][1]
                     _do_backport(last_child_version)
                 return
             elif target_version == my_version:
@@ -490,13 +518,22 @@ class VersionedObject(object):
                 continue
             if not self.obj_attr_is_set(key):
                 continue
-            if key not in self.obj_relationships:
-                # NOTE(danms): This is really a coding error and shouldn't
-                # happen unless we miss something
-                raise exception.ObjectActionError(
-                    action='obj_make_compatible',
-                    reason='No rule for %s' % key)
             self._obj_make_obj_compatible(primitive, target_version, key)
+
+    def obj_make_compatible_from_manifest(self, primitive, target_version,
+                                          version_manifest):
+        # NOTE(danms): Stash the manifest on the object so we can use it in
+        # the deeper layers. We do this because obj_make_compatible() is
+        # defined library API at this point, yet we need to get this manifest
+        # to the other bits that get called so we can propagate it to child
+        # calls. It's not pretty, but a tactical solution. Ideally we will
+        # either evolve or deprecate obj_make_compatible() in a major version
+        # bump.
+        self._obj_version_manifest = version_manifest
+        try:
+            return self.obj_make_compatible(primitive, target_version)
+        finally:
+            delattr(self, '_obj_version_manifest')
 
     def obj_to_primitive(self, target_version=None):
         """Simple base-case dehydration.

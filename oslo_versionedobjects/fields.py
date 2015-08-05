@@ -682,12 +682,14 @@ class ListOfDictOfNullableStringsField(AutoTypedField):
 class ObjectField(AutoTypedField):
     def __init__(self, objtype, subclasses=False, **kwargs):
         self.AUTO_TYPE = Object(objtype, subclasses)
+        self.objname = objtype
         super(ObjectField, self).__init__(**kwargs)
 
 
 class ListOfObjectsField(AutoTypedField):
     def __init__(self, objtype, subclasses=False, **kwargs):
         self.AUTO_TYPE = List(Object(objtype, subclasses))
+        self.objname = objtype
         super(ListOfObjectsField, self).__init__(**kwargs)
 
 
