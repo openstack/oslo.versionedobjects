@@ -180,3 +180,7 @@ class EnumFieldInvalid(VersionedObjectsException):
 
 class EnumFieldUnset(VersionedObjectsException):
     msg_fmt = _('%(fieldname)s missing field type')
+
+
+class InvalidTargetVersion(VersionedObjectsException):
+    msg_fmt = _('Invalid target version %(version)s')

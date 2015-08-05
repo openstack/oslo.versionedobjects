@@ -648,6 +648,25 @@ class _TestObject(object):
         obj.obj_reset_changes()
         self.assertEqual(obj.obj_to_primitive(), expected)
 
+    def test_dehydration_invalid_version(self):
+        obj = MyObj(foo=1)
+        obj.obj_reset_changes()
+        self.assertRaises(exception.InvalidTargetVersion,
+                          obj.obj_to_primitive,
+                          target_version='1.7')
+
+    def test_dehydration_same_version(self):
+        expected = {'versioned_object.name': 'MyObj',
+                    'versioned_object.namespace': 'versionedobjects',
+                    'versioned_object.version': '1.6',
+                    'versioned_object.data': {'foo': 1}}
+        obj = MyObj(foo=1)
+        obj.obj_reset_changes()
+        with mock.patch.object(obj, 'obj_make_compatible') as mock_compat:
+            self.assertEqual(
+                obj.obj_to_primitive(target_version='1.6'), expected)
+            self.assertFalse(mock_compat.called)
+
     def test_object_property(self):
         obj = MyObj(foo=1)
         self.assertEqual(obj.foo, 1)
