@@ -1477,7 +1477,7 @@ class TestObjectSerializer(_BaseTestCase):
                                        mock_iapi,
                                        my_version='1.6'):
         ser = base.VersionedObjectSerializer()
-        mock_iapi.object_backport.return_value = 'backported'
+        mock_iapi.object_backport_versions.return_value = 'backported'
 
         @base.VersionedObjectRegistry.register
         class MyTestObj(MyObj):
@@ -1488,12 +1488,12 @@ class TestObjectSerializer(_BaseTestCase):
         primitive = obj.obj_to_primitive()
         result = ser.deserialize_entity(self.context, primitive)
         if backported_to is None:
-            self.assertFalse(mock_iapi.object_backport.called)
+            self.assertFalse(mock_iapi.object_backport_versions.called)
         else:
             self.assertEqual('backported', result)
-            mock_iapi.object_backport.assert_called_with(self.context,
-                                                         primitive,
-                                                         backported_to)
+            mock_iapi.object_backport_versions.assert_called_with(
+                self.context, primitive, {'MyTestObj': my_version,
+                                          'MyOwnedObject': '1.0'})
 
     def test_deserialize_entity_newer_version_backports(self):
         self._test_deserialize_entity_newer('1.25', '1.6')
@@ -1525,7 +1525,7 @@ class TestObjectSerializer(_BaseTestCase):
         # .0 of the object.
         self.assertEqual('1.6', obj.VERSION)
 
-    def test_nested_backport(self):
+    def _test_nested_backport(self, old):
         @base.VersionedObjectRegistry.register
         class Parent(base.VersionedObject):
             VERSION = '1.0'
@@ -1549,12 +1549,25 @@ class TestObjectSerializer(_BaseTestCase):
         child_prim['versioned_object.version'] = '1.10'
         ser = base.VersionedObjectSerializer()
         with mock.patch.object(base.VersionedObject, 'indirection_api') as a:
+            if old:
+                a.object_backport_versions.side_effect = NotImplementedError
             ser.deserialize_entity(self.context, prim)
-            # NOTE(danms): This should be the version of the parent object,
-            # not the child. If wrong, this will be '1.6', which is the max
-            # child version in our registry.
-            a.object_backport.assert_called_once_with(self.context, prim,
-                                                      '1.1')
+            a.object_backport_versions.assert_called_once_with(
+                self.context, prim, {'Parent': '1.1',
+                                     'MyObj': '1.6',
+                                     'MyOwnedObject': '1.0'})
+            if old:
+                # NOTE(danms): This should be the version of the parent object,
+                # not the child. If wrong, this will be '1.6', which is the max
+                # child version in our registry.
+                a.object_backport.assert_called_once_with(
+                    self.context, prim, '1.1')
+
+    def test_nested_backport_new_method(self):
+        self._test_nested_backport(old=False)
+
+    def test_nested_backport_old_method(self):
+        self._test_nested_backport(old=True)
 
     def test_object_serialization(self):
         ser = base.VersionedObjectSerializer()
@@ -1646,7 +1659,23 @@ class TestObjectSerializer(_BaseTestCase):
         prim = MyNSObj(foo=1).obj_to_primitive()
         prim['foo.version'] = '2.0'
         ser.deserialize_entity(mock.sentinel.context, prim)
-        MyNSObj.indirection_api.object_backport.assert_called_once_with(
+        indirection_api = MyNSObj.indirection_api
+        indirection_api.object_backport_versions.assert_called_once_with(
+            mock.sentinel.context, prim, {'MyNSObj': '1.0'})
+
+    @mock.patch('oslo_versionedobjects.base.VersionedObject.indirection_api')
+    def test_serializer_calls_old_backport_interface(self, indirection_api):
+        @base.VersionedObjectRegistry.register
+        class MyOldObj(base.VersionedObject):
+            pass
+
+        ser = base.VersionedObjectSerializer()
+        prim = MyOldObj(foo=1).obj_to_primitive()
+        prim['versioned_object.version'] = '2.0'
+        indirection_api.object_backport_versions.side_effect = (
+            NotImplementedError('Old'))
+        ser.deserialize_entity(mock.sentinel.context, prim)
+        indirection_api.object_backport.assert_called_once_with(
             mock.sentinel.context, prim, '1.0')
 
 
