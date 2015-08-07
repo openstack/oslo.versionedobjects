@@ -505,6 +505,32 @@ class TestObject(TestField):
         self.assertEqual('TestableObject(fake-uuid)',
                          self.field.stringify(obj))
 
+    def test_from_primitive(self):
+        @obj_base.VersionedObjectRegistry.register
+        class TestFakeObject(obj_base.VersionedObject):
+            OBJ_PROJECT_NAMESPACE = 'fake-project'
+
+        @obj_base.VersionedObjectRegistry.register
+        class TestBar(TestFakeObject, obj_base.ComparableVersionedObject):
+            fields = {
+                'name': fields.StringField(),
+            }
+
+        @obj_base.VersionedObjectRegistry.register
+        class TestFoo(TestFakeObject, obj_base.ComparableVersionedObject):
+            fields = {
+                'name': fields.StringField(),
+                'bar': fields.ObjectField('TestBar')
+            }
+
+        bar = TestBar(name='bar')
+        foo = TestFoo(name='foo', bar=bar)
+        from_primitive_values = [(foo.obj_to_primitive(), foo), (foo, foo)]
+
+        for prim_val, out_val in from_primitive_values:
+            self.assertEqual(out_val, self.field.from_primitive(
+                foo, 'attr', prim_val))
+
     def test_inheritance(self):
         # We need a whole lot of classes in a hierarchy to
         # test subclass recognition for the Object field
