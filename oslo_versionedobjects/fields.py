@@ -349,11 +349,11 @@ class DateTime(FieldType):
 
     @staticmethod
     def to_primitive(obj, attr, value):
-        return timeutils.isotime(value)
+        return value.isoformat()
 
     @staticmethod
     def stringify(value):
-        return timeutils.isotime(value)
+        return value.isoformat()
 
 
 class CompoundFieldType(FieldType):

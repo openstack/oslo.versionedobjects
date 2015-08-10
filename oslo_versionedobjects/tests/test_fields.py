@@ -15,7 +15,6 @@
 import datetime
 
 import iso8601
-from oslo_utils import timeutils
 import six
 
 from oslo_versionedobjects import base as obj_base
@@ -245,14 +244,14 @@ class TestDateTime(TestField):
         self.dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.Utc())
         self.field = fields.DateTimeField()
         self.coerce_good_values = [(self.dt, self.dt),
-                                   (timeutils.isotime(self.dt), self.dt)]
+                                   (self.dt.isoformat(), self.dt)]
         self.coerce_bad_values = [1, 'foo']
-        self.to_primitive_values = [(self.dt, timeutils.isotime(self.dt))]
-        self.from_primitive_values = [(timeutils.isotime(self.dt), self.dt)]
+        self.to_primitive_values = [(self.dt, self.dt.isoformat())]
+        self.from_primitive_values = [(self.dt.isoformat(), self.dt)]
 
     def test_stringify(self):
         self.assertEqual(
-            '1955-11-05T18:00:00Z',
+            '1955-11-05T18:00:00+00:00',
             self.field.stringify(
                 datetime.datetime(1955, 11, 5, 18, 0, 0,
                                   tzinfo=iso8601.iso8601.Utc())))
@@ -264,19 +263,19 @@ class TestDateTimeNoTzinfo(TestField):
         self.dt = datetime.datetime(1955, 11, 5)
         self.field = fields.DateTimeField(tzinfo_aware=False)
         self.coerce_good_values = [(self.dt, self.dt),
-                                   (timeutils.isotime(self.dt), self.dt)]
+                                   (self.dt.isoformat(), self.dt)]
         self.coerce_bad_values = [1, 'foo']
-        self.to_primitive_values = [(self.dt, timeutils.isotime(self.dt))]
+        self.to_primitive_values = [(self.dt, self.dt.isoformat())]
         self.from_primitive_values = [
             (
-                timeutils.isotime(self.dt),
+                self.dt.isoformat(),
                 self.dt,
             )
         ]
 
     def test_stringify(self):
         self.assertEqual(
-            '1955-11-05T18:00:00Z',
+            '1955-11-05T18:00:00',
             self.field.stringify(
                 datetime.datetime(1955, 11, 5, 18, 0, 0)))
 
