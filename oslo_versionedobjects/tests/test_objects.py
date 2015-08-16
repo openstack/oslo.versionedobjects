@@ -1108,6 +1108,21 @@ class _TestObject(object):
                 primitive['rel_object']['versioned_object.data'],
                 '1.2', version_manifest=manifest)
 
+    def test_obj_make_compatible_with_manifest_subobj_list(self):
+        # Make sure that we call the subobject's "from_manifest" method
+        # as well
+        subobj = MyOwnedObject(baz=1)
+        obj = MyObj(rel_objects=[subobj])
+        obj.obj_relationships = {}
+        manifest = {'MyOwnedObject': '1.2'}
+        primitive = obj.obj_to_primitive()['versioned_object.data']
+        method = 'obj_make_compatible_from_manifest'
+        with mock.patch.object(subobj, method) as mock_compat:
+            obj.obj_make_compatible_from_manifest(primitive, '1.5', manifest)
+            mock_compat.assert_called_once_with(
+                primitive['rel_objects'][0]['versioned_object.data'],
+                '1.2', version_manifest=manifest)
+
     def test_delattr(self):
         obj = MyObj(bar='foo')
         del obj.bar

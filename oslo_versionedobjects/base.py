@@ -450,7 +450,7 @@ class VersionedObject(object):
                 primitive[field][ver_key] = to_version
             elif isinstance(obj, list):
                 for i, element in enumerate(obj):
-                    element.obj_make_compatible(
+                    element.obj_make_compatible_from_manifest(
                         element._obj_primitive_field(primitive[field][i],
                                                      'data'),
                         to_version, version_manifest=manifest)
