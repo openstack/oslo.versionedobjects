@@ -752,7 +752,7 @@ class VersionedObjectDictCompat(object):
             setattr(self, key, value)
 
 
-class ObjectListBase(object):
+class ObjectListBase(collections.Sequence):
     """Mixin class for lists of objects.
 
     This mixin class can be added as a base class for an object that
@@ -775,10 +775,6 @@ class ObjectListBase(object):
             self.objects = []
             self._changed_fields.discard('objects')
 
-    def __iter__(self):
-        """List iterator interface."""
-        return iter(self.objects)
-
     def __len__(self):
         """List length."""
         return len(self.objects)
@@ -793,18 +789,6 @@ class ObjectListBase(object):
             new_obj._context = self._context
             return new_obj
         return self.objects[index]
-
-    def __contains__(self, value):
-        """List membership test."""
-        return value in self.objects
-
-    def count(self, value):
-        """List count of value occurrences."""
-        return self.objects.count(value)
-
-    def index(self, value):
-        """List index of value."""
-        return self.objects.index(value)
 
     def sort(self, key=None, reverse=False):
         self.objects.sort(key=key, reverse=reverse)
