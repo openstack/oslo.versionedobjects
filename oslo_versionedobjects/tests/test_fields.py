@@ -17,6 +17,7 @@ import datetime
 import iso8601
 import six
 
+from oslo_versionedobjects import _utils
 from oslo_versionedobjects import base as obj_base
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
@@ -244,14 +245,14 @@ class TestDateTime(TestField):
         self.dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.Utc())
         self.field = fields.DateTimeField()
         self.coerce_good_values = [(self.dt, self.dt),
-                                   (self.dt.isoformat(), self.dt)]
+                                   (_utils.isotime(self.dt), self.dt)]
         self.coerce_bad_values = [1, 'foo']
-        self.to_primitive_values = [(self.dt, self.dt.isoformat())]
-        self.from_primitive_values = [(self.dt.isoformat(), self.dt)]
+        self.to_primitive_values = [(self.dt, _utils.isotime(self.dt))]
+        self.from_primitive_values = [(_utils.isotime(self.dt), self.dt)]
 
     def test_stringify(self):
         self.assertEqual(
-            '1955-11-05T18:00:00+00:00',
+            '1955-11-05T18:00:00Z',
             self.field.stringify(
                 datetime.datetime(1955, 11, 5, 18, 0, 0,
                                   tzinfo=iso8601.iso8601.Utc())))
@@ -263,19 +264,19 @@ class TestDateTimeNoTzinfo(TestField):
         self.dt = datetime.datetime(1955, 11, 5)
         self.field = fields.DateTimeField(tzinfo_aware=False)
         self.coerce_good_values = [(self.dt, self.dt),
-                                   (self.dt.isoformat(), self.dt)]
+                                   (_utils.isotime(self.dt), self.dt)]
         self.coerce_bad_values = [1, 'foo']
-        self.to_primitive_values = [(self.dt, self.dt.isoformat())]
+        self.to_primitive_values = [(self.dt, _utils.isotime(self.dt))]
         self.from_primitive_values = [
             (
-                self.dt.isoformat(),
+                _utils.isotime(self.dt),
                 self.dt,
             )
         ]
 
     def test_stringify(self):
         self.assertEqual(
-            '1955-11-05T18:00:00',
+            '1955-11-05T18:00:00Z',
             self.field.stringify(
                 datetime.datetime(1955, 11, 5, 18, 0, 0)))
 

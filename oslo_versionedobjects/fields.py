@@ -24,6 +24,7 @@ from oslo_utils import timeutils
 import six
 
 from oslo_versionedobjects._i18n import _
+from oslo_versionedobjects import _utils
 from oslo_versionedobjects import exception
 
 
@@ -349,11 +350,11 @@ class DateTime(FieldType):
 
     @staticmethod
     def to_primitive(obj, attr, value):
-        return value.isoformat()
+        return _utils.isotime(value)
 
     @staticmethod
     def stringify(value):
-        return value.isoformat()
+        return _utils.isotime(value)
 
 
 class CompoundFieldType(FieldType):

@@ -28,6 +28,18 @@ from oslo_versionedobjects import exception
 LOG = logging.getLogger(__name__)
 
 
+# ISO 8601 extended time format with microseconds
+_ISO8601_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+
+
+def isotime(at):
+    """Stringify time in ISO 8601 format."""
+    st = at.strftime(_ISO8601_TIME_FORMAT)
+    tz = at.tzinfo.tzname(None) if at.tzinfo else 'UTC'
+    st += ('Z' if tz == 'UTC' else tz)
+    return st
+
+
 def convert_version_to_int(version):
     try:
         if isinstance(version, six.string_types):
