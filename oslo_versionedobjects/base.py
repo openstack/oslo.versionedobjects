@@ -435,28 +435,6 @@ class VersionedObject(object):
         :param:field: The name of the field in this object containing the
                       sub-object to be backported
         """
-
-        def _do_backport(to_version):
-            obj = getattr(self, field)
-            if not obj:
-                return
-            manifest = (hasattr(self, '_obj_version_manifest') and
-                        self._obj_version_manifest or None)
-            if isinstance(obj, VersionedObject):
-                obj.obj_make_compatible_from_manifest(
-                    obj._obj_primitive_field(primitive[field], 'data'),
-                    to_version, version_manifest=manifest)
-                ver_key = obj._obj_primitive_key('version')
-                primitive[field][ver_key] = to_version
-            elif isinstance(obj, list):
-                for i, element in enumerate(obj):
-                    element.obj_make_compatible_from_manifest(
-                        element._obj_primitive_field(primitive[field][i],
-                                                     'data'),
-                        to_version, version_manifest=manifest)
-                    ver_key = element._obj_primitive_key('version')
-                    primitive[field][i][ver_key] = to_version
-
         relationship_map = self._obj_relationship_for(field, target_version)
         if not relationship_map:
             # NOTE(danms): This means the field was not specified in the
@@ -464,27 +442,14 @@ class VersionedObject(object):
             # field, so skip.
             return
 
-        target_version = utils.convert_version_to_tuple(target_version)
-        for index, versions in enumerate(relationship_map):
-            my_version, child_version = versions
-            my_version = utils.convert_version_to_tuple(my_version)
-            if target_version < my_version:
-                if index == 0:
-                    # We're backporting to a version from before this
-                    # subobject was added: delete it from the primitive.
-                    del primitive[field]
-                else:
-                    # We're in the gap between index-1 and index, so
-                    # backport to the older version
-                    last_child_version = \
-                        relationship_map[index - 1][1]
-                    _do_backport(last_child_version)
-                return
-            elif target_version == my_version:
-                # This is the first mapping that satisfies the
-                # target_version request: backport the object.
-                _do_backport(child_version)
-                return
+        try:
+            _get_subobject_version(target_version,
+                                   relationship_map,
+                                   lambda ver: _do_subobject_backport(
+                                       ver, self, field, primitive))
+        except exception.TargetBeforeSubobjectExistedException:
+            # Subobject did not exist, so delete it from the primitive
+            del primitive[field]
 
     def obj_make_compatible(self, primitive, target_version):
         """Make an object representation compatible with a target version.
@@ -794,14 +759,27 @@ class ObjectListBase(collections.Sequence):
         self.objects.sort(key=key, reverse=reverse)
 
     def obj_make_compatible(self, primitive, target_version):
-        primitives = primitive['objects']
-        child_target_version = self.child_versions.get(target_version, '1.0')
-        for index, item in enumerate(self.objects):
-            self.objects[index].obj_make_compatible(
-                self._obj_primitive_field(primitives[index], 'data'),
-                child_target_version)
-            verkey = self._obj_primitive_key('version')
-            primitives[index][verkey] = child_target_version
+        # Give priority to using child_versions, if that isn't set, try
+        # obj_relationships
+        if self.child_versions:
+            relationships = self.child_versions.items()
+        elif self.obj_relationships:
+            relationships = self._obj_relationship_for('objects',
+                                                       target_version)
+
+        try:
+            # NOTE(rlrossit): If child_versions and obj_relationships weren't
+            # set, just backport to child version 1.0 (maintaining default
+            # behavior)
+            if self.child_versions or self.obj_relationships:
+                _get_subobject_version(target_version, relationships,
+                                       lambda ver: _do_subobject_backport(
+                                           ver, self, 'objects', primitive))
+            else:
+                _do_subobject_backport('1.0', self, 'objects', primitive)
+        except exception.TargetBeforeSubobjectExistedException:
+            # Child did not exist, so delete it from the primitive
+            del primitive['objects']
 
     def obj_what_changed(self):
         changes = set(self._changed_fields)
@@ -1042,3 +1020,60 @@ def obj_tree_get_versions(objname, tree=None):
 
         obj_tree_get_versions(child_cls, tree=tree)
     return tree
+
+
+def _get_subobject_version(tgt_version, relationships, backport_func):
+    """Get the version to which we need to convert a subobject.
+
+    This uses the relationships between a parent and a subobject,
+    along with the target parent version, to decide the version we need
+    to convert a subobject to. If the subobject did not exist in the parent at
+    the target version, TargetBeforeChildExistedException is raised. If there
+    is a need to backport, backport_func is called and the subobject version
+    to backport to is passed in.
+
+    :param tgt_version: The version we are converting the parent to
+    :param relationships: A list of (parent, subobject) version tuples
+    :param backport_func: A backport function that takes in the subobject
+                          version
+    :returns: The version we need to convert the subobject to
+    """
+    tgt = utils.convert_version_to_tuple(tgt_version)
+    for index, versions in enumerate(relationships):
+        parent, child = versions
+        parent = utils.convert_version_to_tuple(parent)
+        if tgt < parent:
+            if index == 0:
+                # We're backporting to a version of the parent that did
+                # not contain this subobject
+                raise exception.TargetBeforeSubobjectExistedException(
+                    target_version=tgt_version)
+            else:
+                # We're in a gap between index-1 and index, so set the desired
+                # version to the previous index's version
+                child = relationships[index - 1][1]
+                backport_func(child)
+            return
+        elif tgt == parent:
+            # We found the version we want, so backport to it
+            backport_func(child)
+            return
+
+
+def _do_subobject_backport(to_version, parent, field, primitive):
+    obj = getattr(parent, field)
+    manifest = (hasattr(parent, '_obj_version_manifest') and
+                parent._obj_version_manifest or None)
+    if isinstance(obj, VersionedObject):
+        obj.obj_make_compatible_from_manifest(
+            obj._obj_primitive_field(primitive[field], 'data'),
+            to_version, version_manifest=manifest)
+        ver_key = obj._obj_primitive_key('version')
+        primitive[field][ver_key] = to_version
+    elif isinstance(obj, list):
+        for i, element in enumerate(obj):
+            element.obj_make_compatible_from_manifest(
+                element._obj_primitive_field(primitive[field][i], 'data'),
+                to_version, version_manifest=manifest)
+            ver_key = element._obj_primitive_key('version')
+            primitive[field][i][ver_key] = to_version
