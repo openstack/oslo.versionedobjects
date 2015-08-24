@@ -15,6 +15,7 @@
 import datetime
 
 import iso8601
+import mock
 import six
 
 from oslo_versionedobjects import _utils
@@ -469,6 +470,36 @@ class TestListOfSetsOfIntegers(TestField):
 
     def test_stringify(self):
         self.assertEqual('[set([1,2])]', self.field.stringify([set([1, 2])]))
+
+
+class TestLocalMethods(test.TestCase):
+    @mock.patch.object(obj_base.LOG, 'exception')
+    def test__make_class_properties_setter_value_error(self, mock_log):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'intfield': fields.IntegerField(),
+            }
+
+        self.assertRaises(ValueError, AnObject, intfield='badvalue')
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(obj_base.LOG, 'exception')
+    def test__make_class_properties_setter_setattr_fails(self, mock_log):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'intfield': fields.IntegerField(),
+            }
+
+        # We want the setattr() call in _make_class_properties.setter() to
+        # raise an exception
+        with mock.patch.object(obj_base, '_get_attrname') as mock_attr:
+            mock_attr.return_value = '__class__'
+            self.assertRaises(TypeError, AnObject, intfield=2)
+            mock_attr.assert_called_once_with('intfield')
+            mock_log.assert_called_once_with(mock.ANY,
+                                             {'attr': 'AnObject.intfield'})
 
 
 class TestObject(TestField):

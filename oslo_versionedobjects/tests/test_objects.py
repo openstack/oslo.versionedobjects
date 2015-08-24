@@ -1756,6 +1756,14 @@ class TestObjectSerializer(_BaseTestCase):
         # .0 of the object.
         self.assertEqual('1.6', obj.VERSION)
 
+    def test_deserialize_entity_newer_version_no_indirection(self):
+        ser = base.VersionedObjectSerializer()
+        obj = MyObj()
+        obj.VERSION = '1.25'
+        primitive = obj.obj_to_primitive()
+        self.assertRaises(exception.IncompatibleObjectVersion,
+                          ser.deserialize_entity, self.context, primitive)
+
     def _test_nested_backport(self, old):
         @base.VersionedObjectRegistry.register
         class Parent(base.VersionedObject):

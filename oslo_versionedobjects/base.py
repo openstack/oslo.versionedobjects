@@ -20,6 +20,7 @@ import copy
 import logging
 
 import oslo_messaging as messaging
+from oslo_utils import excutils
 import six
 
 from oslo_versionedobjects._i18n import _, _LE
@@ -80,9 +81,10 @@ def _make_class_properties(cls):
             try:
                 return setattr(self, attrname, field_value)
             except Exception:
-                attr = "%s.%s" % (self.obj_name(), name)
-                LOG.exception(_LE('Error setting %(attr)s'), {'attr': attr})
-                raise
+                with excutils.save_and_reraise_exception():
+                    attr = "%s.%s" % (self.obj_name(), name)
+                    LOG.exception(_LE('Error setting %(attr)s'),
+                                  {'attr': attr})
 
         def deleter(self, name=name):
             attrname = _get_attrname(name)
@@ -817,21 +819,24 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
             return self.OBJ_BASE_CLASS.obj_from_primitive(
                 objprim, context=context)
         except exception.IncompatibleObjectVersion:
-            verkey = '%s.version' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
-            objver = objprim[verkey]
-            if objver.count('.') == 2:
-                # NOTE(danms): For our purposes, the .z part of the version
-                # should be safe to accept without requiring a backport
-                objprim[verkey] = \
-                    '.'.join(objver.split('.')[:2])
-                return self._process_object(context, objprim)
-            namekey = '%s.name' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
-            objname = objprim[namekey]
-            supported = VersionedObjectRegistry.obj_classes().get(objname, [])
-            if self.OBJ_BASE_CLASS.indirection_api and supported:
-                return self._do_backport(context, objprim, supported[0])
-            else:
-                raise
+            with excutils.save_and_reraise_exception(reraise=False) as ctxt:
+                verkey = \
+                    '%s.version' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
+                objver = objprim[verkey]
+                if objver.count('.') == 2:
+                    # NOTE(danms): For our purposes, the .z part of the version
+                    # should be safe to accept without requiring a backport
+                    objprim[verkey] = \
+                        '.'.join(objver.split('.')[:2])
+                    return self._process_object(context, objprim)
+                namekey = '%s.name' % self.OBJ_BASE_CLASS.OBJ_SERIAL_NAMESPACE
+                objname = objprim[namekey]
+                supported = VersionedObjectRegistry.obj_classes().get(objname,
+                                                                      [])
+                if self.OBJ_BASE_CLASS.indirection_api and supported:
+                    return self._do_backport(context, objprim, supported[0])
+                else:
+                    ctxt.reraise = True
 
     def _process_iterable(self, context, action_fn, values):
         """Process an iterable, taking an action on each value.
