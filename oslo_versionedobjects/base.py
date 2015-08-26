@@ -502,7 +502,7 @@ class VersionedObject(object):
         finally:
             delattr(self, '_obj_version_manifest')
 
-    def obj_to_primitive(self, target_version=None):
+    def obj_to_primitive(self, target_version=None, version_manifest=None):
         """Simple base-case dehydration.
 
         This calls to_primitive() for each item in fields.
@@ -518,7 +518,9 @@ class VersionedObject(object):
                 primitive[name] = field.to_primitive(self, name,
                                                      getattr(self, name))
         if target_version != self.VERSION:
-            self.obj_make_compatible(primitive, target_version)
+            self.obj_make_compatible_from_manifest(primitive,
+                                                   target_version,
+                                                   version_manifest)
         obj = {self._obj_primitive_key('name'): self.obj_name(),
                self._obj_primitive_key('namespace'): (
                    self.OBJ_PROJECT_NAMESPACE),
