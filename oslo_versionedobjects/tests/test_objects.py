@@ -15,11 +15,13 @@
 import copy
 import datetime
 import logging
+import pytz
 import six
 
 import mock
 from oslo_context import context
 from oslo_serialization import jsonutils
+from oslo_utils import timeutils
 from testtools import matchers
 
 from oslo_versionedobjects import base
@@ -57,6 +59,7 @@ class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
               'rel_objects': fields.ListOfObjectsField('MyOwnedObject',
                                                        nullable=True),
               'mutable_default': fields.ListOfStringsField(default=[]),
+              'timestamp': fields.DateTimeField(nullable=True),
               }
 
     @staticmethod
@@ -555,7 +558,7 @@ class TestFixture(_BaseTestCase):
         hashes = checker.get_hashes()
         # NOTE(danms): If this object's version or hash changes, this needs
         # to change. Otherwise, leave it alone.
-        self.assertEqual('1.6-7157ceb869f8f63fb9a955e6a7080ad7',
+        self.assertEqual('1.6-fb5f5379168bf08f7f2ce0a745e91027',
                          hashes['TestSubclassedObject'])
 
     def test_test_hashes(self):
@@ -1001,7 +1004,7 @@ class _TestObject(object):
         base_fields = []
         myobj_fields = (['foo', 'bar', 'missing',
                          'readonly', 'rel_object',
-                         'rel_objects', 'mutable_default'] +
+                         'rel_objects', 'mutable_default', 'timestamp'] +
                         base_fields)
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))
@@ -1034,6 +1037,25 @@ class _TestObject(object):
         self.assertEqual({'foo': 123}, obj.obj_get_changes())
         obj.bar = 'test'
         self.assertEqual({'foo': 123, 'bar': 'test'}, obj.obj_get_changes())
+        obj.obj_reset_changes()
+        self.assertEqual({}, obj.obj_get_changes())
+
+        timestamp = datetime.datetime(2001, 1, 1, tzinfo=pytz.utc)
+        with mock.patch.object(timeutils, 'utcnow') as mock_utcnow:
+            mock_utcnow.return_value = timestamp
+            obj.timestamp = timeutils.utcnow()
+            self.assertEqual({'timestamp': timestamp}, obj.obj_get_changes())
+
+        obj.obj_reset_changes()
+        self.assertEqual({}, obj.obj_get_changes())
+
+        # Timestamp without tzinfo causes mismatch
+        timestamp = datetime.datetime(2001, 1, 1)
+        with mock.patch.object(timeutils, 'utcnow') as mock_utcnow:
+            mock_utcnow.return_value = timestamp
+            obj.timestamp = timeutils.utcnow()
+            self.assertRaises(TypeError, obj.obj_get_changes())
+
         obj.obj_reset_changes()
         self.assertEqual({}, obj.obj_get_changes())
 
@@ -1089,7 +1111,7 @@ class _TestObject(object):
         obj = MyObj(foo=123)
         self.assertEqual('MyObj(bar=<?>,foo=123,missing=<?>,'
                          'mutable_default=<?>,readonly=<?>,'
-                         'rel_object=<?>,rel_objects=<?>)',
+                         'rel_object=<?>,rel_objects=<?>,timestamp=<?>)',
                          repr(obj))
 
     def test_obj_make_obj_compatible_with_relationships(self):
