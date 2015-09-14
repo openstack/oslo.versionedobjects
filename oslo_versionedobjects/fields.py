@@ -333,7 +333,7 @@ class DateTime(FieldType):
             value = timeutils.parse_isotime(value)
         elif not isinstance(value, datetime.datetime):
             raise ValueError(_('A datetime.datetime is required '
-                               'in field %(attr)s, not a %(type)') %
+                               'in field %(attr)s, not a %(type)s') %
                              {'attr': attr, 'type': type(value).__name__})
 
         if value.utcoffset() is None and self.tzinfo_aware:
