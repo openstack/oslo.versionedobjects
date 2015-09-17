@@ -164,9 +164,16 @@ def remotable_classmethod(fn):
     @six.wraps(fn)
     def wrapper(cls, context, *args, **kwargs):
         if cls.indirection_api:
-            result = cls.indirection_api.object_class_action(
-                context, cls.obj_name(), fn.__name__, cls.VERSION,
-                args, kwargs)
+            version_manifest = obj_tree_get_versions(cls.obj_name())
+            try:
+                result = cls.indirection_api.object_class_action_versions(
+                    context, cls.obj_name(), fn.__name__, version_manifest,
+                    args, kwargs)
+            except NotImplementedError:
+                # FIXME(danms): Maybe start to warn here about deprecation?
+                result = cls.indirection_api.object_class_action(
+                    context, cls.obj_name(), fn.__name__, cls.VERSION,
+                    args, kwargs)
         else:
             result = fn(cls, context, *args, **kwargs)
             if isinstance(result, VersionedObject):
@@ -933,6 +940,38 @@ class VersionedObjectIndirectionAPI(object):
                   be an instance of the implementing VersionedObject class.
         """
         pass
+
+    def object_class_action_versions(self, context, objname, objmethod,
+                                     object_versions, args, kwargs):
+        """Perform an action on a VersionedObject class.
+
+        When indirection_api is set on a VersionedObject (to a class
+        implementing this interface), classmethod calls on
+        remotable_classmethod methods will cause this to be executed to
+        actually make the desired call. This usually involves performing
+        RPC.
+
+        This differs from object_class_action() in that it is provided
+        with object_versions, a manifest of client-side object versions
+        for easier nested backports. The manifest is the result of
+        calling obj_tree_get_versions().
+
+        NOTE: This was not in the initial spec for this interface, so the
+        base class raises NotImplementedError if you don't implement it.
+        For backports, this method will be tried first, and if unimplemented,
+        will fall back to object_class_action(). New implementations should
+        provide this method instead of object_class_action()
+
+        :param context: The context within which to perform the action
+        :param objname: The registry name of the object
+        :param objmethod: The name of the action method to call
+        :param object_versions: A dict of {objname: version} mappings
+        :param args: The positional arguments to the action method
+        :param kwargs: The keyword arguments to the action method
+        :returns: The result of the action method, which may (or may not)
+                  be an instance of the implementing VersionedObject class.
+        """
+        raise NotImplementedError('Multi-version class action not supported')
 
     def object_backport(self, context, objinst, target_version):
         """Perform a backport of an object instance to a specified version.
