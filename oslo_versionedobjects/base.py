@@ -18,6 +18,7 @@ import abc
 import collections
 import copy
 import logging
+import warnings
 
 import oslo_messaging as messaging
 from oslo_utils import excutils
@@ -921,7 +922,11 @@ class VersionedObjectIndirectionAPI(object):
 
     def object_class_action(self, context, objname, objmethod, objver,
                             args, kwargs):
-        """Perform an action on a VersionedObject class.
+        """.. deprecated:: 0.10.0
+
+        Use :func:`object_class_action_versions` instead.
+
+        Perform an action on a VersionedObject class.
 
         When indirection_api is set on a VersionedObject (to a class
         implementing this interface), classmethod calls on
@@ -971,10 +976,17 @@ class VersionedObjectIndirectionAPI(object):
         :returns: The result of the action method, which may (or may not)
                   be an instance of the implementing VersionedObject class.
         """
+        warnings.warn('object_class_action() is deprecated in favor of '
+                      'object_class_action_versions() and will be removed '
+                      'in a later release', warnings.DeprecationWarning)
         raise NotImplementedError('Multi-version class action not supported')
 
     def object_backport(self, context, objinst, target_version):
-        """Perform a backport of an object instance to a specified version.
+        """.. deprecated:: 0.10.0
+
+        Use :func:`object_backport_versions` instead.
+
+        Perform a backport of an object instance to a specified version.
 
         When indirection_api is set on a VersionedObject (to a class
         implementing this interface), the default behavior of the base
@@ -1019,6 +1031,9 @@ class VersionedObjectIndirectionAPI(object):
         :param objinst: An instance of a VersionedObject to be backported
         :param object_versions: A dict of {objname: version} mappings
         """
+        warnings.warn('object_backport() is deprecated in favor of '
+                      'object_backport_versions() and will be removed '
+                      'in a later release', warnings.DeprecationWarning)
         raise NotImplementedError('Multi-version backport not supported')
 
 
