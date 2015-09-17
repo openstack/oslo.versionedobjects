@@ -92,6 +92,23 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
             context=context)
             if isinstance(result, base.VersionedObject) else result)
 
+    def object_class_action_versions(self, context, objname, objmethod,
+                                     object_versions, args, kwargs):
+        objname = six.text_type(objname)
+        objmethod = six.text_type(objmethod)
+        object_versions = {six.text_type(o): six.text_type(v)
+                           for o, v in object_versions.items()}
+        args, kwargs = self._canonicalize_args(context, args, kwargs)
+        objver = object_versions[objname]
+        cls = base.VersionedObject.obj_class_from_name(objname, objver)
+        with mock.patch('oslo_versionedobjects.base.VersionedObject.'
+                        'indirection_api', new=None):
+            result = getattr(cls, objmethod)(context, *args, **kwargs)
+        return (base.VersionedObject.obj_from_primitive(
+            result.obj_to_primitive(target_version=objver),
+            context=context)
+            if isinstance(result, base.VersionedObject) else result)
+
     def object_backport(self, context, objinst, target_version):
         raise Exception('not supported')
 
