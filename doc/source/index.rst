@@ -22,6 +22,7 @@ Contents
    installation
    api/index
    usage
+   opts
    contributing
 
 Release Notes
