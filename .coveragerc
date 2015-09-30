@@ -4,4 +4,4 @@ source = versionedobjects
 omit = versionedobjects/tests/*,versionedobjects/openstack/*
 
 [report]
-ignore-errors = True
+ignore_errors = True
