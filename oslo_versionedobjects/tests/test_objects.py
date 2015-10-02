@@ -954,10 +954,10 @@ class _TestObject(object):
         self.assertEqual(obj.bar, 'updated')
 
     def test_contains(self):
-        obj = MyObj()
-        self.assertNotIn('foo', obj)
-        obj.foo = 1
-        self.assertIn('foo', obj)
+        obj = MyOwnedObject()
+        self.assertNotIn('baz', obj)
+        obj.baz = 1
+        self.assertIn('baz', obj)
         self.assertNotIn('does_not_exist', obj)
 
     def test_obj_attr_is_set(self):

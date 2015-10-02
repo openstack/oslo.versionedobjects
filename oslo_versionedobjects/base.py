@@ -302,6 +302,12 @@ class VersionedObject(object):
                                   '<?>'))
                       for name, field in sorted(self.fields.items())]))
 
+    def __contains__(self, name):
+        try:
+            return self.obj_attr_is_set(name)
+        except AttributeError:
+            return False
+
     @classmethod
     def obj_name(cls):
         """Return the object's name
@@ -700,12 +706,6 @@ class VersionedObjectDictCompat(object):
 
     def __setitem__(self, name, value):
         setattr(self, name, value)
-
-    def __contains__(self, name):
-        try:
-            return self.obj_attr_is_set(name)
-        except AttributeError:
-            return False
 
     def get(self, key, value=_NotSpecifiedSentinel):
         if key not in self.obj_fields:
