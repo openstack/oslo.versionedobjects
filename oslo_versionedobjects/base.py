@@ -523,7 +523,13 @@ class VersionedObject(object):
             if self.obj_attr_is_set(name):
                 primitive[name] = field.to_primitive(self, name,
                                                      getattr(self, name))
-        if target_version != self.VERSION:
+        # NOTE(danms): If we know we're being asked for a different version,
+        # then do the compat step. However, even if we think we're not,
+        # we may have sub-objects that need it, so if we have a manifest we
+        # have to traverse this object just in case. Previously, we
+        # required a parent version bump for any child, so the target
+        # check was enough.
+        if target_version != self.VERSION or version_manifest:
             self.obj_make_compatible_from_manifest(primitive,
                                                    target_version,
                                                    version_manifest)

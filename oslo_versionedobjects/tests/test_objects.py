@@ -391,6 +391,15 @@ class TestDoSubobjectBackport(test.TestCase):
                                                 version,
                                                 version_manifest=manifest)
 
+    def test_do_subobject_backport_with_manifest_old_parent(self):
+        child = self.ChildObj(foo=1)
+        parent = self.ParentObj(child=child)
+        manifest = {'ChildObj': '1.0'}
+        parent_primitive = parent.obj_to_primitive(target_version='1.1',
+                                                   version_manifest=manifest)
+        child_primitive = parent_primitive['versioned_object.data']['child']
+        self.assertEqual('1.0', child_primitive['versioned_object.version'])
+
     def test_do_subobject_backport_list_object(self):
         child = self.ChildObj(foo=1)
         parent = self.ParentObjList(objects=[child])
