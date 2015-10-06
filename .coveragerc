@@ -1,7 +1,8 @@
 [run]
 branch = True
-source = versionedobjects
-omit = versionedobjects/tests/*,versionedobjects/openstack/*
+source = oslo_versionedobjects
+omit = oslo_versionedobjects/tests/*,versionedobjects/openstack/*
 
 [report]
 ignore_errors = True
+precision = 2
