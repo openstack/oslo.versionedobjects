@@ -773,15 +773,20 @@ class ObjectListBase(collections.Sequence):
         # obj_relationships
         if self.child_versions:
             relationships = self.child_versions.items()
-        elif self.obj_relationships:
-            relationships = self._obj_relationship_for('objects',
-                                                       target_version)
+        else:
+            try:
+                relationships = self._obj_relationship_for('objects',
+                                                           target_version)
+            except exception.ObjectActionError:
+                # No relationship for this found in manifest or
+                # in obj_relationships
+                relationships = {}
 
         try:
-            # NOTE(rlrossit): If child_versions and obj_relationships weren't
-            # set, just backport to child version 1.0 (maintaining default
+            # NOTE(rlrossit): If we have no version information, just
+            # backport to child version 1.0 (maintaining default
             # behavior)
-            if self.child_versions or self.obj_relationships:
+            if relationships:
                 _get_subobject_version(target_version, relationships,
                                        lambda ver: _do_subobject_backport(
                                            ver, self, 'objects', primitive))
