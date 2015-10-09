@@ -119,6 +119,17 @@ class TestString(TestField):
         self.assertEqual("'123'", self.field.stringify(123))
 
 
+class TestSensitiveString(TestString):
+    def setUp(self):
+        super(TestSensitiveString, self).setUp()
+        self.field = fields.SensitiveStringField()
+
+    def test_stringify(self):
+        payload = """{'admin_password':'mypassword'}"""
+        expected = """'{'admin_password':'***'}'"""
+        self.assertEqual(expected, self.field.stringify(payload))
+
+
 class TestVersionPredicate(TestString):
     def setUp(self):
         super(TestVersionPredicate, self).setUp()

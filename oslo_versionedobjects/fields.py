@@ -253,6 +253,16 @@ class String(FieldType):
         return '\'%s\'' % value
 
 
+class SensitiveString(String):
+    """A string field type that may contain sensitive (password) information.
+
+    Passwords in the string value are masked when stringified.
+    """
+    def stringify(self, value):
+        return super(SensitiveString, self).stringify(
+            strutils.mask_password(value))
+
+
 class VersionPredicate(String):
     @staticmethod
     def coerce(obj, attr, value):
@@ -545,6 +555,11 @@ class AutoTypedField(Field):
 
 class StringField(AutoTypedField):
     AUTO_TYPE = String()
+
+
+class SensitiveStringField(AutoTypedField):
+    """Field type that masks passwords when the field is stringified."""
+    AUTO_TYPE = SensitiveString()
 
 
 class VersionPredicateField(AutoTypedField):
