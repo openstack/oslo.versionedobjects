@@ -551,15 +551,17 @@ class TestFixture(_BaseTestCase):
                                                 obj, 'marco',
                                                 (), {})
 
-    def test_indirection_class_action(self):
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_indirection_class_action(self, mock_otgv):
+        mock_otgv.return_value = mock.sentinel.versions
         self.useFixture(fixture.IndirectionFixture())
         with mock.patch.object(base.VersionedObject.indirection_api,
-                               'object_class_action') as mock_caction:
+                               'object_class_action_versions') as mock_caction:
             mock_caction.return_value = 'foo'
             MyObj.query(self.context)
             mock_caction.assert_called_once_with(self.context,
                                                  'MyObj', 'query',
-                                                 MyObj.VERSION,
+                                                 mock.sentinel.versions,
                                                  (), {})
 
     def test_fake_indirection_serializes_arguments(self):
@@ -1535,30 +1537,42 @@ class TestObject(_LocalTest, _TestObject):
 
 
 class TestRemoteObject(_RemoteTest, _TestObject):
-    def test_major_version_mismatch(self):
-        MyObj2.VERSION = '2.0'
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_major_version_mismatch(self, mock_otgv):
+        mock_otgv.return_value = {'MyObj': '2.0'}
         self.assertRaises(exception.IncompatibleObjectVersion,
                           MyObj2.query, self.context)
 
-    def test_minor_version_greater(self):
-        MyObj2.VERSION = '1.7'
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_minor_version_greater(self, mock_otgv):
+        mock_otgv.return_value = {'MyObj': '1.7'}
         self.assertRaises(exception.IncompatibleObjectVersion,
                           MyObj2.query, self.context)
 
-    def test_minor_version_less(self):
-        MyObj2.VERSION = '1.2'
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_minor_version_less(self, mock_otgv):
+        mock_otgv.return_value = {'MyObj': '1.2'}
         obj = MyObj2.query(self.context)
         self.assertEqual(obj.bar, 'bar')
 
-    def test_compat(self):
-        MyObj2.VERSION = '1.1'
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_compat(self, mock_otgv):
+        mock_otgv.return_value = {'MyObj': '1.1'}
         obj = MyObj2.query(self.context)
         self.assertEqual('oldbar', obj.bar)
 
-    def test_revision_ignored(self):
-        MyObj2.VERSION = '1.1.456'
+    @mock.patch('oslo_versionedobjects.base.obj_tree_get_versions')
+    def test_revision_ignored(self, mock_otgv):
+        mock_otgv.return_value = {'MyObj': '1.1.456'}
         obj = MyObj2.query(self.context)
         self.assertEqual('bar', obj.bar)
+
+    def test_class_action_falls_back_compat(self):
+        with mock.patch.object(base.VersionedObject, 'indirection_api') as ma:
+            ma.object_class_action_versions.side_effect = NotImplementedError
+            MyObj.query(self.context)
+            ma.object_class_action.assert_called_once_with(
+                self.context, 'MyObj', 'query', MyObj.VERSION, (), {})
 
 
 class TestObjectListBase(test.TestCase):
