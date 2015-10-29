@@ -1065,14 +1065,14 @@ def obj_tree_get_versions(objname, tree=None):
 
     This method builds a list of dependent object versions given a top-
     level object with other objects as fields. It walks the tree recursively
-    to deterine all the objects (by symbolic name) that could be contained
+    to determine all the objects (by symbolic name) that could be contained
     within the top-level object, and the maximum versions of each. The result
     is a dict like:
 
       {'MyObject': '1.23', ... }
 
-    :param:objname: The top-level object at which to start
-    :param:tree: Used internally, pass None here.
+    :param objname: The top-level object at which to start
+    :param tree: Used internally, pass None here.
     :returns: A dictionary of object names and versions
     """
     if tree is None:
