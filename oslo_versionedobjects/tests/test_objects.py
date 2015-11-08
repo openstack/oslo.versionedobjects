@@ -144,6 +144,18 @@ class MyObj2(base.VersionedObject):
         pass
 
 
+@base.VersionedObjectRegistry.register_if(False)
+class MySensitiveObj(base.VersionedObject):
+    VERSION = '1.0'
+    fields = {
+        'data': fields.SensitiveStringField(nullable=True)
+    }
+
+    @base.remotable_classmethod
+    def query(cls, *args, **kwargs):
+        pass
+
+
 class RandomMixInWithNoFields(object):
     """Used to test object inheritance using a mixin that has no fields."""
     pass
@@ -1134,6 +1146,14 @@ class _TestObject(object):
                          'mutable_default=<?>,readonly=<?>,'
                          'rel_object=<?>,rel_objects=<?>,timestamp=<?>)',
                          repr(obj))
+
+    def test_obj_repr_sensitive(self):
+        obj = MySensitiveObj(data="""{'admin_password':'mypassword'}""")
+        self.assertEqual(
+            'MySensitiveObj(data=\'{\'admin_password\':\'***\'}\')', repr(obj))
+
+        obj2 = MySensitiveObj()
+        self.assertEqual('MySensitiveObj(data=<?>)', repr(obj2))
 
     def test_obj_make_obj_compatible_with_relationships(self):
         subobj = MyOwnedObject(baz=1)
