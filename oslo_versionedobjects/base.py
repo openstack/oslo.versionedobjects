@@ -21,6 +21,7 @@ import logging
 import warnings
 
 import oslo_messaging as messaging
+from oslo_utils import encodeutils
 from oslo_utils import excutils
 import six
 
@@ -302,13 +303,16 @@ class VersionedObject(object):
             setattr(self, key, kwargs[key])
 
     def __repr__(self):
-        return '%s(%s)' % (
+        repr_str = '%s(%s)' % (
             self.obj_name(),
             ','.join(['%s=%s' % (name,
                                  (self.obj_attr_is_set(name) and
                                   field.stringify(getattr(self, name)) or
                                   '<?>'))
                       for name, field in sorted(self.fields.items())]))
+        if not six.PY3:
+            repr_str = encodeutils.safe_encode(repr_str, incoming='utf-8')
+        return repr_str
 
     def __contains__(self, name):
         try:
