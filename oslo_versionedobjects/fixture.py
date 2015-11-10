@@ -21,6 +21,7 @@
 """
 
 from collections import OrderedDict
+import datetime
 import hashlib
 import inspect
 import logging
@@ -34,6 +35,55 @@ from oslo_versionedobjects import fields
 
 
 LOG = logging.getLogger(__name__)
+
+
+def compare_obj(test, obj, db_obj, subs=None, allow_missing=None,
+                comparators=None):
+    """Compare a VersionedObject and a dict-like database object.
+
+    This automatically converts TZ-aware datetimes and iterates over
+    the fields of the object.
+
+    :param test: The TestCase doing the comparison
+    :param obj: The VersionedObject to examine
+    :param db_obj: The dict-like database object to use as reference
+    :param subs: A dict of objkey=dbkey field substitutions
+    :param allow_missing: A list of fields that may not be in db_obj
+    :param comparators: Map of comparator functions to use for certain fields
+    """
+
+    if subs is None:
+        subs = {}
+    if allow_missing is None:
+        allow_missing = []
+    if comparators is None:
+        comparators = {}
+
+    for key in obj.fields:
+        # We'll raise a NotImplementedError if we try to compare against
+        # against something that isn't set in the object, but is not
+        # in the allow_missing. This will replace that exception
+        # with an AssertionError (because that is a better way of saying
+        # "these objects arent the same").
+        if not obj.obj_attr_is_set(key):
+            if key in allow_missing:
+                continue
+            else:
+                raise AssertionError(("%s is not set on the object, so "
+                                      "the objects are not equal") % key)
+        if key in allow_missing and not obj.obj_attr_is_set(key):
+            continue
+        obj_val = getattr(obj, key)
+        db_key = subs.get(key, key)
+        db_val = db_obj[db_key]
+        if isinstance(obj_val, datetime.datetime):
+            obj_val = obj_val.replace(tzinfo=None)
+
+        if key in comparators:
+            comparator = comparators[key]
+            comparator(db_val, obj_val)
+        else:
+            test.assertEqual(db_val, obj_val)
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
