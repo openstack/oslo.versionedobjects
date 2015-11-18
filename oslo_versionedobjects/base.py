@@ -982,7 +982,7 @@ class VersionedObjectIndirectionAPI(object):
         """
         warnings.warn('object_class_action() is deprecated in favor of '
                       'object_class_action_versions() and will be removed '
-                      'in a later release', warnings.DeprecationWarning)
+                      'in a later release', DeprecationWarning)
         raise NotImplementedError('Multi-version class action not supported')
 
     def object_backport(self, context, objinst, target_version):
@@ -1037,7 +1037,7 @@ class VersionedObjectIndirectionAPI(object):
         """
         warnings.warn('object_backport() is deprecated in favor of '
                       'object_backport_versions() and will be removed '
-                      'in a later release', warnings.DeprecationWarning)
+                      'in a later release', DeprecationWarning)
         raise NotImplementedError('Multi-version backport not supported')
 
 
