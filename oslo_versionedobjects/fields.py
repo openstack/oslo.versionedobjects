@@ -19,6 +19,7 @@ from distutils import versionpredicate
 
 import copy
 import iso8601
+import netaddr
 from oslo_utils import strutils
 from oslo_utils import timeutils
 import six
@@ -367,6 +368,71 @@ class DateTime(FieldType):
         return _utils.isotime(value)
 
 
+class IPAddress(FieldType):
+    @staticmethod
+    def coerce(obj, attr, value):
+        try:
+            return netaddr.IPAddress(value)
+        except netaddr.AddrFormatError as e:
+            raise ValueError(six.text_type(e))
+
+    def from_primitive(self, obj, attr, value):
+        return self.coerce(obj, attr, value)
+
+    @staticmethod
+    def to_primitive(obj, attr, value):
+        return str(value)
+
+
+class IPV4Address(IPAddress):
+    @staticmethod
+    def coerce(obj, attr, value):
+        result = IPAddress.coerce(obj, attr, value)
+        if result.version != 4:
+            raise ValueError(_('Network "%(val)s" is not valid '
+                               'in field %(attr)s') %
+                             {'val': value, 'attr': attr})
+        return result
+
+
+class IPV6Address(IPAddress):
+    @staticmethod
+    def coerce(obj, attr, value):
+        result = IPAddress.coerce(obj, attr, value)
+        if result.version != 6:
+            raise ValueError(_('Network "%(val)s" is not valid '
+                               'in field %(attr)s') %
+                             {'val': value, 'attr': attr})
+        return result
+
+
+class IPNetwork(IPAddress):
+    @staticmethod
+    def coerce(obj, attr, value):
+        try:
+            return netaddr.IPNetwork(value)
+        except netaddr.AddrFormatError as e:
+            raise ValueError(six.text_type(e))
+
+
+class IPV4Network(IPNetwork):
+    @staticmethod
+    def coerce(obj, attr, value):
+        try:
+            return netaddr.IPNetwork(value, version=4)
+        except netaddr.AddrFormatError as e:
+            raise ValueError(six.text_type(e))
+
+
+class IPV6Network(IPNetwork):
+    @staticmethod
+    def coerce(obj, attr, value):
+        try:
+            return netaddr.IPNetwork(value, version=6)
+        except netaddr.AddrFormatError as e:
+            raise ValueError(six.text_type(e))
+
+
 class CompoundFieldType(FieldType):
     def __init__(self, element_type, **field_args):
         self._element_type = Field(element_type, **field_args)
@@ -707,6 +773,30 @@ class ListOfObjectsField(AutoTypedField):
         self.AUTO_TYPE = List(Object(objtype, subclasses))
         self.objname = objtype
         super(ListOfObjectsField, self).__init__(**kwargs)
+
+
+class IPAddressField(AutoTypedField):
+    AUTO_TYPE = IPAddress()
+
+
+class IPV4AddressField(AutoTypedField):
+    AUTO_TYPE = IPV4Address()
+
+
+class IPV6AddressField(AutoTypedField):
+    AUTO_TYPE = IPV6Address()
+
+
+class IPNetworkField(AutoTypedField):
+    AUTO_TYPE = IPNetwork()
+
+
+class IPV4NetworkField(AutoTypedField):
+    AUTO_TYPE = IPV4Network()
+
+
+class IPV6NetworkField(AutoTypedField):
+    AUTO_TYPE = IPV6Network()
 
 
 class CoercedCollectionMixin(object):
