@@ -15,7 +15,7 @@
 import abc
 import datetime
 from distutils import versionpredicate
-
+import re
 
 import copy
 import iso8601
@@ -23,7 +23,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 import six
 
-from oslo_versionedobjects._i18n import _
+from oslo_versionedobjects._i18n import _, _LE
 from oslo_versionedobjects import _utils
 from oslo_versionedobjects import exception
 
@@ -306,6 +306,19 @@ class UUID(FieldType):
     def coerce(obj, attr, value):
         # FIXME(danms): We should actually verify the UUIDness here
         return str(value)
+
+
+class MACAddress(FieldType):
+
+    _REGEX = re.compile(r'[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
+
+    @staticmethod
+    def coerce(obj, attr, value):
+        lowered = value.lower().replace('-', ':')
+        if (not isinstance(value, six.string_types) or
+                not MACAddress._REGEX.match(lowered)):
+            raise ValueError(_LE("Malformed MAC %s"), value)
+        return lowered
 
 
 class Integer(FieldType):
@@ -615,6 +628,10 @@ class EnumField(BaseEnumField):
 
 class UUIDField(AutoTypedField):
     AUTO_TYPE = UUID()
+
+
+class MACAddressField(AutoTypedField):
+    AUTO_TYPE = MACAddress()
 
 
 class IntegerField(AutoTypedField):

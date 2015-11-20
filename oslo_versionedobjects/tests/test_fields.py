@@ -142,6 +142,25 @@ class TestVersionPredicate(TestString):
         self.from_primitive_values = self.coerce_good_values[0:1]
 
 
+class TestMACAddress(TestField):
+    def setUp(self):
+        super(TestMACAddress, self).setUp()
+        self.field = fields.MACAddressField()
+        self.coerce_good_values = [
+            ('c6:df:11:a5:c8:5d', 'c6:df:11:a5:c8:5d'),
+            ('C6:DF:11:A5:C8:5D', 'c6:df:11:a5:c8:5d'),
+            ('c6:df:11:a5:c8:5d', 'c6:df:11:a5:c8:5d'),
+            ('C6:DF:11:A5:C8:5D', 'c6:df:11:a5:c8:5d'),
+        ]
+        self.coerce_bad_values = [
+            'C6:DF:11:A5:C8',  # Too short
+            'C6:DF:11:A5:C8:5D:D7',  # Too long
+            'C6:DF:11:A5:C8:KD',  # Bad octal
+        ]
+        self.to_primitive_values = self.coerce_good_values[0:1]
+        self.from_primitive_values = self.coerce_good_values[0:1]
+
+
 class TestBaseEnum(TestField):
     def setUp(self):
         super(TestBaseEnum, self).setUp()
