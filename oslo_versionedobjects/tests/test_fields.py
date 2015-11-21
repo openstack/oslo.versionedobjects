@@ -16,6 +16,7 @@ import datetime
 
 import iso8601
 import mock
+import netaddr
 import six
 
 from oslo_versionedobjects import _utils
@@ -682,3 +683,87 @@ class TestObject(TestField):
         self.assertRaises(ValueError, pigs.coerce, None, "animal", ticktock)
         self.assertRaises(ValueError, pigs.coerce, None, "animal", wolfy)
         self.assertEqual(babe, pigs.coerce(None, "animal", babe))
+
+
+class TestIPAddress(TestField):
+    def setUp(self):
+        super(TestIPAddress, self).setUp()
+        self.field = fields.IPAddressField()
+        self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+                                   ('::1', netaddr.IPAddress('::1')),
+                                   (netaddr.IPAddress('::1'),
+                                    netaddr.IPAddress('::1'))]
+        self.coerce_bad_values = ['1-2', 'foo']
+        self.to_primitive_values = [(netaddr.IPAddress('1.2.3.4'), '1.2.3.4'),
+                                    (netaddr.IPAddress('::1'), '::1')]
+        self.from_primitive_values = [('1.2.3.4',
+                                       netaddr.IPAddress('1.2.3.4')),
+                                      ('::1',
+                                       netaddr.IPAddress('::1'))]
+
+
+class TestIPAddressV4(TestField):
+    def setUp(self):
+        super(TestIPAddressV4, self).setUp()
+        self.field = fields.IPV4AddressField()
+        self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+                                   (netaddr.IPAddress('1.2.3.4'),
+                                    netaddr.IPAddress('1.2.3.4'))]
+        self.coerce_bad_values = ['1-2', 'foo', '::1']
+        self.to_primitive_values = [(netaddr.IPAddress('1.2.3.4'), '1.2.3.4')]
+        self.from_primitive_values = [('1.2.3.4',
+                                       netaddr.IPAddress('1.2.3.4'))]
+
+
+class TestIPAddressV6(TestField):
+    def setUp(self):
+        super(TestIPAddressV6, self).setUp()
+        self.field = fields.IPV6AddressField()
+        self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
+                                   (netaddr.IPAddress('::1'),
+                                    netaddr.IPAddress('::1'))]
+        self.coerce_bad_values = ['1.2', 'foo', '1.2.3.4']
+        self.to_primitive_values = [(netaddr.IPAddress('::1'), '::1')]
+        self.from_primitive_values = [('::1',
+                                       netaddr.IPAddress('::1'))]
+
+
+class TestIPNetwork(TestField):
+    def setUp(self):
+        super(TestIPNetwork, self).setUp()
+        self.field = fields.IPNetworkField()
+        self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
+                                   ('1.2.3.4/24',
+                                    netaddr.IPNetwork('1.2.3.4/24')),
+                                   (netaddr.IPNetwork('::1/32'),
+                                    netaddr.IPNetwork('::1/32'))]
+        self.coerce_bad_values = ['foo']
+        self.to_primitive_values = [(netaddr.IPNetwork('::1/0'), '::1/0')]
+        self.from_primitive_values = [('::1/0',
+                                       netaddr.IPNetwork('::1/0'))]
+
+
+class TestIPV4Network(TestField):
+    def setUp(self):
+        super(TestIPV4Network, self).setUp()
+        self.field = fields.IPV4NetworkField()
+        self.coerce_good_values = [('1.2.3.4/24',
+                                    netaddr.IPNetwork('1.2.3.4/24'))]
+        self.coerce_bad_values = ['foo', '::1/32']
+        self.to_primitive_values = [(netaddr.IPNetwork('1.2.3.4/24'),
+                                     '1.2.3.4/24')]
+        self.from_primitive_values = [('1.2.3.4/24',
+                                       netaddr.IPNetwork('1.2.3.4/24'))]
+
+
+class TestIPV6Network(TestField):
+    def setUp(self):
+        super(TestIPV6Network, self).setUp()
+        self.field = fields.IPV6NetworkField()
+        self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
+                                   (netaddr.IPNetwork('::1/32'),
+                                    netaddr.IPNetwork('::1/32'))]
+        self.coerce_bad_values = ['foo', '1.2.3.4/24']
+        self.to_primitive_values = [(netaddr.IPNetwork('::1/0'), '::1/0')]
+        self.from_primitive_values = [('::1/0',
+                                       netaddr.IPNetwork('::1/0'))]
