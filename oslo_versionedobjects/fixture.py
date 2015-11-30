@@ -25,10 +25,10 @@ import hashlib
 import inspect
 import logging
 import mock
+from oslo_utils import versionutils as vutils
 import six
 
 import fixtures
-from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
@@ -238,7 +238,7 @@ class ObjectVersionChecker(object):
         return expected, actual
 
     def _test_object_compatibility(self, obj_class):
-        version = utils.convert_version_to_tuple(obj_class.VERSION)
+        version = vutils.convert_version_to_tuple(obj_class.VERSION)
         for n in range(version[1] + 1):
             test_version = '%d.%d' % (version[0], n)
             LOG.info('testing obj: %s version: %s' %
@@ -261,8 +261,8 @@ class ObjectVersionChecker(object):
             last_my_version = (0, 0)
             last_child_version = (0, 0)
             for my_version, child_version in versions:
-                _my_version = utils.convert_version_to_tuple(my_version)
-                _ch_version = utils.convert_version_to_tuple(child_version)
+                _my_version = vutils.convert_version_to_tuple(my_version)
+                _ch_version = vutils.convert_version_to_tuple(child_version)
                 assert (last_my_version < _my_version
                         and last_child_version <= _ch_version), \
                     ('Object %s relationship '

@@ -23,10 +23,10 @@ import warnings
 import oslo_messaging as messaging
 from oslo_utils import encodeutils
 from oslo_utils import excutils
+from oslo_utils import versionutils as vutils
 import six
 
 from oslo_versionedobjects._i18n import _, _LE
-from oslo_versionedobjects import _utils as utils
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
 from oslo_versionedobjects.openstack.common import versionutils
@@ -527,8 +527,8 @@ class VersionedObject(object):
         """
         if target_version is None:
             target_version = self.VERSION
-        if (utils.convert_version_to_tuple(target_version) >
-                utils.convert_version_to_tuple(self.VERSION)):
+        if (vutils.convert_version_to_tuple(target_version) >
+                vutils.convert_version_to_tuple(self.VERSION)):
             raise exception.InvalidTargetVersion(version=target_version)
         primitive = dict()
         for name, field in self.fields.items():
@@ -1114,10 +1114,10 @@ def _get_subobject_version(tgt_version, relationships, backport_func):
                           version
     :returns: The version we need to convert the subobject to
     """
-    tgt = utils.convert_version_to_tuple(tgt_version)
+    tgt = vutils.convert_version_to_tuple(tgt_version)
     for index, versions in enumerate(relationships):
         parent, child = versions
-        parent = utils.convert_version_to_tuple(parent)
+        parent = vutils.convert_version_to_tuple(parent)
         if tgt < parent:
             if index == 0:
                 # We're backporting to a version of the parent that did
