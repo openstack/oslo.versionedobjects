@@ -154,7 +154,7 @@ class ObjectVersionChecker(object):
             # This means the top-level thing never hit a remotable layer
             return None
 
-    def _get_fingerprint(self, obj_name):
+    def _get_fingerprint(self, obj_name, extra_data_func=None):
         obj_class = self.obj_classes[obj_name][0]
         obj_fields = list(obj_class.fields.items())
         obj_fields.sort()
@@ -178,16 +178,27 @@ class ObjectVersionChecker(object):
                                  sorted(obj_class.child_versions.items())))
         else:
             relevant_data = (obj_fields, methods)
+
+        if extra_data_func:
+            relevant_data += extra_data_func(obj_class)
+
         fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
             six.binary_type(repr(relevant_data).encode())).hexdigest())
         return fingerprint
 
-    def get_hashes(self):
-        """Return a dict of computed object hashes."""
+    def get_hashes(self, extra_data_func=None):
+        """Return a dict of computed object hashes.
+
+        :param extra_data_func: a function that is given the object class
+                                which gathers more relevant data about the
+                                class that is needed in versioning. Returns
+                                a tuple containing the extra data bits.
+        """
 
         fingerprints = {}
         for obj_name in sorted(self.obj_classes):
-            fingerprints[obj_name] = self._get_fingerprint(obj_name)
+            fingerprints[obj_name] = self._get_fingerprint(
+                obj_name, extra_data_func=extra_data_func)
         return fingerprints
 
     def test_hashes(self, expected_hashes):
