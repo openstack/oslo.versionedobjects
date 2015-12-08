@@ -72,6 +72,30 @@ class TestObjectVersionChecker(test.TestCase):
                          "getting the fingerprints of all registered "
                          "objects.")
 
+    def test_get_hashes_with_extra_data(self):
+        # Make sure get_hashes uses the extra_data_func
+        fp = 'garyoak'
+        mock_func = mock.MagicMock()
+        with mock.patch.object(self.ovc, '_get_fingerprint') as mock_gf:
+            mock_gf.return_value = fp
+            actual = self.ovc.get_hashes(extra_data_func=mock_func)
+
+        expected = self._generate_hashes(self.obj_classes, fp)
+        expected_calls = [((name,), {'extra_data_func': mock_func})
+                          for name in self.obj_classes.keys()]
+
+        self.assertEqual(expected, actual, "ObjectVersionChecker is not "
+                         "getting the fingerprints of all registered "
+                         "objects.")
+
+        self.assertEqual(len(expected_calls), len(mock_gf.call_args_list),
+                         "get_hashes() did not call get the fingerprints of "
+                         "all objects in the registry.")
+        for call in expected_calls:
+            self.assertIn(call, mock_gf.call_args_list,
+                          "get_hashes() did not call _get_fingerprint()"
+                          "correctly.")
+
     def test_test_hashes_none_changed(self):
         # Make sure test_hashes() generates an empty dictionary when
         # there are no objects that have changed
@@ -343,6 +367,33 @@ class TestObjectVersionChecker(test.TestCase):
         exp_child_versions = collections.OrderedDict(sorted(
             child_versions.items()))
         exp_relevant_data = (exp_fields, exp_methods, exp_child_versions)
+
+        expected_hash = hashlib.md5(six.binary_type(repr(
+            exp_relevant_data).encode())).hexdigest()
+        expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
+
+        self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
+                                          "generate a correct fingerprint.")
+
+    def test_get_fingerprint_with_extra_data(self):
+        # Make sure _get_fingerprint() uses extra_data_func when it is
+        # supplied
+        def get_data(obj_class):
+            return (obj_class,)
+
+        MyObject.VERSION = '1.1'
+        argspec = 'cubone'
+
+        with mock.patch('inspect.getargspec') as mock_gas:
+            mock_gas.return_value = argspec
+            fp = self.ovc._get_fingerprint(MyObject.__name__,
+                                           extra_data_func=get_data)
+
+        exp_fields = sorted(list(MyObject.fields.items()))
+        exp_methods = sorted([('remotable_method', argspec),
+                              ('remotable_classmethod', argspec)])
+        exp_extra_data = MyObject
+        exp_relevant_data = (exp_fields, exp_methods, exp_extra_data)
 
         expected_hash = hashlib.md5(six.binary_type(repr(
             exp_relevant_data).encode())).hexdigest()
