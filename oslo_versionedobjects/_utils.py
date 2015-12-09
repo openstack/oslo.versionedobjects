@@ -17,17 +17,6 @@
 
 """Utilities and helper functions."""
 
-import functools
-import logging
-
-import six
-
-from oslo_versionedobjects._i18n import _
-from oslo_versionedobjects import exception
-
-LOG = logging.getLogger(__name__)
-
-
 # ISO 8601 extended time format with microseconds
 _ISO8601_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
@@ -38,29 +27,3 @@ def isotime(at):
     tz = at.tzinfo.tzname(None) if at.tzinfo else 'UTC'
     st += ('Z' if tz == 'UTC' else tz)
     return st
-
-
-def convert_version_to_int(version):
-    try:
-        if isinstance(version, six.string_types):
-            version = convert_version_to_tuple(version)
-        if isinstance(version, tuple):
-            return functools.reduce(lambda x, y: (x * 1000) + y, version)
-    except Exception:
-        msg = _("Provided version %s is invalid.") % version
-        raise exception.VersionedObjectsException(msg)
-
-
-def convert_version_to_str(version_int):
-    version_numbers = []
-    factor = 1000
-    while version_int != 0:
-        version_number = version_int - (version_int // factor * factor)
-        version_numbers.insert(0, str(version_number))
-        version_int = version_int // factor
-
-    return '.'.join(map(str, version_numbers))
-
-
-def convert_version_to_tuple(version_str):
-    return tuple(int(part) for part in version_str.split('.'))
