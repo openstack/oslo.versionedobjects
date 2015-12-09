@@ -156,37 +156,3 @@ msgid ""
 "%(valtype)s"
 msgstr ""
 
-#: oslo_versionedobjects/openstack/common/versionutils.py:108
-#, python-format
-msgid ""
-"%(what)s is deprecated as of %(as_of)s in favor of %(in_favor_of)s and "
-"may be removed in %(remove_in)s."
-msgstr ""
-
-#: oslo_versionedobjects/openstack/common/versionutils.py:112
-#, python-format
-msgid ""
-"%(what)s is deprecated as of %(as_of)s and may be removed in "
-"%(remove_in)s. It will not be superseded."
-msgstr ""
-
-#: oslo_versionedobjects/openstack/common/versionutils.py:116
-#, python-format
-msgid "%(what)s is deprecated as of %(as_of)s in favor of %(in_favor_of)s."
-msgstr ""
-
-#: oslo_versionedobjects/openstack/common/versionutils.py:119
-#, python-format
-msgid "%(what)s is deprecated as of %(as_of)s. It will not be superseded."
-msgstr ""
-
-#: oslo_versionedobjects/openstack/common/versionutils.py:241
-#, python-format
-msgid "Deprecated: %s"
-msgstr ""
-
-#: oslo_versionedobjects/openstack/common/versionutils.py:259
-#, python-format
-msgid "Fatal call to deprecated config: %(msg)s"
-msgstr ""
-
