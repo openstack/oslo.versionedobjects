@@ -248,15 +248,17 @@ class ObjectVersionChecker(object):
 
         return expected, actual
 
-    def _test_object_compatibility(self, obj_class):
+    def _test_object_compatibility(self, obj_class, manifest=None):
         version = vutils.convert_version_to_tuple(obj_class.VERSION)
+        kwargs = {'version_manifest': manifest} if manifest else {}
         for n in range(version[1] + 1):
             test_version = '%d.%d' % (version[0], n)
             LOG.info('testing obj: %s version: %s' %
                      (obj_class.obj_name(), test_version))
-            obj_class().obj_to_primitive(target_version=test_version)
+            kwargs['target_version'] = test_version
+            obj_class().obj_to_primitive(**kwargs)
 
-    def test_compatibility_routines(self):
+    def test_compatibility_routines(self, use_manifest=False):
         # Iterate all object classes and verify that we can run
         # obj_make_compatible with every older version than current.
         # This doesn't actually test the data conversions, but it at least
@@ -264,8 +266,13 @@ class ObjectVersionChecker(object):
         # expecting the wrong version format.
         for obj_name in self.obj_classes:
             obj_classes = self.obj_classes[obj_name]
+            if use_manifest:
+                manifest = base.obj_tree_get_versions(obj_name)
+            else:
+                manifest = None
+
             for obj_class in obj_classes:
-                self._test_object_compatibility(obj_class)
+                self._test_object_compatibility(obj_class, manifest=manifest)
 
     def _test_relationships_in_order(self, obj_class):
         for field, versions in obj_class.obj_relationships.items():

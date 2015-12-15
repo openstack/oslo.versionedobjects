@@ -257,7 +257,21 @@ class TestObjectVersionChecker(test.TestCase):
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
             self.ovc.test_compatibility_routines()
 
-        toc.assert_called_once_with(MyObject)
+        toc.assert_called_once_with(MyObject, manifest=None)
+
+    def test_test_compatibility_routines_with_manifest(self):
+        # Make sure test_compatibility_routines() uses the version manifest
+        del self.ovc.obj_classes[MyObject2.__name__]
+        man = {'who': 'cares'}
+
+        with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
+            with mock.patch('oslo_versionedobjects.base'
+                            '.obj_tree_get_versions') as otgv:
+                otgv.return_value = man
+                self.ovc.test_compatibility_routines(use_manifest=True)
+
+        otgv.assert_called_once_with(MyObject.__name__)
+        toc.assert_called_once_with(MyObject, manifest=man)
 
     def test_test_relationships_in_order(self):
         # Make sure test_relationships_in_order() tests the relationships
