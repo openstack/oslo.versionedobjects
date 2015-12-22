@@ -520,7 +520,7 @@ class DictProxyField(object):
         self._fld_name = dict_field_name
         self._key_type = key_type
 
-    def __get__(self, obj, obj_type=None):
+    def __get__(self, obj, obj_type):
         if obj is None:
             return self
         if getattr(obj, self._fld_name) is None:
