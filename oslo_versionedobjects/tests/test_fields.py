@@ -157,6 +157,8 @@ class TestMACAddress(TestField):
             'C6:DF:11:A5:C8',  # Too short
             'C6:DF:11:A5:C8:5D:D7',  # Too long
             'C6:DF:11:A5:C8:KD',  # Bad octal
+            1123123,  # Number
+            {},  # dict
         ]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]

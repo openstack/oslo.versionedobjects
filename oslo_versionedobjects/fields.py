@@ -315,11 +315,11 @@ class MACAddress(FieldType):
 
     @staticmethod
     def coerce(obj, attr, value):
-        lowered = value.lower().replace('-', ':')
-        if (not isinstance(value, six.string_types) or
-                not MACAddress._REGEX.match(lowered)):
-            raise ValueError(_LE("Malformed MAC %s"), value)
-        return lowered
+        if isinstance(value, six.string_types):
+            lowered = value.lower().replace('-', ':')
+            if MACAddress._REGEX.match(lowered):
+                return lowered
+        raise ValueError(_LE("Malformed MAC %s"), value)
 
 
 class Integer(FieldType):
