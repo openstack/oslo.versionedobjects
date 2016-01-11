@@ -18,6 +18,7 @@ import iso8601
 import mock
 import netaddr
 import six
+import testtools
 
 from oslo_versionedobjects import _utils
 from oslo_versionedobjects import base as obj_base
@@ -63,6 +64,32 @@ class FakeEnumAlt(fields.Enum):
 
 class FakeEnumField(fields.BaseEnumField):
     AUTO_TYPE = FakeEnum()
+
+
+class FakeStateMachineField(fields.StateMachine):
+
+    ACTIVE = 'ACTIVE'
+    PENDING = 'PENDING'
+    ERROR = 'ERROR'
+
+    ALLOWED_TRANSITIONS = {
+        ACTIVE: {
+            PENDING,
+            ERROR
+        },
+        PENDING: {
+            ACTIVE,
+            ERROR
+        },
+        ERROR: {
+            PENDING,
+        },
+    }
+
+    _TYPES = (ACTIVE, PENDING, ERROR)
+
+    def __init__(self, **kwargs):
+        super(FakeStateMachineField, self).__init__(self._TYPES, **kwargs)
 
 
 class FakeEnumAltField(fields.BaseEnumField):
@@ -223,6 +250,66 @@ class TestEnum(TestField):
     def test_non_iterable_valid_values(self):
         self.assertRaises(exception.EnumValidValuesInvalidError,
                           fields.EnumField, True)
+
+
+class TestStateMachine(TestField):
+
+    def test_good_transitions(self):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'status': FakeStateMachineField(),
+            }
+
+        obj = AnObject()
+
+        obj.status = FakeStateMachineField.ACTIVE
+        obj.status = FakeStateMachineField.PENDING
+        obj.status = FakeStateMachineField.ERROR
+        obj.status = FakeStateMachineField.PENDING
+        obj.status = FakeStateMachineField.ACTIVE
+
+    def test_bad_transitions(self):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'status': FakeStateMachineField(),
+            }
+
+        obj = AnObject()
+
+        with testtools.ExpectedException(
+                ValueError,
+                msg="AnObject's are not allowed transition out "
+                "of 'ERROR' state to 'PENDING' state, choose from "
+                "['PENDING']"):
+            obj.status = FakeStateMachineField.ERROR
+            obj.status = FakeStateMachineField.ACTIVE
+
+    def test_bad_initial_value(self):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'status': FakeStateMachineField(),
+            }
+
+        obj = AnObject()
+
+        with testtools.ExpectedException(ValueError):
+            obj.status = "FOO"
+
+    def test_bad_updated_value(self):
+        @obj_base.VersionedObjectRegistry.register
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'status': FakeStateMachineField(),
+            }
+
+        obj = AnObject()
+
+        with testtools.ExpectedException(ValueError):
+            obj.status = FakeStateMachineField.ACTIVE
+            obj.status = "FOO"
 
 
 class TestInteger(TestField):
