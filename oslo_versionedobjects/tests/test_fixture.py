@@ -22,6 +22,7 @@ import mock
 import six
 
 from oslo_versionedobjects import base
+from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields
 from oslo_versionedobjects import fixture
 from oslo_versionedobjects import test
@@ -138,6 +139,15 @@ class TestObjectComparators(test.TestCase):
 
         mock_test.assertEqual.assert_called_once_with(replaced_dt,
                                                       replaced_dt)
+
+
+class FakeResource(base.VersionedObject):
+    # Version 1.0: Initial version
+    VERSION = '1.0'
+
+    fields = {
+        'identifier': fields.Field(fields.Integer(), default=123)
+    }
 
 
 class TestObjectVersionChecker(test.TestCase):
@@ -551,3 +561,35 @@ class TestObjectVersionChecker(test.TestCase):
         deps = tree.get(parent_cls.__name__, {})
         deps[child_cls.__name__] = '1.0'
         tree[parent_cls.__name__] = deps
+
+
+class TestVersionedObjectRegistryFixture(test.TestCase):
+
+    primitive = {'versioned_object.name': 'FakeResource',
+                 'versioned_object.namespace': 'versionedobjects',
+                 'versioned_object.version': '1.0',
+                 'versioned_object.data': {'identifier': 123}}
+
+    def test_object_registered_temporarily(self):
+        # Test object that has not been registered
+        self.assertRaises(
+            exception.UnsupportedObjectError,
+            FakeResource.obj_from_primitive,
+            self.primitive)
+
+        with fixture.VersionedObjectRegistryFixture() as obj_registry:
+            # Register object locally
+            obj_registry.setUp()
+            obj_registry.register(FakeResource)
+
+            # Test object has now been registered
+            obj = FakeResource.obj_from_primitive(
+                self.primitive)
+            self.assertEqual(obj.identifier, 123)
+            self.assertEqual('1.0', obj.VERSION)
+
+        # Test object that is no longer registered
+        self.assertRaises(
+            exception.UnsupportedObjectError,
+            FakeResource.obj_from_primitive,
+            self.primitive)
