@@ -691,6 +691,75 @@ class EnumField(BaseEnumField):
         super(EnumField, self).__init__(**kwargs)
 
 
+class StateMachine(EnumField):
+    """A mixin that can be applied to an EnumField to enforce a state machine
+
+    e.g: Setting the code below on a field will ensure an object cannot
+    transition from ERROR to ACTIVE
+
+
+    class FakeStateMachineField(fields.EnumField, fields.StateMachine):
+
+        ACTIVE = 'ACTIVE'
+        PENDING = 'PENDING'
+        ERROR = 'ERROR'
+        DELETED = 'DELETED'
+
+        ALLOWED_TRANSITIONS = {
+            ACTIVE: {
+                PENDING,
+                ERROR,
+                DELETED,
+            },
+            PENDING: {
+                ACTIVE,
+                ERROR
+            },
+            ERROR: {
+                PENDING,
+            },
+            DELETED: {}  # This is a terminal state
+        }
+
+        _TYPES = (ACTIVE, PENDING, ERROR, DELETED)
+
+        def __init__(self, **kwargs):
+            super(FakeStateMachineField, self).__init__(self._TYPES, **kwargs)
+
+    """
+    # This is dict of states, that have dicts of states an object is
+    # allowed to transition to
+
+    ALLOWED_TRANSITIONS = {}
+
+    def coerce(self, obj, attr, value):
+        super(StateMachine, self).coerce(obj, attr, value)
+        msg = _("%(object)s's are not allowed transition out of %(value)s "
+                "state")
+
+        if attr in obj:
+            current_value = getattr(obj, attr)
+        else:
+            return value
+
+        if current_value in self.ALLOWED_TRANSITIONS:
+
+            if value in self.ALLOWED_TRANSITIONS[current_value]:
+                return value
+            else:
+                msg = _(
+                    "%(object)s's are not allowed to transition out of "
+                    "'%(current_value)s' state to '%(value)s' state, choose "
+                    "from %(options)r")
+        msg = msg % {
+            'object': obj.obj_name(),
+            'current_value': current_value,
+            'value': value,
+            'options': [x for x in self.ALLOWED_TRANSITIONS[current_value]]
+        }
+        raise ValueError(msg)
+
+
 class UUIDField(AutoTypedField):
     AUTO_TYPE = UUID()
 
