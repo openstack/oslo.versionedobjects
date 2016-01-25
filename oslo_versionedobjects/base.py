@@ -112,7 +112,7 @@ class VersionedObjectRegistry(object):
 
     def _register_class(self, cls):
         def _vers_tuple(obj):
-            return tuple([int(x) for x in obj.VERSION.split(".")])
+            return vutils.convert_version_to_tuple(obj.VERSION)
 
         _make_class_properties(cls)
         obj_name = cls.obj_name()
