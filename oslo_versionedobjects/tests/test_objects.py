@@ -596,10 +596,14 @@ class TestFixture(_BaseTestCase):
         def test(mock_compat):
             checker.test_compatibility_routines()
             mock_compat.assert_has_calls(
-                [mock.call(mock.sentinel.impl_one_one, manifest=None),
-                 mock.call(mock.sentinel.impl_one_two, manifest=None),
-                 mock.call(mock.sentinel.impl_two_one, manifest=None),
-                 mock.call(mock.sentinel.impl_two_two, manifest=None)],
+                [mock.call(mock.sentinel.impl_one_one, manifest=None,
+                           init_args=[], init_kwargs={}),
+                 mock.call(mock.sentinel.impl_one_two, manifest=None,
+                           init_args=[], init_kwargs={}),
+                 mock.call(mock.sentinel.impl_two_one, manifest=None,
+                           init_args=[], init_kwargs={}),
+                 mock.call(mock.sentinel.impl_two_two, manifest=None,
+                           init_args=[], init_kwargs={})],
                 any_order=True)
         test()
 

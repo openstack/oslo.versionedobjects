@@ -354,7 +354,8 @@ class TestObjectVersionChecker(test.TestCase):
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
             self.ovc.test_compatibility_routines()
 
-        toc.assert_called_once_with(MyObject, manifest=None)
+        toc.assert_called_once_with(MyObject, manifest=None, init_args=[],
+                                    init_kwargs={})
 
     def test_test_compatibility_routines_with_manifest(self):
         # Make sure test_compatibility_routines() uses the version manifest
@@ -368,7 +369,21 @@ class TestObjectVersionChecker(test.TestCase):
                 self.ovc.test_compatibility_routines(use_manifest=True)
 
         otgv.assert_called_once_with(MyObject.__name__)
-        toc.assert_called_once_with(MyObject, manifest=man)
+        toc.assert_called_once_with(MyObject, manifest=man, init_args=[],
+                                    init_kwargs={})
+
+    def test_test_compatibility_routines_with_args_kwargs(self):
+        # Make sure test_compatibility_routines() uses init args/kwargs
+        del self.ovc.obj_classes[MyObject2.__name__]
+        init_args = {MyObject: [1]}
+        init_kwargs = {MyObject: {'foo': 'bar'}}
+
+        with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
+            self.ovc.test_compatibility_routines(init_args=init_args,
+                                                 init_kwargs=init_kwargs)
+
+        toc.assert_called_once_with(MyObject, manifest=None, init_args=[1],
+                                    init_kwargs={'foo': 'bar'})
 
     def test_test_relationships_in_order(self):
         # Make sure test_relationships_in_order() tests the relationships
@@ -544,6 +559,32 @@ class TestObjectVersionChecker(test.TestCase):
                           ((), {'target_version': '1.1'})]
 
         self.assertEqual(expected_calls, to_prim.call_args_list,
+                         "_test_object_compatibility() did not test "
+                         "obj_to_primitive() on the correct target versions")
+
+    def test_test_object_compatibility_args_kwargs(self):
+        # Make sure _test_object_compatibility() tests obj_to_primitive()
+        # with the correct args and kwargs to init
+        to_prim = mock.MagicMock(spec=callable)
+        MyObject.obj_to_primitive = to_prim
+        MyObject.VERSION = '1.1'
+        args = [1]
+        kwargs = {'foo': 'bar'}
+
+        with mock.patch.object(MyObject, '__init__',
+                               return_value=None) as mock_init:
+            self.ovc._test_object_compatibility(MyObject, init_args=args,
+                                                init_kwargs=kwargs)
+
+        expected_init = ((1,), {'foo': 'bar'})
+        expected_init_calls = [expected_init, expected_init]
+        self.assertEqual(expected_init_calls, mock_init.call_args_list,
+                         "_test_object_compatibility() did not call "
+                         "__init__() properly on the object")
+
+        expected_to_prim = [((), {'target_version': '1.0'}),
+                            ((), {'target_version': '1.1'})]
+        self.assertEqual(expected_to_prim, to_prim.call_args_list,
                          "_test_object_compatibility() did not test "
                          "obj_to_primitive() on the correct target versions")
 
