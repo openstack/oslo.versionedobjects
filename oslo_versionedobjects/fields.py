@@ -16,6 +16,8 @@ import abc
 import datetime
 from distutils import versionpredicate
 import re
+import uuid
+import warnings
 
 import copy
 import iso8601
@@ -306,7 +308,23 @@ class UUID(FieldType):
     @staticmethod
     def coerce(obj, attr, value):
         # FIXME(danms): We should actually verify the UUIDness here
-        return str(value)
+        with warnings.catch_warnings():
+            warnings.simplefilter("once")
+            try:
+                uuid.UUID(str(value))
+            except Exception:
+                # This is to ensure no breaking behaviour for current
+                # users
+                warnings.warn("%s is an invalid UUID. Using UUIDFields "
+                              "with invalid UUIDs is no longer "
+                              "supported, and will be removed in a future "
+                              "release. Please update your "
+                              "code to input valid UUIDs or accept "
+                              "ValueErrors for invalid UUIDs. See "
+                              "http://docs.openstack.org/developer/oslo.versionedobjects/api/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
+                              "for further details" % value, FutureWarning)
+
+            return str(value)
 
 
 class MACAddress(FieldType):
@@ -761,6 +779,35 @@ class StateMachine(EnumField):
 
 
 class UUIDField(AutoTypedField):
+    """UUID Field Type
+
+    .. warning::
+
+        This class does not actually validate UUIDs. This will happen in a
+        future major version of oslo.versionedobjects
+
+    To validate that you have valid UUIDs you need to do the following in
+    your own objects/fields.py
+
+    :Example:
+         .. code-block:: python
+
+            import oslo_versionedobjects.fields as ovo_fields
+
+            class UUID(ovo_fields.UUID):
+                 def coerce(self, obj, attr, value):
+                    uuid.UUID(value)
+                    return str(value)
+
+
+            class UUIDField(ovo_fields.AutoTypedField):
+                AUTO_TYPE = UUID()
+
+        and then in your objects use
+        ``<your_projects>.object.fields.UUIDField``.
+
+    This will become default behaviour in the future.
+    """
     AUTO_TYPE = UUID()
 
 

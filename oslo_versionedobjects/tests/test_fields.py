@@ -191,6 +191,43 @@ class TestMACAddress(TestField):
         self.from_primitive_values = self.coerce_good_values[0:1]
 
 
+class TestUUID(TestField):
+    def setUp(self):
+        super(TestUUID, self).setUp()
+
+    def test_validation_enabled(self):
+        self.field = fields.UUIDField()
+        self.coerce_good_values = [
+            ('da66a411-af0e-4829-9b67-475017ddd152',
+                'da66a411-af0e-4829-9b67-475017ddd152'),
+            ('da66a411af0e48299b67475017ddd152',
+                'da66a411af0e48299b67475017ddd152'),
+            ('DA66A411-AF0E-4829-9B67-475017DDD152',
+                'DA66A411-AF0E-4829-9B67-475017DDD152'),
+            ('DA66A411AF0E48299b67475017DDD152',
+                'DA66A411AF0E48299b67475017DDD152'),
+            # These values are included to ensure there is not change in
+            # behaviour - only when we can remove the old UUID behaviour can
+            #  we add these to the "self.coerce_bad_values" list
+            ('da66a411-af0e-4829-9b67',
+                'da66a411-af0e-4829-9b67'),
+            ('da66a411-af0e-4829-9b67-475017ddd152548999',
+                'da66a411-af0e-4829-9b67-475017ddd152548999'),
+            ('da66a411-af0e-4829-9b67-475017ddz152',
+                'da66a411-af0e-4829-9b67-475017ddz152'),
+            ('fake_uuid', 'fake_uuid'),
+            ('1', '1'),
+            (1, '1')
+        ]
+
+        self.to_primitive_values = self.coerce_good_values[0:1]
+        self.from_primitive_values = self.coerce_good_values[0:1]
+
+        self.test_coerce_good_values()
+        self.test_from_primitive()
+        self.test_to_primitive()
+
+
 class TestBaseEnum(TestField):
     def setUp(self):
         super(TestBaseEnum, self).setUp()
