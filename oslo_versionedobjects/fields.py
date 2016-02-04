@@ -715,34 +715,37 @@ class StateMachine(EnumField):
     e.g: Setting the code below on a field will ensure an object cannot
     transition from ERROR to ACTIVE
 
+    :example:
+        .. code-block:: python
 
-    class FakeStateMachineField(fields.EnumField, fields.StateMachine):
+            class FakeStateMachineField(fields.EnumField, fields.StateMachine):
 
-        ACTIVE = 'ACTIVE'
-        PENDING = 'PENDING'
-        ERROR = 'ERROR'
-        DELETED = 'DELETED'
+                ACTIVE = 'ACTIVE'
+                PENDING = 'PENDING'
+                ERROR = 'ERROR'
+                DELETED = 'DELETED'
 
-        ALLOWED_TRANSITIONS = {
-            ACTIVE: {
-                PENDING,
-                ERROR,
-                DELETED,
-            },
-            PENDING: {
-                ACTIVE,
-                ERROR
-            },
-            ERROR: {
-                PENDING,
-            },
-            DELETED: {}  # This is a terminal state
-        }
+                ALLOWED_TRANSITIONS = {
+                    ACTIVE: {
+                        PENDING,
+                        ERROR,
+                        DELETED,
+                    },
+                    PENDING: {
+                        ACTIVE,
+                        ERROR
+                    },
+                    ERROR: {
+                        PENDING,
+                    },
+                    DELETED: {}  # This is a terminal state
+                }
 
-        _TYPES = (ACTIVE, PENDING, ERROR, DELETED)
+                _TYPES = (ACTIVE, PENDING, ERROR, DELETED)
 
-        def __init__(self, **kwargs):
-            super(FakeStateMachineField, self).__init__(self._TYPES, **kwargs)
+                def __init__(self, **kwargs):
+                    super(FakeStateMachineField, self).__init__(
+                    self._TYPES, **kwargs)
 
     """
     # This is dict of states, that have dicts of states an object is
