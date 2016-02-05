@@ -289,21 +289,40 @@ class TestRegistry(test.TestCase):
             mock_hook.assert_called_once_with(TestObjectNewer, 0)
 
     def test_subclassability(self):
-        class MyRegistry(base.VersionedObjectRegistry):
-            pass
+        class MyRegistryOne(base.VersionedObjectRegistry):
 
-        @MyRegistry.register
-        class ObjectInSubclassedRegistry(object):
-            fields = {}
+            def registration_hook(self, cls, index):
+                cls.reg_to = "one"
 
-            @classmethod
-            def obj_name(cls):
-                return cls.__name__
+        class MyRegistryTwo(base.VersionedObjectRegistry):
 
-        self.assertIn('ObjectInSubclassedRegistry',
-                      MyRegistry.obj_classes())
-        self.assertIn('ObjectInSubclassedRegistry',
+            def registration_hook(self, cls, index):
+                cls.reg_to = "two"
+
+        @MyRegistryOne.register
+        class AVersionedObject1(base.VersionedObject):
+            VERSION = '1.0'
+            fields = {'baz': fields.Field(fields.Integer())}
+
+        @MyRegistryTwo.register
+        class AVersionedObject2(base.VersionedObject):
+            VERSION = '1.0'
+            fields = {'baz': fields.Field(fields.Integer())}
+
+        self.assertIn('AVersionedObject1',
+                      MyRegistryOne.obj_classes())
+        self.assertIn('AVersionedObject2',
+                      MyRegistryOne.obj_classes())
+        self.assertIn('AVersionedObject1',
+                      MyRegistryTwo.obj_classes())
+        self.assertIn('AVersionedObject2',
+                      MyRegistryTwo.obj_classes())
+        self.assertIn('AVersionedObject1',
                       base.VersionedObjectRegistry.obj_classes())
+        self.assertIn('AVersionedObject2',
+                      base.VersionedObjectRegistry.obj_classes())
+        self.assertEqual(AVersionedObject1.reg_to, "one")
+        self.assertEqual(AVersionedObject2.reg_to, "two")
 
 
 class TestObjMakeList(test.TestCase):
