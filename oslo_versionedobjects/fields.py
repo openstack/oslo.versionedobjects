@@ -340,6 +340,19 @@ class MACAddress(FieldType):
         raise ValueError(_LE("Malformed MAC %s"), value)
 
 
+class PCIAddress(FieldType):
+
+    _REGEX = re.compile(r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$')
+
+    @staticmethod
+    def coerce(obj, attr, value):
+        if isinstance(value, six.string_types):
+            newvalue = value.lower()
+            if PCIAddress._REGEX.match(newvalue):
+                return newvalue
+        raise ValueError(_LE("Malformed PCI address %s"), value)
+
+
 class Integer(FieldType):
     @staticmethod
     def coerce(obj, attr, value):
@@ -821,6 +834,10 @@ class UUIDField(AutoTypedField):
 
 class MACAddressField(AutoTypedField):
     AUTO_TYPE = MACAddress()
+
+
+class PCIAddressField(AutoTypedField):
+    AUTO_TYPE = PCIAddress()
 
 
 class IntegerField(AutoTypedField):
