@@ -750,10 +750,17 @@ class StateMachine(EnumField):
 
     ALLOWED_TRANSITIONS = {}
 
+    def _my_name(self, obj):
+        for name, field in obj.fields.items():
+            if field == self:
+                return name
+        return 'unknown'
+
     def coerce(self, obj, attr, value):
         super(StateMachine, self).coerce(obj, attr, value)
-        msg = _("%(object)s's are not allowed transition out of %(value)s "
-                "state")
+        my_name = self._my_name(obj)
+        msg = _("%(object)s.%(name)s is not allowed to transition out of "
+                "%(value)s state")
 
         if attr in obj:
             current_value = getattr(obj, attr)
@@ -766,11 +773,12 @@ class StateMachine(EnumField):
                 return value
             else:
                 msg = _(
-                    "%(object)s's are not allowed to transition out of "
+                    "%(object)s.%(name)s is not allowed to transition out of "
                     "'%(current_value)s' state to '%(value)s' state, choose "
                     "from %(options)r")
         msg = msg % {
             'object': obj.obj_name(),
+            'name': my_name,
             'current_value': current_value,
             'value': value,
             'options': [x for x in self.ALLOWED_TRANSITIONS[current_value]]

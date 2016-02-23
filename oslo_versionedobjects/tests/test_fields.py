@@ -313,15 +313,20 @@ class TestStateMachine(TestField):
                 'status': FakeStateMachineField(),
             }
 
-        obj = AnObject()
+        obj = AnObject(status='ERROR')
 
-        with testtools.ExpectedException(
-                ValueError,
-                msg="AnObject's are not allowed transition out "
-                "of 'ERROR' state to 'PENDING' state, choose from "
-                "['PENDING']"):
-            obj.status = FakeStateMachineField.ERROR
+        try:
             obj.status = FakeStateMachineField.ACTIVE
+        except ValueError as e:
+            ex = e
+        else:
+            ex = None
+
+        self.assertIsNotNone(ex, 'Invalid transition failed to raise error')
+        self.assertEqual('AnObject.status is not allowed to transition out '
+                         'of \'ERROR\' state to \'ACTIVE\' state, choose from '
+                         '[\'PENDING\']',
+                         str(ex))
 
     def test_bad_initial_value(self):
         @obj_base.VersionedObjectRegistry.register
