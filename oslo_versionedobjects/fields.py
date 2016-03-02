@@ -291,6 +291,10 @@ class Enum(String):
         self._valid_values = valid_values
         super(Enum, self).__init__(**kwargs)
 
+    @property
+    def valid_values(self):
+        return tuple(self._valid_values)
+
     def coerce(self, obj, attr, value):
         if value not in self._valid_values:
             msg = _("Field value %s is invalid") % value
@@ -683,7 +687,7 @@ class BaseEnumField(AutoTypedField):
         super(BaseEnumField, self).__init__(**kwargs)
 
     def __repr__(self):
-        valid_values = self._type._valid_values
+        valid_values = self._type.valid_values
         args = {
             'nullable': self._nullable,
             'default': self._default,
@@ -692,6 +696,11 @@ class BaseEnumField(AutoTypedField):
         return '%s(%s)' % (self._type.__class__.__name__,
                            ','.join(['%s=%s' % (k, v)
                                      for k, v in sorted(args.items())]))
+
+    @property
+    def valid_values(self):
+        """Return the list of valid values for the field."""
+        return self._type.valid_values
 
 
 class EnumField(BaseEnumField):
@@ -878,7 +887,7 @@ class ListOfEnumField(AutoTypedField):
         super(ListOfEnumField, self).__init__(**kwargs)
 
     def __repr__(self):
-        valid_values = self._type._element_type._type._valid_values
+        valid_values = self._type._element_type._type.valid_values
         args = {
             'nullable': self._nullable,
             'default': self._default,
