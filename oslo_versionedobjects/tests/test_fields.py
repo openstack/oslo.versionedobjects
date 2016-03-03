@@ -815,6 +815,13 @@ class TestObject(TestField):
         self.assertRaises(ValueError, pigs.coerce, None, "animal", wolfy)
         self.assertEqual(babe, pigs.coerce(None, "animal", babe))
 
+    def test_coerce_bad_value_primitive_type(self):
+        # Tests that the ValueError has the primitive type in it's message.
+        ex = self.assertRaises(ValueError, self.field.coerce,
+                               'obj', 'attr', [{}])
+        self.assertEqual('An object of type TestableObject is required '
+                         'in field attr, not a list', six.text_type(ex))
+
 
 class TestIPAddress(TestField):
     def setUp(self):

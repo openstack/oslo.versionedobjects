@@ -606,6 +606,10 @@ class Object(FieldType):
             obj_names = [obj_name]
 
         if self._obj_name not in obj_names:
+            if not obj_name:
+                # If we're not dealing with an object, it's probably a
+                # primitive so get it's type for the message below.
+                obj_name = type(value).__name__
             raise ValueError(_('An object of type %(type)s is required '
                                'in field %(attr)s, not a %(valtype)s') %
                              {'type': self._obj_name, 'attr': attr,
