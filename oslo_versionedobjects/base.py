@@ -664,6 +664,10 @@ class VersionedObject(object):
     def obj_fields(self):
         return list(self.fields.keys()) + self.obj_extra_fields
 
+    @property
+    def obj_context(self):
+        return self._context
+
 
 class ComparableVersionedObject(object):
     """Mix-in to provide comparison methods
