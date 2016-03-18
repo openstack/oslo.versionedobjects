@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
+    'sphinx.ext.extlinks',
     'oslosphinx',
     'oslo_config.sphinxext',
 ]
@@ -40,6 +40,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'oslo.versionedobjects'
 copyright = u'2014, OpenStack Foundation'
+source_tree = 'http://git.openstack.org/cgit/openstack/%s/tree' % project
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -47,6 +48,12 @@ add_function_parentheses = True
 # If true, the current module name will be prepended to all description
 # unit titles (such as .. function::).
 add_module_names = True
+
+# Shortened external links.
+extlinks = {
+    'example': (source_tree +
+                '/%s/examples/%%s.py' % project.replace(".", "_"), ''),
+}
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'

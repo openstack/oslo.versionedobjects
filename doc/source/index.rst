@@ -22,6 +22,7 @@ Contents
    installation
    api/index
    usage
+   examples
    opts
    contributing
 
