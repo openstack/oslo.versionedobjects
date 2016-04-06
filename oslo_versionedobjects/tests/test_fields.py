@@ -252,6 +252,10 @@ class TestBaseEnum(TestField):
         field2 = FakeEnumAltField()
         self.assertNotEqual(str(field1), str(field2))
 
+    def test_valid_values(self):
+        self.assertEqual(self.field.valid_values,
+                         FakeEnum.ALL)
+
 
 class TestEnum(TestField):
     def setUp(self):
