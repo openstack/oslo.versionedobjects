@@ -634,3 +634,18 @@ class TestVersionedObjectRegistryFixture(test.TestCase):
             exception.UnsupportedObjectError,
             FakeResource.obj_from_primitive,
             self.primitive)
+
+
+class TestStableObjectJsonFixture(test.TestCase):
+    def test_changes_sort(self):
+        class TestObject(base.VersionedObject):
+            def obj_what_changed(self):
+                return ['z', 'a']
+
+        obj = TestObject()
+        self.assertEqual(['z', 'a'],
+                         obj.obj_to_primitive()['versioned_object.changes'])
+        with fixture.StableObjectJsonFixture():
+            self.assertEqual(
+                ['a', 'z'],
+                obj.obj_to_primitive()['versioned_object.changes'])
