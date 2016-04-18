@@ -1083,6 +1083,21 @@ class _TestObject(object):
         obj = TestObj()
         self.assertEqual(['foo', 'bar'], obj.obj_fields)
 
+    def test_obj_context(self):
+        class TestObj(base.VersionedObject):
+            pass
+
+        # context is available through the public property
+        context = mock.Mock()
+        obj = TestObj(context)
+        self.assertEqual(context, obj.obj_context)
+
+        # ..but it's not available for update
+        new_context = mock.Mock()
+        self.assertRaises(
+            AttributeError,
+            setattr, obj, 'obj_context', new_context)
+
     def test_obj_constructor(self):
         obj = MyObj(context=self.context, foo=123, bar='abc')
         self.assertEqual(123, obj.foo)
