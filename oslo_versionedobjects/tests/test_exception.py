@@ -46,7 +46,7 @@ class ExceptionTestCase(test.TestCase):
                           test.raise_exc, context, exc, admin_password="xxx")
 
         # wrap_exception() strips admin_password from args
-        payload = {'args': {'self': None, 'context': context, 'exc': exc},
+        payload = {'args': {'self': test, 'context': context, 'exc': exc},
                    'exception': exc}
         notifier.error.assert_called_once_with(context, 'raise_exc', payload)
 
