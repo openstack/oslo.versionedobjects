@@ -293,7 +293,7 @@ class Enum(String):
 
     @property
     def valid_values(self):
-        return tuple(self._valid_values)
+        return copy.copy(self._valid_values)
 
     def coerce(self, obj, attr, value):
         if value not in self._valid_values:
