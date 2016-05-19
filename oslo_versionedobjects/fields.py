@@ -685,7 +685,7 @@ class BaseEnumField(AutoTypedField):
 
         if not isinstance(self.AUTO_TYPE, Enum):
             raise exception.EnumFieldInvalid(
-                typename=self.AUTO_TYPE.__class__.__name,
+                typename=self.AUTO_TYPE.__class__.__name__,
                 fieldname=self.__class__.__name__)
 
         super(BaseEnumField, self).__init__(**kwargs)

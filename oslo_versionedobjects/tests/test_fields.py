@@ -296,6 +296,15 @@ class TestEnum(TestField):
         self.assertRaises(exception.EnumValidValuesInvalidError,
                           fields.EnumField, True)
 
+    def test_enum_subclass_check(self):
+        def _test():
+            class BrokenEnumField(fields.BaseEnumField):
+                AUTO_TYPE = int
+
+            BrokenEnumField()
+
+        self.assertRaises(exception.EnumFieldInvalid, _test)
+
 
 class TestStateMachine(TestField):
 
