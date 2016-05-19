@@ -53,32 +53,45 @@ def compare_obj(test, obj, db_obj, subs=None, allow_missing=None,
     :param comparators: Map of comparator functions to use for certain fields
     """
 
-    if subs is None:
-        subs = {}
-    if allow_missing is None:
-        allow_missing = []
-    if comparators is None:
-        comparators = {}
+    subs = subs or {}
+    allow_missing = allow_missing or []
+    comparators = comparators or {}
 
     for key in obj.fields:
-        # We'll raise a NotImplementedError if we try to compare against
-        # against something that isn't set in the object, but is not
-        # in the allow_missing. This will replace that exception
-        # with an AssertionError (because that is a better way of saying
-        # "these objects arent the same").
-        if not obj.obj_attr_is_set(key):
-            if key in allow_missing:
-                continue
-            else:
-                raise AssertionError(("%s is not set on the object, so "
-                                      "the objects are not equal") % key)
-        if key in allow_missing and not obj.obj_attr_is_set(key):
-            continue
-        obj_val = getattr(obj, key)
         db_key = subs.get(key, key)
+
+        # If this is an allow_missing key and it's missing in either obj or
+        # db_obj, just skip it
+        if key in allow_missing:
+            if key not in obj or db_key not in db_obj:
+                continue
+
+        # If the value isn't set on the object, and also isn't set on the
+        # db_obj, we'll skip the value check, unset in both is equal
+        if not obj.obj_attr_is_set(key) and db_key not in db_obj:
+            continue
+        # If it's set on the object and not on the db_obj, they aren't equal
+        elif obj.obj_attr_is_set(key) and db_key not in db_obj:
+            raise AssertionError(("%s (db_key: %s) is set on the object, but "
+                                  "not on the db_obj, so the objects are not "
+                                  "equal")
+                                 % (key, db_key))
+        # If it's set on the db_obj and not the object, they aren't equal
+        elif not obj.obj_attr_is_set(key) and db_key in db_obj:
+            raise AssertionError(("%s (db_key: %s) is set on the db_obj, but "
+                                  "not on the object, so the objects are not "
+                                  "equal")
+                                 % (key, db_key))
+
+        # All of the checks above have safeguarded us, so we know we will
+        # get an obj_val and db_val without issue
+        obj_val = getattr(obj, key)
         db_val = db_obj[db_key]
         if isinstance(obj_val, datetime.datetime):
             obj_val = obj_val.replace(tzinfo=None)
+
+        if isinstance(db_val, datetime.datetime):
+            db_val = obj_val.replace(tzinfo=None)
 
         if key in comparators:
             comparator = comparators[key]
