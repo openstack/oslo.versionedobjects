@@ -22,6 +22,7 @@ SHOULD include dedicated exception logging.
 
 """
 
+import inspect
 import logging
 import sys
 
@@ -31,7 +32,6 @@ import six
 import webob.exc
 
 from oslo_versionedobjects._i18n import _, _LE
-from oslo_versionedobjects import safe_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -75,8 +75,8 @@ def wrap_exception(notifier=None, get_notifier=None):
                 with excutils.save_and_reraise_exception():
                     if notifier or get_notifier:
                         payload = dict(exception=e)
-                        call_dict = safe_utils.getcallargs(f, context,
-                                                           *args, **kw)
+                        call_dict = inspect.getcallargs(f, self, context,
+                                                        *args, **kw)
                         cleansed = _cleanse_dict(call_dict)
                         payload.update({'args': cleansed})
 
