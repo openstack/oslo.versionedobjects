@@ -127,6 +127,9 @@ class FieldType(AbstractFieldType):
     def stringify(self, value):
         return str(value)
 
+    def get_schema(self):
+        raise NotImplementedError()
+
 
 class UnspecifiedDefault(object):
     pass
@@ -236,6 +239,16 @@ class Field(object):
             return 'None'
         else:
             return self._type.stringify(value)
+
+    def get_schema(self):
+        schema = self._type.get_schema()
+        schema.update({'readonly': self.read_only})
+        if self.nullable:
+            schema['type'].append('null')
+        default = self.default
+        if not isinstance(default, UnspecifiedDefault):
+            schema.update({'default': default})
+        return schema
 
 
 class String(FieldType):

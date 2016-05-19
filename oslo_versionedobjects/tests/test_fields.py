@@ -37,6 +37,9 @@ class FakeFieldType(fields.FieldType):
     def from_primitive(self, obj, attr, value):
         return value[1:-1]
 
+    def get_schema(self):
+        return {'type': ['foo']}
+
 
 class FakeEnum(fields.Enum):
     FROG = "frog"
@@ -96,6 +99,11 @@ class FakeEnumAltField(fields.BaseEnumField):
     AUTO_TYPE = FakeEnumAlt()
 
 
+class TestFieldType(test.TestCase):
+    def test_get_schema(self):
+        self.assertRaises(NotImplementedError, fields.FieldType().get_schema)
+
+
 class TestField(test.TestCase):
     def setUp(self):
         super(TestField, self).setUp()
@@ -129,6 +137,18 @@ class TestField(test.TestCase):
 
     def test_stringify(self):
         self.assertEqual('123', self.field.stringify(123))
+
+
+class TestSchema(test.TestCase):
+    def setUp(self):
+        super(TestSchema, self).setUp()
+        self.field = fields.Field(FakeFieldType(), nullable=True,
+                                  default='', read_only=False)
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['foo', 'null'], 'default': '',
+                          'readonly': False},
+                         self.field.get_schema())
 
 
 class TestString(TestField):

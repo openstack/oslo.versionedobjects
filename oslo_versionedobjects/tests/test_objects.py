@@ -2041,6 +2041,67 @@ class TestObjectSerializer(_BaseTestCase):
             mock.sentinel.context, prim, '1.0')
 
 
+class TestSchemaGeneration(test.TestCase):
+    class FakeFieldType(fields.FieldType):
+        pass
+
+    def setUp(self):
+        super(TestSchemaGeneration, self).setUp()
+
+        self.nonNullableField = fields.Field(self.FakeFieldType)
+        self.nullableField = fields.Field(self.FakeFieldType)
+
+        class TestObject(base.VersionedObject):
+            fields = {'foo': self.nonNullableField,
+                      'bar': self.nullableField}
+
+        self.test_class = TestObject
+
+        self.nonNullableField.get_schema = \
+            mock.Mock(return_value={'type': ['fake']})
+        self.nullableField.get_schema = \
+            mock.Mock(return_value={'type': ['fake', 'null']})
+        self.test_class.obj_name = mock.Mock(return_value='TestObject')
+
+    def test_to_json_schema(self):
+        schema = self.test_class.to_json_schema()
+        self.nonNullableField.get_schema.assert_called_once_with()
+        self.nullableField.get_schema.assert_called_once_with()
+        self.assertEqual({
+            '$schema': 'http://json-schema.org/draft-04/schema#',
+            'title': 'TestObject',
+            'type': 'object',
+            'properties': {
+                'versioned_object.namespace': {
+                    'type': 'string'
+                },
+                'versioned_object.name': {
+                    'type': 'string'
+                },
+                'versioned_object.version': {
+                    'type': 'string'
+                },
+                'versioned_object.changes': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string'
+                    }
+                },
+                'versioned_object.data': {
+                    'type': 'object',
+                    'description': 'fields of TestObject',
+                    'properties': {
+                        'foo': {'type': ['fake']},
+                        'bar': {'type': ['fake', 'null']}
+                    },
+                },
+                'required': ['bar', 'foo']
+            },
+            'required': ['versioned_object.namespace', 'versioned_object.name',
+                         'versioned_object.version', 'versioned_object.data']
+        }, schema)
+
+
 class TestNamespaceCompatibility(test.TestCase):
     def setUp(self):
         super(TestNamespaceCompatibility, self).setUp()
