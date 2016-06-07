@@ -191,6 +191,27 @@ class TestMACAddress(TestField):
         self.from_primitive_values = self.coerce_good_values[0:1]
 
 
+class TestPCIAddress(TestField):
+    def setUp(self):
+        super(TestPCIAddress, self).setUp()
+        self.field = fields.PCIAddressField()
+        self.coerce_good_values = [
+            ('0000:02:00.0', '0000:02:00.0'),
+            ('FFFF:FF:1F.7', 'ffff:ff:1f.7'),
+            ('fFfF:fF:1F.7', 'ffff:ff:1f.7'),
+        ]
+        self.coerce_bad_values = [
+            '000:02:00.0',  # Too short
+            '00000:02:00.0',  # Too long
+            'FFFF:FF:2F.7',  # Bad slot
+            'FFFF:GF:1F.7',  # Bad octal
+            1123123,  # Number
+            {},  # dict
+        ]
+        self.to_primitive_values = self.coerce_good_values[0:1]
+        self.from_primitive_values = self.coerce_good_values[0:1]
+
+
 class TestUUID(TestField):
     def setUp(self):
         super(TestUUID, self).setUp()
