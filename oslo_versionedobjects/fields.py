@@ -627,10 +627,17 @@ class Object(FieldType):
                 # If we're not dealing with an object, it's probably a
                 # primitive so get it's type for the message below.
                 obj_name = type(value).__name__
+            obj_mod = ''
+            if hasattr(obj, '__module__'):
+                obj_mod = ''.join([obj.__module__, '.'])
+            val_mod = ''
+            if hasattr(value, '__module__'):
+                val_mod = ''.join([value.__module__, '.'])
             raise ValueError(_('An object of type %(type)s is required '
                                'in field %(attr)s, not a %(valtype)s') %
-                             {'type': self._obj_name, 'attr': attr,
-                              'valtype': obj_name})
+                             {'type': ''.join([obj_mod, self._obj_name]),
+                              'attr': attr, 'valtype': ''.join([val_mod,
+                                                                obj_name])})
         return value
 
     @staticmethod
