@@ -143,12 +143,15 @@ class VersionedObjectRegistry(object):
     def register_if(cls, condition):
         def wraps(obj_cls):
             if condition:
-                registry = cls()
-                registry._register_class(obj_cls)
+                obj_cls = cls.register(obj_cls)
             else:
                 _make_class_properties(obj_cls)
             return obj_cls
         return wraps
+
+    @classmethod
+    def objectify(cls, obj_cls):
+        return cls.register_if(False)(obj_cls)
 
     @classmethod
     def obj_classes(cls):

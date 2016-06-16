@@ -324,6 +324,47 @@ class TestRegistry(test.TestCase):
         self.assertEqual(AVersionedObject1.reg_to, "one")
         self.assertEqual(AVersionedObject2.reg_to, "two")
 
+    @mock.patch.object(base.VersionedObjectRegistry, '__new__')
+    def test_register(self, mock_registry):
+        mock_reg_obj = mock.Mock()
+        mock_registry.return_value = mock_reg_obj
+        mock_reg_obj._register_class = mock.Mock()
+
+        class my_class(object):
+            pass
+
+        base.VersionedObjectRegistry.register(my_class)
+        mock_reg_obj._register_class.assert_called_once_with(my_class)
+
+    @mock.patch.object(base.VersionedObjectRegistry, 'register')
+    def test_register_if(self, mock_register):
+        class my_class(object):
+            pass
+
+        base.VersionedObjectRegistry.register_if(True)(my_class)
+        mock_register.assert_called_once_with(my_class)
+
+    @mock.patch.object(base, '_make_class_properties')
+    def test_register_if_false(self, mock_make_props):
+        class my_class(object):
+            pass
+
+        base.VersionedObjectRegistry.register_if(False)(my_class)
+        mock_make_props.assert_called_once_with(my_class)
+
+    @mock.patch.object(base.VersionedObjectRegistry, 'register_if')
+    def test_objectify(self, mock_register_if):
+        mock_reg_callable = mock.Mock()
+        mock_register_if.return_value = mock_reg_callable
+
+        class my_class(object):
+            pass
+
+        base.VersionedObjectRegistry.objectify(my_class)
+
+        mock_register_if.assert_called_once_with(False)
+        mock_reg_callable.assert_called_once_with(my_class)
+
 
 class TestObjMakeList(test.TestCase):
 
