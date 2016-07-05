@@ -246,7 +246,7 @@ class Field(object):
         if self.nullable:
             schema['type'].append('null')
         default = self.default
-        if not isinstance(default, UnspecifiedDefault):
+        if default != UnspecifiedDefault:
             schema.update({'default': default})
         return schema
 
@@ -267,6 +267,9 @@ class String(FieldType):
     @staticmethod
     def stringify(value):
         return '\'%s\'' % value
+
+    def get_schema(self):
+        return {'type': ['string']}
 
 
 class SensitiveString(String):
@@ -319,6 +322,9 @@ class Enum(String):
             msg = _("Field value %s is invalid") % value
             raise ValueError(msg)
         return super(Enum, self).stringify(value)
+
+    def get_schema(self):
+        return {'enum': self._valid_values}
 
 
 class UUID(FieldType):
@@ -375,16 +381,25 @@ class Integer(FieldType):
     def coerce(obj, attr, value):
         return int(value)
 
+    def get_schema(self):
+        return {'type': ['integer']}
+
 
 class Float(FieldType):
     def coerce(self, obj, attr, value):
         return float(value)
+
+    def get_schema(self):
+        return {'type': ['number']}
 
 
 class Boolean(FieldType):
     @staticmethod
     def coerce(obj, attr, value):
         return bool(value)
+
+    def get_schema(self):
+        return {'type': ['boolean']}
 
 
 class FlexibleBoolean(Boolean):
@@ -519,6 +534,9 @@ class List(CompoundFieldType):
     def stringify(self, value):
         return '[%s]' % (
             ','.join([self._element_type.stringify(x) for x in value]))
+
+    def get_schema(self):
+        return {'type': ['array'], 'items': self._element_type.get_schema()}
 
 
 class Dict(CompoundFieldType):

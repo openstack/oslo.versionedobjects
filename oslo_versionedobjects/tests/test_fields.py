@@ -166,6 +166,13 @@ class TestString(TestField):
     def test_stringify(self):
         self.assertEqual("'123'", self.field.stringify(123))
 
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'type': ['string']}, self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['string'], 'readonly': False},
+                         self.field.get_schema())
+
 
 class TestSensitiveString(TestString):
     def setUp(self):
@@ -318,6 +325,14 @@ class TestEnum(TestField):
     def test_stringify_invalid(self):
         self.assertRaises(ValueError, self.field.stringify, '123')
 
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'enum': ["foo", "bar", 1, True]},
+                         self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'enum': ["foo", "bar", 1, True],
+                          'readonly': False}, self.field.get_schema())
+
     def test_fingerprint(self):
         # Notes(yjiang5): make sure changing valid_value will be detected
         # in test_objects.test_versions
@@ -421,6 +436,13 @@ class TestInteger(TestField):
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
 
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'type': ['integer']}, self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['integer'], 'readonly': False},
+                         self.field.get_schema())
+
 
 class TestFloat(TestField):
     def setUp(self):
@@ -430,6 +452,13 @@ class TestFloat(TestField):
         self.coerce_bad_values = ['foo', None]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
+
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'type': ['number']}, self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['number'], 'readonly': False},
+                         self.field.get_schema())
 
 
 class TestBoolean(TestField):
@@ -441,6 +470,13 @@ class TestBoolean(TestField):
         self.coerce_bad_values = []
         self.to_primitive_values = self.coerce_good_values[0:2]
         self.from_primitive_values = self.coerce_good_values[0:2]
+
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'type': ['boolean']}, self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['boolean'], 'readonly': False},
+                         self.field.get_schema())
 
 
 class TestFlexibleBoolean(TestField):
@@ -596,6 +632,17 @@ class TestList(TestField):
 
     def test_stringify(self):
         self.assertEqual('[123]', self.field.stringify([123]))
+
+    def test_fieldtype_get_schema(self):
+        self.assertEqual({'type': ['array'],
+                          'items': {'type': ['foo'], 'readonly': False}},
+                         self.field._type.get_schema())
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['array'],
+                          'items': {'type': ['foo'], 'readonly': False},
+                          'readonly': False},
+                         self.field.get_schema())
 
 
 class TestListOfStrings(TestField):
