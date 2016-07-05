@@ -322,6 +322,16 @@ class TestObjectVersionChecker(test.TestCase):
                          "should contain the updated object with the new "
                          "hash.")
 
+    def test_test_hashes_passes_extra_func(self):
+        # Make sure that test_hashes passes the extra_func to get_hashes
+        mock_extra_func = mock.Mock()
+
+        with mock.patch.object(self.ovc, 'get_hashes') as mock_get_hashes:
+            self.ovc.test_hashes({}, extra_data_func=mock_extra_func)
+
+            mock_get_hashes.assert_called_once_with(
+                extra_data_func=mock_extra_func)
+
     def test_get_dependency_tree(self):
         # Make sure get_dependency_tree() gets the dependencies of all
         # objects in the registry

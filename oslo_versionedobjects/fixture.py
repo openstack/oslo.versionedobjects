@@ -265,8 +265,8 @@ class ObjectVersionChecker(object):
                 obj_name, extra_data_func=extra_data_func)
         return fingerprints
 
-    def test_hashes(self, expected_hashes):
-        fingerprints = self.get_hashes()
+    def test_hashes(self, expected_hashes, extra_data_func=None):
+        fingerprints = self.get_hashes(extra_data_func=extra_data_func)
 
         stored = set(expected_hashes.items())
         computed = set(fingerprints.items())
