@@ -328,6 +328,10 @@ class Enum(String):
 
 
 class UUID(FieldType):
+
+    _PATTERN = (r'^[a-fA-F0-9]{8}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]'
+                r'{4}-?[a-fA-F0-9]{12}$')
+
     @staticmethod
     def coerce(obj, attr, value):
         # FIXME(danms): We should actually verify the UUIDness here
@@ -349,10 +353,14 @@ class UUID(FieldType):
 
             return str(value)
 
+    def get_schema(self):
+        return {'type': ['string'], 'pattern': self._PATTERN}
+
 
 class MACAddress(FieldType):
 
-    _REGEX = re.compile(r'[0-9a-f]{2}(:[0-9a-f]{2}){5}$')
+    _PATTERN = r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
+    _REGEX = re.compile(_PATTERN)
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -362,10 +370,14 @@ class MACAddress(FieldType):
                 return lowered
         raise ValueError(_LE("Malformed MAC %s"), value)
 
+    def get_schema(self):
+        return {'type': ['string'], 'pattern': self._PATTERN}
+
 
 class PCIAddress(FieldType):
 
-    _REGEX = re.compile(r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$')
+    _PATTERN = r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$'
+    _REGEX = re.compile(_PATTERN)
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -374,6 +386,9 @@ class PCIAddress(FieldType):
             if PCIAddress._REGEX.match(newvalue):
                 return newvalue
         raise ValueError(_LE("Malformed PCI address %s"), value)
+
+    def get_schema(self):
+        return {'type': ['string'], 'pattern': self._PATTERN}
 
 
 class Integer(FieldType):
@@ -435,6 +450,9 @@ class DateTime(FieldType):
     def from_primitive(self, obj, attr, value):
         return self.coerce(obj, attr, timeutils.parse_isotime(value))
 
+    def get_schema(self):
+        return {'type': ['string'], 'format': 'date-time'}
+
     @staticmethod
     def to_primitive(obj, attr, value):
         return _utils.isotime(value)
@@ -470,6 +488,9 @@ class IPV4Address(IPAddress):
                              {'val': value, 'attr': attr})
         return result
 
+    def get_schema(self):
+        return {'type': ['string'], 'format': 'ipv4'}
+
 
 class IPV6Address(IPAddress):
     @staticmethod
@@ -480,6 +501,9 @@ class IPV6Address(IPAddress):
                                'in field %(attr)s') %
                              {'val': value, 'attr': attr})
         return result
+
+    def get_schema(self):
+        return {'type': ['string'], 'format': 'ipv6'}
 
 
 class IPNetwork(IPAddress):
@@ -492,6 +516,11 @@ class IPNetwork(IPAddress):
 
 
 class IPV4Network(IPNetwork):
+
+    _PATTERN = (r'^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-'
+                r'9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2]['
+                r'0-9]|3[0-2]))$')
+
     @staticmethod
     def coerce(obj, attr, value):
         try:
@@ -499,14 +528,65 @@ class IPV4Network(IPNetwork):
         except netaddr.AddrFormatError as e:
             raise ValueError(six.text_type(e))
 
+    def get_schema(self):
+        return {'type': ['string'], 'pattern': self._PATTERN}
+
 
 class IPV6Network(IPNetwork):
+
+    def __init__(self, *args, **kwargs):
+        super(IPV6Network, self).__init__(*args, **kwargs)
+        self._PATTERN = self._create_pattern()
+
     @staticmethod
     def coerce(obj, attr, value):
         try:
             return netaddr.IPNetwork(value, version=6)
         except netaddr.AddrFormatError as e:
             raise ValueError(six.text_type(e))
+
+    def _create_pattern(self):
+        ipv6seg = '[0-9a-fA-F]{1,4}'
+        ipv4seg = '(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])'
+
+        return (
+            # Pattern based on answer to
+            # http://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
+            '^'
+            # 1:2:3:4:5:6:7:8
+            '(' + ipv6seg + ':){7,7}' + ipv6seg + '|'
+            # 1:: 1:2:3:4:5:6:7::
+            '(' + ipv6seg + ':){1,7}:|'
+            # 1::8 1:2:3:4:5:6::8 1:2:3:4:5:6::8
+            '(' + ipv6seg + ':){1,6}:' + ipv6seg + '|'
+            # 1::7:8 1:2:3:4:5::7:8 1:2:3:4:5::8
+            '(' + ipv6seg + ':){1,5}(:' + ipv6seg + '){1,2}|'
+            # 1::6:7:8 1:2:3:4::6:7:8 1:2:3:4::8
+            '(' + ipv6seg + ':){1,4}(:' + ipv6seg + '){1,3}|'
+            # 1::5:6:7:8 1:2:3::5:6:7:8 1:2:3::8
+            '(' + ipv6seg + ':){1,3}(:' + ipv6seg + '){1,4}|'
+            # 1::4:5:6:7:8 1:2::4:5:6:7:8 1:2::8
+            '(' + ipv6seg + ':){1,2}(:' + ipv6seg + '){1,5}|' +
+            # 1::3:4:5:6:7:8 1::3:4:5:6:7:8 1::8
+            ipv6seg + ':((:' + ipv6seg + '){1,6})|'
+            # ::2:3:4:5:6:7:8 ::2:3:4:5:6:7:8 ::8 ::
+            ':((:' + ipv6seg + '){1,7}|:)|'
+            # fe80::7:8%eth0 fe80::7:8%1
+            'fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|'
+            # ::255.255.255.255 ::ffff:255.255.255.255 ::ffff:0:255.255.255.255
+            '::(ffff(:0{1,4}){0,1}:){0,1}'
+            '(' + ipv4seg + '\.){3,3}' +
+            ipv4seg + '|'
+            # 2001:db8:3:4::192.0.2.33 64:ff9b::192.0.2.33
+            '(' + ipv6seg + ':){1,4}:'
+            '(' + ipv4seg + '\.){3,3}' +
+            ipv4seg +
+            # /128
+            '(\/(d|dd|1[0-1]d|12[0-8]))$'
+            )
+
+    def get_schema(self):
+        return {'type': ['string'], 'pattern': self._PATTERN}
 
 
 class CompoundFieldType(FieldType):
@@ -569,6 +649,9 @@ class Dict(CompoundFieldType):
             ','.join(['%s=%s' % (key, self._element_type.stringify(val))
                       for key, val in sorted(value.items())]))
 
+    def get_schema(self):
+        return {'type': ['object']}
+
 
 class DictProxyField(object):
     """Descriptor allowing us to assign pinning data as a dict of key_types
@@ -624,6 +707,10 @@ class Set(CompoundFieldType):
     def stringify(self, value):
         return 'set([%s])' % (
             ','.join([self._element_type.stringify(x) for x in value]))
+
+    def get_schema(self):
+        return {'type': ['array'], 'uniqueItems': True,
+                'items': self._element_type.get_schema()}
 
 
 class Object(FieldType):

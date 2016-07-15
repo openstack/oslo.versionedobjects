@@ -217,6 +217,17 @@ class TestMACAddress(TestField):
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
 
+    def test_get_schema(self):
+        schema = self.field.get_schema()
+        self.assertEqual(['string'], schema['type'])
+        self.assertEqual(False, schema['readonly'])
+        pattern = schema['pattern']
+        for _, valid_val in self.coerce_good_values:
+            self.assertRegex(valid_val, pattern)
+        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        for invalid_val in invalid_vals:
+            self.assertNotRegex(invalid_val, pattern)
+
 
 class TestPCIAddress(TestField):
     def setUp(self):
@@ -238,12 +249,21 @@ class TestPCIAddress(TestField):
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
 
+    def test_get_schema(self):
+        schema = self.field.get_schema()
+        self.assertEqual(['string'], schema['type'])
+        self.assertEqual(False, schema['readonly'])
+        pattern = schema['pattern']
+        for _, valid_val in self.coerce_good_values:
+            self.assertRegex(valid_val, pattern)
+        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        for invalid_val in invalid_vals:
+            self.assertNotRegex(invalid_val, pattern)
+
 
 class TestUUID(TestField):
     def setUp(self):
         super(TestUUID, self).setUp()
-
-    def test_validation_enabled(self):
         self.field = fields.UUIDField()
         self.coerce_good_values = [
             ('da66a411-af0e-4829-9b67-475017ddd152',
@@ -267,13 +287,27 @@ class TestUUID(TestField):
             ('1', '1'),
             (1, '1')
         ]
-
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
+
+    def test_validation_enabled(self):
 
         self.test_coerce_good_values()
         self.test_from_primitive()
         self.test_to_primitive()
+
+    def test_get_schema(self):
+        field = fields.UUIDField()
+        schema = field.get_schema()
+        self.assertEqual(['string'], schema['type'])
+        self.assertEqual(False, schema['readonly'])
+        pattern = schema['pattern']
+        print(self.coerce_good_values)
+        for _, valid_val in self.coerce_good_values[:4]:
+            self.assertRegex(valid_val, pattern)
+        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        for invalid_val in invalid_vals:
+            self.assertNotRegex(invalid_val, pattern)
 
 
 class TestBaseEnum(TestField):
@@ -514,6 +548,11 @@ class TestDateTime(TestField):
                 datetime.datetime(1955, 11, 5, 18, 0, 0,
                                   tzinfo=iso8601.iso8601.Utc())))
 
+    def test_get_schema(self):
+        self.assertEqual({'type': ['string'], 'format': 'date-time',
+                          'readonly': False},
+                         self.field.get_schema())
+
 
 class TestDateTimeNoTzinfo(TestField):
     def setUp(self):
@@ -550,6 +589,10 @@ class TestDict(TestField):
 
     def test_stringify(self):
         self.assertEqual("{key=val}", self.field.stringify({'key': 'val'}))
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['object'], 'readonly': False},
+                         self.field.get_schema())
 
 
 class TestDictOfStrings(TestField):
@@ -709,6 +752,12 @@ class TestSet(TestField):
 
     def test_stringify(self):
         self.assertEqual('set([123])', self.field.stringify(set([123])))
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['array'], 'uniqueItems': True,
+                          'items': {'type': ['foo'], 'readonly': False},
+                          'readonly': False},
+                         self.field.get_schema())
 
 
 class TestSetOfIntegers(TestField):
@@ -957,6 +1006,11 @@ class TestIPAddressV4(TestField):
         self.from_primitive_values = [('1.2.3.4',
                                        netaddr.IPAddress('1.2.3.4'))]
 
+    def test_get_schema(self):
+        self.assertEqual({'type': ['string'], 'readonly': False,
+                          'format': 'ipv4'},
+                         self.field.get_schema())
+
 
 class TestIPAddressV6(TestField):
     def setUp(self):
@@ -969,6 +1023,11 @@ class TestIPAddressV6(TestField):
         self.to_primitive_values = [(netaddr.IPAddress('::1'), '::1')]
         self.from_primitive_values = [('::1',
                                        netaddr.IPAddress('::1'))]
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['string'], 'readonly': False,
+                          'format': 'ipv6'},
+                         self.field.get_schema())
 
 
 class TestIPNetwork(TestField):
@@ -998,6 +1057,17 @@ class TestIPV4Network(TestField):
         self.from_primitive_values = [('1.2.3.4/24',
                                        netaddr.IPNetwork('1.2.3.4/24'))]
 
+    def test_get_schema(self):
+        schema = self.field.get_schema()
+        self.assertEqual(['string'], schema['type'])
+        self.assertEqual(False, schema['readonly'])
+        pattern = schema['pattern']
+        for _, valid_val in self.coerce_good_values:
+            self.assertRegex(str(valid_val), pattern)
+        invalid_vals = [x for x in self.coerce_bad_values]
+        for invalid_val in invalid_vals:
+            self.assertNotRegex(str(invalid_val), pattern)
+
 
 class TestIPV6Network(TestField):
     def setUp(self):
@@ -1010,3 +1080,14 @@ class TestIPV6Network(TestField):
         self.to_primitive_values = [(netaddr.IPNetwork('::1/0'), '::1/0')]
         self.from_primitive_values = [('::1/0',
                                        netaddr.IPNetwork('::1/0'))]
+
+    def test_get_schema(self):
+        schema = self.field.get_schema()
+        self.assertEqual(['string'], schema['type'])
+        self.assertEqual(False, schema['readonly'])
+        pattern = schema['pattern']
+        for _, valid_val in self.coerce_good_values:
+            self.assertRegex(str(valid_val), pattern)
+        invalid_vals = [x for x in self.coerce_bad_values]
+        for invalid_val in invalid_vals:
+            self.assertNotRegex(str(invalid_val), pattern)
