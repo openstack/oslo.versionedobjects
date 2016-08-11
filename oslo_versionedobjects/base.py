@@ -360,9 +360,9 @@ class VersionedObject(object):
                 data_key: {
                     'type': 'object',
                     'description': 'fields of %s' % (obj_name),
-                    'properties': field_schemas
+                    'properties': field_schemas,
+                    'required': required_fields
                 },
-                'required': required_fields
             },
             'required': [namespace_key, name_key, version_key, data_key]
         }

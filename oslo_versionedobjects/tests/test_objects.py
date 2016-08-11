@@ -2094,8 +2094,8 @@ class TestSchemaGeneration(test.TestCase):
                         'foo': {'type': ['fake']},
                         'bar': {'type': ['fake', 'null']}
                     },
+                    'required': ['bar', 'foo'],
                 },
-                'required': ['bar', 'foo']
             },
             'required': ['versioned_object.namespace', 'versioned_object.name',
                          'versioned_object.version', 'versioned_object.data']
