@@ -599,8 +599,13 @@ class VersionedObject(object):
                self._obj_primitive_key('version'): target_version,
                self._obj_primitive_key('data'): primitive}
         if self.obj_what_changed():
-            obj[self._obj_primitive_key('changes')] = list(
-                self.obj_what_changed())
+            # NOTE(cfriesen): if we're downgrading to a lower version, then
+            # it's possible that self.obj_what_changed() includes fields that
+            # no longer exist in the lower version.  If so, filter them out.
+            what_changed = self.obj_what_changed()
+            changes = [field for field in what_changed if field in primitive]
+            if changes:
+                obj[self._obj_primitive_key('changes')] = changes
         return obj
 
     def obj_set_defaults(self, *attrs):
@@ -636,7 +641,8 @@ class VersionedObject(object):
 
     def obj_what_changed(self):
         """Returns a set of fields that have been modified."""
-        changes = set(self._changed_fields)
+        changes = set([field for field in self._changed_fields
+                       if field in self.fields])
         for field in self.fields:
             if (self.obj_attr_is_set(field) and
                     isinstance(getattr(self, field), VersionedObject) and

@@ -708,11 +708,15 @@ class TestVersionedObjectRegistryFixture(test.TestCase):
 
 class TestStableObjectJsonFixture(test.TestCase):
     def test_changes_sort(self):
+        @base.VersionedObjectRegistry.register_if(False)
         class TestObject(base.VersionedObject):
+            fields = {'z': fields.StringField(),
+                      'a': fields.StringField()}
+
             def obj_what_changed(self):
                 return ['z', 'a']
 
-        obj = TestObject()
+        obj = TestObject(a='foo', z='bar')
         self.assertEqual(['z', 'a'],
                          obj.obj_to_primitive()['versioned_object.changes'])
         with fixture.StableObjectJsonFixture():
