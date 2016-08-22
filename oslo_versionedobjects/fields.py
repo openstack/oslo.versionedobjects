@@ -385,12 +385,30 @@ class Integer(FieldType):
         return {'type': ['integer']}
 
 
+class NonNegativeInteger(FieldType):
+    @staticmethod
+    def coerce(obj, attr, value):
+        v = int(value)
+        if v < 0:
+            raise ValueError(_('Value must be >= 0 for field %s') % attr)
+        return v
+
+
 class Float(FieldType):
     def coerce(self, obj, attr, value):
         return float(value)
 
     def get_schema(self):
         return {'type': ['number']}
+
+
+class NonNegativeFloat(FieldType):
+    @staticmethod
+    def coerce(obj, attr, value):
+        v = float(value)
+        if v < 0:
+            raise ValueError(_('Value must be >= 0 for field %s') % attr)
+        return v
 
 
 class Boolean(FieldType):
@@ -476,6 +494,17 @@ class IPV6Address(IPAddress):
     def coerce(obj, attr, value):
         result = IPAddress.coerce(obj, attr, value)
         if result.version != 6:
+            raise ValueError(_('Network "%(val)s" is not valid '
+                               'in field %(attr)s') %
+                             {'val': value, 'attr': attr})
+        return result
+
+
+class IPV4AndV6Address(IPAddress):
+    @staticmethod
+    def coerce(obj, attr, value):
+        result = IPAddress.coerce(obj, attr, value)
+        if result.version != 4 and result.version != 6:
             raise ValueError(_('Network "%(val)s" is not valid '
                                'in field %(attr)s') %
                              {'val': value, 'attr': attr})
@@ -898,8 +927,16 @@ class IntegerField(AutoTypedField):
     AUTO_TYPE = Integer()
 
 
+class NonNegativeIntegerField(AutoTypedField):
+    AUTO_TYPE = NonNegativeInteger()
+
+
 class FloatField(AutoTypedField):
     AUTO_TYPE = Float()
+
+
+class NonNegativeFloatField(AutoTypedField):
+    AUTO_TYPE = NonNegativeFloat()
 
 
 # This is a strict interpretation of boolean
@@ -968,6 +1005,10 @@ class ListOfSetsOfIntegersField(AutoTypedField):
     AUTO_TYPE = List(Set(Integer()))
 
 
+class ListOfIntegersField(AutoTypedField):
+    AUTO_TYPE = List(Integer())
+
+
 class ListOfDictOfNullableStringsField(AutoTypedField):
     AUTO_TYPE = List(Dict(String(), nullable=True))
 
@@ -996,6 +1037,10 @@ class IPV4AddressField(AutoTypedField):
 
 class IPV6AddressField(AutoTypedField):
     AUTO_TYPE = IPV6Address()
+
+
+class IPV4AndV6AddressField(AutoTypedField):
+    AUTO_TYPE = IPV4AndV6Address()
 
 
 class IPNetworkField(AutoTypedField):

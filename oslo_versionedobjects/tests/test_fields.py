@@ -444,6 +444,16 @@ class TestInteger(TestField):
                          self.field.get_schema())
 
 
+class TestNonNegativeInteger(TestField):
+    def setUp(self):
+        super(TestNonNegativeInteger, self).setUp()
+        self.field = fields.NonNegativeIntegerField()
+        self.coerce_good_values = [(1, 1), ('1', 1)]
+        self.coerce_bad_values = ['-2', '4.2', 'foo', None]
+        self.to_primitive_values = self.coerce_good_values[0:1]
+        self.from_primitive_values = self.coerce_good_values[0:1]
+
+
 class TestFloat(TestField):
     def setUp(self):
         super(TestFloat, self).setUp()
@@ -459,6 +469,16 @@ class TestFloat(TestField):
     def test_get_schema(self):
         self.assertEqual({'type': ['number'], 'readonly': False},
                          self.field.get_schema())
+
+
+class TestNonNegativeFloat(TestField):
+    def setUp(self):
+        super(TestNonNegativeFloat, self).setUp()
+        self.field = fields.NonNegativeFloatField()
+        self.coerce_good_values = [(1.1, 1.1), ('1.1', 1.1)]
+        self.coerce_bad_values = ['-4.2', 'foo', None]
+        self.to_primitive_values = self.coerce_good_values[0:1]
+        self.from_primitive_values = self.coerce_good_values[0:1]
 
 
 class TestBoolean(TestField):
@@ -739,6 +759,20 @@ class TestListOfSetsOfIntegers(TestField):
         self.assertEqual('[set([1,2])]', self.field.stringify([set([1, 2])]))
 
 
+class TestListOfIntegers(TestField):
+    def setUp(self):
+        super(TestListOfIntegers, self).setUp()
+        self.field = fields.ListOfIntegersField()
+        self.coerce_good_values = [(['1', 2], [1, 2]),
+                                   ([1, 2], [1, 2])]
+        self.coerce_bad_values = [['foo']]
+        self.to_primitive_values = [([1], [1])]
+        self.from_primitive_values = [([1], [1])]
+
+    def test_stringify(self):
+        self.assertEqual('[[1, 2]]', self.field.stringify([[1, 2]]))
+
+
 class TestLocalMethods(test.TestCase):
     @mock.patch.object(obj_base.LOG, 'exception')
     def test__make_class_properties_setter_value_error(self, mock_log):
@@ -969,6 +1003,28 @@ class TestIPAddressV6(TestField):
         self.to_primitive_values = [(netaddr.IPAddress('::1'), '::1')]
         self.from_primitive_values = [('::1',
                                        netaddr.IPAddress('::1'))]
+
+
+class TestIPV4AndV6Address(TestField):
+    def setUp(self):
+        super(TestIPV4AndV6Address, self).setUp()
+        self.field = fields.IPV4AndV6Address()
+        self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
+                                   (netaddr.IPAddress('::1'),
+                                    netaddr.IPAddress('::1')),
+                                   ('1.2.3.4',
+                                    netaddr.IPAddress('1.2.3.4')),
+                                   (netaddr.IPAddress('1.2.3.4'),
+                                    netaddr.IPAddress('1.2.3.4'))]
+        self.coerce_bad_values = ['1-2', 'foo']
+        self.to_primitive_values = [(netaddr.IPAddress('::1'),
+                                     '::1'),
+                                    (netaddr.IPAddress('1.2.3.4'),
+                                     '1.2.3.4')]
+        self.from_primitive_values = [('::1',
+                                       netaddr.IPAddress('::1')),
+                                      ('1.2.3.4',
+                                       netaddr.IPAddress('1.2.3.4'))]
 
 
 class TestIPNetwork(TestField):
