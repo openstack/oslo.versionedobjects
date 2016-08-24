@@ -520,6 +520,9 @@ class IPV6Address(IPAddress):
                              {'val': value, 'attr': attr})
         return result
 
+    def get_schema(self):
+        return {'type': ['string'], 'format': 'ipv6'}
+
 
 class IPV4AndV6Address(IPAddress):
     @staticmethod
