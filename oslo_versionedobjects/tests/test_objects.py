@@ -994,6 +994,15 @@ class _TestObject(object):
         bar.foo = 1
         self.assertEqual(set(['bar']), obj.obj_what_changed())
 
+    def test_changed_with_bogus_field(self):
+        obj = MyObj()
+        obj.foo = 123
+        # Add a bogus field name to the changed list, as could be the
+        # case if we're sent some broken primitive from another node.
+        obj._changed_fields.add('does_not_exist')
+        self.assertEqual(set(['foo']), obj.obj_what_changed())
+        self.assertEqual({'foo': 123}, obj.obj_get_changes())
+
     def test_static_result(self):
         obj = MyObj.query(self.context)
         self.assertEqual(obj.bar, 'bar')
@@ -1333,6 +1342,20 @@ class _TestObject(object):
             mock_compat.assert_called_once_with(
                 primitive['rel_objects'][0]['versioned_object.data'],
                 '1.2', version_manifest=manifest)
+
+    def test_obj_make_compatible_removes_field_cleans_changes(self):
+        @base.VersionedObjectRegistry.register_if(False)
+        class TestObject(base.VersionedObject):
+            VERSION = '1.1'
+            fields = {'foo': fields.StringField(),
+                      'bar': fields.StringField()}
+
+            def obj_make_compatible(self, primitive, target_version):
+                del primitive['bar']
+
+        obj = TestObject(foo='test1', bar='test2')
+        prim = obj.obj_to_primitive('1.0')
+        self.assertEqual(['foo'], prim['versioned_object.changes'])
 
     def test_delattr(self):
         obj = MyObj(bar='foo')
