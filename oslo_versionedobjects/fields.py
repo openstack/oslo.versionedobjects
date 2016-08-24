@@ -408,6 +408,9 @@ class NonNegativeInteger(FieldType):
             raise ValueError(_('Value must be >= 0 for field %s') % attr)
         return v
 
+    def get_schema(self):
+        return {'type': ['integer'], 'minimum': 0}
+
 
 class Float(FieldType):
     def coerce(self, obj, attr, value):
@@ -424,6 +427,9 @@ class NonNegativeFloat(FieldType):
         if v < 0:
             raise ValueError(_('Value must be >= 0 for field %s') % attr)
         return v
+
+    def get_schema(self):
+        return {'type': ['number'], 'minimum': 0}
 
 
 class Boolean(FieldType):
@@ -535,7 +541,8 @@ class IPV4AndV6Address(IPAddress):
         return result
 
     def get_schema(self):
-        return {'type': ['string'], 'format': 'ipv6'}
+        return {'oneOf': [IPV4Address().get_schema(),
+                          IPV6Address().get_schema()]}
 
 
 class IPNetwork(IPAddress):
@@ -682,7 +689,8 @@ class Dict(CompoundFieldType):
                       for key, val in sorted(value.items())]))
 
     def get_schema(self):
-        return {'type': ['object']}
+        return {'type': ['object'],
+                'additionalProperties': self._element_type.get_schema()}
 
 
 class DictProxyField(object):
@@ -818,6 +826,54 @@ class Object(FieldType):
             ident = ''
 
         return '%s%s' % (self._obj_name, ident)
+
+    def get_schema(self):
+        from oslo_versionedobjects import base as obj_base
+        obj_classes = obj_base.VersionedObjectRegistry.obj_classes()
+        if self._obj_name in obj_classes:
+            cls = obj_classes[self._obj_name][0]
+            namespace_key = cls._obj_primitive_key('namespace')
+            name_key = cls._obj_primitive_key('name')
+            version_key = cls._obj_primitive_key('version')
+            data_key = cls._obj_primitive_key('data')
+            changes_key = cls._obj_primitive_key('changes')
+            field_schemas = {key: field.get_schema()
+                             for key, field in cls.fields.items()}
+            required_fields = [key for key, field in sorted(cls.fields.items())
+                               if not field.nullable]
+            schema = {
+                'type': 'object',
+                'properties': {
+                    namespace_key: {
+                        'type': 'string'
+                    },
+                    name_key: {
+                        'type': 'string'
+                    },
+                    version_key: {
+                        'type': 'string'
+                    },
+                    changes_key: {
+                        'type': 'array',
+                        'items': {
+                            'type': 'string'
+                        }
+                    },
+                    data_key: {
+                        'type': 'object',
+                        'description': 'fields of %s' % self._obj_name,
+                        'properties': field_schemas,
+                    },
+                },
+                'required': [namespace_key, name_key, version_key, data_key]
+            }
+
+            if required_fields:
+                schema['properties'][data_key]['required'] = required_fields
+
+            return schema
+        else:
+            raise exception.UnsupportedObjectError(objtype=self._obj_name)
 
 
 class AutoTypedField(Field):
