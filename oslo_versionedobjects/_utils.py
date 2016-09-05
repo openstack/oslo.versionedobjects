@@ -17,7 +17,7 @@
 
 """Utilities and helper functions."""
 
-# ISO 8601 extended time format with microseconds
+# ISO 8601 extended time format without microseconds
 _ISO8601_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 
