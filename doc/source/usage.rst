@@ -77,7 +77,7 @@ New field types can be implemented by inheriting from
 :class:`oslo_versionedobjects.field.Field` and overwriting the `from_primitive`
 and `to_primitive` methods.
 
-By subclassing :class:oslo_versionedobjects.fields.AutoTypedField you can
+By subclassing :class:`oslo_versionedobjects.fields.AutoTypedField` you can
 stack multiple fields together, making sure even nested data structures are
 being validated.
 
