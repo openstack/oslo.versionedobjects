@@ -880,6 +880,28 @@ class ObjectListBase(collections.Sequence):
                 changes.add('objects')
         return changes
 
+    def __add__(self, other):
+        # Handling arbitrary fields may not make sense if those fields are not
+        # all concatenatable. Only concatenate if the base 'objects' field is
+        # the only one and the classes match.
+        if (self.__class__ == other.__class__ and
+                list(self.__class__.fields.keys()) == ['objects']):
+            return self.__class__(objects=self.objects + other.objects)
+        else:
+            raise TypeError("List Objects should be of the same type and only "
+                            "have an 'objects' field")
+
+    def __radd__(self, other):
+        if (self.__class__ == other.__class__ and
+                list(self.__class__.fields.keys()) == ['objects']):
+            # This should never be run in practice. If the above condition is
+            # met then __add__ would have been run.
+            raise NotImplementedError('__radd__ is not implemented for '
+                                      'objects of the same type')
+        else:
+            raise TypeError("List Objects should be of the same type and only "
+                            "have an 'objects' field")
+
 
 class VersionedObjectSerializer(messaging.NoOpSerializer):
     """A VersionedObject-aware Serializer.
