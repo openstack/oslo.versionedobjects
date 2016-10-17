@@ -302,7 +302,6 @@ class TestUUID(TestField):
         self.assertEqual(['string'], schema['type'])
         self.assertEqual(False, schema['readonly'])
         pattern = schema['pattern']
-        print(self.coerce_good_values)
         for _, valid_val in self.coerce_good_values[:4]:
             self.assertRegex(valid_val, pattern)
         invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
@@ -487,6 +486,10 @@ class TestNonNegativeInteger(TestField):
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
 
+    def test_get_schema(self):
+        self.assertEqual({'type': ['integer'], 'readonly': False,
+                          'minimum': 0}, self.field.get_schema())
+
 
 class TestFloat(TestField):
     def setUp(self):
@@ -513,6 +516,10 @@ class TestNonNegativeFloat(TestField):
         self.coerce_bad_values = ['-4.2', 'foo', None]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
+
+    def test_get_schema(self):
+        self.assertEqual({'type': ['number'], 'readonly': False,
+                          'minimum': 0}, self.field.get_schema())
 
 
 class TestBoolean(TestField):
@@ -611,7 +618,10 @@ class TestDict(TestField):
         self.assertEqual("{key=val}", self.field.stringify({'key': 'val'}))
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['object'], 'readonly': False},
+        self.assertEqual({'type': ['object'],
+                          'additionalProperties': {'readonly': False,
+                                                   'type': ['foo']},
+                          'readonly': False},
                          self.field.get_schema())
 
 
@@ -1010,6 +1020,31 @@ class TestObject(TestField):
         self.assertEqual('An object of type TestableObject is required '
                          'in field attr, not a list', six.text_type(ex))
 
+    def test_get_schema(self):
+        self.assertEqual(
+            {
+                'properties': {
+                    'versioned_object.changes':
+                        {'items': {'type': 'string'}, 'type': 'array'},
+                    'versioned_object.data': {
+                        'description': 'fields of TestableObject',
+                        'properties':
+                            {'uuid': {'readonly': False, 'type': ['string']}},
+                        'required': ['uuid'],
+                        'type': 'object'},
+                    'versioned_object.name': {'type': 'string'},
+                    'versioned_object.namespace': {'type': 'string'},
+                    'versioned_object.version': {'type': 'string'}
+                },
+                'readonly': False,
+                'required': ['versioned_object.namespace',
+                             'versioned_object.name',
+                             'versioned_object.version',
+                             'versioned_object.data'],
+                'type': 'object'
+            },
+            self.field.get_schema())
+
 
 class TestIPAddress(TestField):
     def setUp(self):
@@ -1055,8 +1090,7 @@ class TestIPAddressV6(TestField):
                                     netaddr.IPAddress('::1'))]
         self.coerce_bad_values = ['1.2', 'foo', '1.2.3.4']
         self.to_primitive_values = [(netaddr.IPAddress('::1'), '::1')]
-        self.from_primitive_values = [('::1',
-                                       netaddr.IPAddress('::1'))]
+        self.from_primitive_values = [('::1', netaddr.IPAddress('::1'))]
 
     def test_get_schema(self):
         self.assertEqual({'type': ['string'], 'readonly': False,
@@ -1084,6 +1118,11 @@ class TestIPV4AndV6Address(TestField):
                                        netaddr.IPAddress('::1')),
                                       ('1.2.3.4',
                                        netaddr.IPAddress('1.2.3.4'))]
+
+    def test_get_schema(self):
+        self.assertEqual({'oneOf': [{'format': 'ipv4', 'type': ['string']},
+                                    {'format': 'ipv6', 'type': ['string']}]},
+                         self.field.get_schema())
 
 
 class TestIPNetwork(TestField):

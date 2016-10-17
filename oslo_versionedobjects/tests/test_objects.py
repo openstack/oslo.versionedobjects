@@ -14,6 +14,7 @@
 
 import copy
 import datetime
+import jsonschema
 import logging
 import pytz
 import six
@@ -2065,34 +2066,25 @@ class TestObjectSerializer(_BaseTestCase):
 
 
 class TestSchemaGeneration(test.TestCase):
-    class FakeFieldType(fields.FieldType):
-        pass
+    @base.VersionedObjectRegistry.register
+    class FakeObject(base.VersionedObject):
+        fields = {
+            'a_boolean': fields.BooleanField(nullable=True),
+        }
 
-    def setUp(self):
-        super(TestSchemaGeneration, self).setUp()
-
-        self.nonNullableField = fields.Field(self.FakeFieldType)
-        self.nullableField = fields.Field(self.FakeFieldType)
-
-        class TestObject(base.VersionedObject):
-            fields = {'foo': self.nonNullableField,
-                      'bar': self.nullableField}
-
-        self.test_class = TestObject
-
-        self.nonNullableField.get_schema = \
-            mock.Mock(return_value={'type': ['fake']})
-        self.nullableField.get_schema = \
-            mock.Mock(return_value={'type': ['fake', 'null']})
-        self.test_class.obj_name = mock.Mock(return_value='TestObject')
+    @base.VersionedObjectRegistry.register
+    class FakeComplexObject(base.VersionedObject):
+        fields = {
+            'a_dict': fields.DictOfListOfStringsField(),
+            'an_obj': fields.ObjectField('FakeObject'),
+            'list_of_objs': fields.ListOfObjectsField('FakeObject'),
+        }
 
     def test_to_json_schema(self):
-        schema = self.test_class.to_json_schema()
-        self.nonNullableField.get_schema.assert_called_once_with()
-        self.nullableField.get_schema.assert_called_once_with()
+        schema = self.FakeObject.to_json_schema()
         self.assertEqual({
             '$schema': 'http://json-schema.org/draft-04/schema#',
-            'title': 'TestObject',
+            'title': 'FakeObject',
             'type': 'object',
             'properties': {
                 'versioned_object.namespace': {
@@ -2112,17 +2104,112 @@ class TestSchemaGeneration(test.TestCase):
                 },
                 'versioned_object.data': {
                     'type': 'object',
-                    'description': 'fields of TestObject',
+                    'description': 'fields of FakeObject',
                     'properties': {
-                        'foo': {'type': ['fake']},
-                        'bar': {'type': ['fake', 'null']}
+                        'a_boolean': {
+                            'readonly': False,
+                            'type': ['boolean', 'null']},
                     },
-                    'required': ['bar', 'foo'],
                 },
             },
             'required': ['versioned_object.namespace', 'versioned_object.name',
                          'versioned_object.version', 'versioned_object.data']
         }, schema)
+
+        jsonschema.validate(self.FakeObject(a_boolean=True).obj_to_primitive(),
+                            self.FakeObject.to_json_schema())
+
+    def test_to_json_schema_complex_object(self):
+        schema = self.FakeComplexObject.to_json_schema()
+        expected_schema = {
+            '$schema': 'http://json-schema.org/draft-04/schema#',
+            'properties': {
+                'versioned_object.changes':
+                    {'items': {'type': 'string'}, 'type': 'array'},
+                'versioned_object.data': {
+                    'description': 'fields of FakeComplexObject',
+                    'properties': {
+                        'a_dict': {
+                            'readonly': False,
+                            'type': ['object'],
+                            'additionalProperties': {
+                                'type': ['array'],
+                                'readonly': False,
+                                'items': {
+                                    'type': ['string'],
+                                    'readonly': False}}},
+                        'an_obj': {
+                            'properties': {
+                                'versioned_object.changes':
+                                    {'items': {'type': 'string'},
+                                     'type': 'array'},
+                                'versioned_object.data': {
+                                    'description': 'fields of FakeObject',
+                                    'properties':
+                                        {'a_boolean': {'readonly': False,
+                                         'type': ['boolean', 'null']}},
+                                    'type': 'object'},
+                                'versioned_object.name': {'type': 'string'},
+                                'versioned_object.namespace':
+                                    {'type': 'string'},
+                                'versioned_object.version':
+                                    {'type': 'string'}},
+                                'readonly': False,
+                                'required': ['versioned_object.namespace',
+                                             'versioned_object.name',
+                                             'versioned_object.version',
+                                             'versioned_object.data'],
+                                'type': 'object'},
+                        'list_of_objs': {
+                            'items': {
+                                'properties': {
+                                    'versioned_object.changes':
+                                        {'items': {'type': 'string'},
+                                         'type': 'array'},
+                                    'versioned_object.data': {
+                                        'description': 'fields of FakeObject',
+                                        'properties': {
+                                            'a_boolean': {
+                                                'readonly': False,
+                                                'type': ['boolean', 'null']}},
+                                            'type': 'object'},
+                                    'versioned_object.name':
+                                        {'type': 'string'},
+                                    'versioned_object.namespace':
+                                        {'type': 'string'},
+                                    'versioned_object.version':
+                                        {'type': 'string'}},
+                                'readonly': False,
+                                'required': ['versioned_object.namespace',
+                                             'versioned_object.name',
+                                             'versioned_object.version',
+                                             'versioned_object.data'],
+                                'type': 'object'},
+                            'readonly': False,
+                            'type': ['array']}},
+                    'required': ['a_dict', 'an_obj', 'list_of_objs'],
+                    'type': 'object'},
+                'versioned_object.name': {'type': 'string'},
+                'versioned_object.namespace': {'type': 'string'},
+                'versioned_object.version': {'type': 'string'}},
+            'required': ['versioned_object.namespace',
+                         'versioned_object.name',
+                         'versioned_object.version',
+                         'versioned_object.data'],
+            'title': 'FakeComplexObject',
+            'type': 'object'}
+        self.assertEqual(expected_schema, schema)
+
+        fake_obj = self.FakeComplexObject(
+            a_dict={'key1': ['foo', 'bar'],
+                    'key2': ['bar', 'baz']},
+            an_obj=self.FakeObject(a_boolean=True),
+            list_of_objs=[self.FakeObject(a_boolean=False),
+                          self.FakeObject(a_boolean=True),
+                          self.FakeObject(a_boolean=False)])
+
+        primitives = fake_obj.obj_to_primitive()
+        jsonschema.validate(primitives, schema)
 
 
 class TestNamespaceCompatibility(test.TestCase):
