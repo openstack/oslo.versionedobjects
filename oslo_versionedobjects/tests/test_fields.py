@@ -359,11 +359,11 @@ class TestEnum(TestField):
         self.assertRaises(ValueError, self.field.stringify, '123')
 
     def test_fieldtype_get_schema(self):
-        self.assertEqual({'enum': ["foo", "bar", 1, True]},
+        self.assertEqual({'type': ['string'], 'enum': ["foo", "bar", 1, True]},
                          self.field._type.get_schema())
 
     def test_get_schema(self):
-        self.assertEqual({'enum': ["foo", "bar", 1, True],
+        self.assertEqual({'type': ['string'], 'enum': ["foo", "bar", 1, True],
                           'readonly': False}, self.field.get_schema())
 
     def test_fingerprint(self):
