@@ -424,6 +424,11 @@ class VersionedObject(object):
         # of issues by copying only our field data.
 
         nobj = self.__class__()
+
+        # NOTE(sskripnick): we should save newly created object into mem
+        # to let deepcopy know which branches are already created.
+        # See launchpad bug #1602314 for more details
+        memo[id(self)] = nobj
         nobj._context = self._context
         for name in self.fields:
             if self.obj_attr_is_set(name):
