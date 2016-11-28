@@ -938,7 +938,7 @@ class EnumField(BaseEnumField):
 
     This class allows for anonymous enum types to be
     declared, simply by passing in a list of valid values
-    to its constructor. It is generally preferrable though,
+    to its constructor. It is generally preferable though,
     to create an explicit named enum type by sub-classing
     the BaseEnumField type directly.
     '''
