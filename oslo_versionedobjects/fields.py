@@ -327,10 +327,19 @@ class Enum(String):
         return {'enum': self._valid_values}
 
 
-class UUID(FieldType):
+class StringPattern(FieldType):
+    def get_schema(self):
+        if hasattr(self, "PATTERN"):
+            return {'type': ['string'], 'pattern': self.PATTERN}
+        else:
+            msg = _("%s has no pattern") % self.__class__.__name__
+            raise AttributeError(msg)
 
-    _PATTERN = (r'^[a-fA-F0-9]{8}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]'
-                r'{4}-?[a-fA-F0-9]{12}$')
+
+class UUID(StringPattern):
+
+    PATTERN = (r'^[a-fA-F0-9]{8}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]{4}-?[a-fA-F0-9]'
+               r'{4}-?[a-fA-F0-9]{12}$')
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -353,14 +362,11 @@ class UUID(FieldType):
 
             return str(value)
 
-    def get_schema(self):
-        return {'type': ['string'], 'pattern': self._PATTERN}
 
+class MACAddress(StringPattern):
 
-class MACAddress(FieldType):
-
-    _PATTERN = r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
-    _REGEX = re.compile(_PATTERN)
+    PATTERN = r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
+    _REGEX = re.compile(PATTERN)
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -370,14 +376,11 @@ class MACAddress(FieldType):
                 return lowered
         raise ValueError(_LE("Malformed MAC %s"), value)
 
-    def get_schema(self):
-        return {'type': ['string'], 'pattern': self._PATTERN}
 
+class PCIAddress(StringPattern):
 
-class PCIAddress(FieldType):
-
-    _PATTERN = r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$'
-    _REGEX = re.compile(_PATTERN)
+    PATTERN = r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$'
+    _REGEX = re.compile(PATTERN)
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -386,9 +389,6 @@ class PCIAddress(FieldType):
             if PCIAddress._REGEX.match(newvalue):
                 return newvalue
         raise ValueError(_LE("Malformed PCI address %s"), value)
-
-    def get_schema(self):
-        return {'type': ['string'], 'pattern': self._PATTERN}
 
 
 class Integer(FieldType):
@@ -486,7 +486,7 @@ class DateTime(FieldType):
         return _utils.isotime(value)
 
 
-class IPAddress(FieldType):
+class IPAddress(StringPattern):
     @staticmethod
     def coerce(obj, attr, value):
         try:
@@ -556,9 +556,9 @@ class IPNetwork(IPAddress):
 
 class IPV4Network(IPNetwork):
 
-    _PATTERN = (r'^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-'
-                r'9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2]['
-                r'0-9]|3[0-2]))$')
+    PATTERN = (r'^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-'
+               r'9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2]['
+               r'0-9]|3[0-2]))$')
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -567,15 +567,12 @@ class IPV4Network(IPNetwork):
         except netaddr.AddrFormatError as e:
             raise ValueError(six.text_type(e))
 
-    def get_schema(self):
-        return {'type': ['string'], 'pattern': self._PATTERN}
-
 
 class IPV6Network(IPNetwork):
 
     def __init__(self, *args, **kwargs):
         super(IPV6Network, self).__init__(*args, **kwargs)
-        self._PATTERN = self._create_pattern()
+        self.PATTERN = self._create_pattern()
 
     @staticmethod
     def coerce(obj, attr, value):
@@ -623,9 +620,6 @@ class IPV6Network(IPNetwork):
             # /128
             '(\/(d|dd|1[0-1]d|12[0-8]))$'
             )
-
-    def get_schema(self):
-        return {'type': ['string'], 'pattern': self._PATTERN}
 
 
 class CompoundFieldType(FieldType):
