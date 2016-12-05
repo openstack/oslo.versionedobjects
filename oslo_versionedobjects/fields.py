@@ -324,7 +324,9 @@ class Enum(String):
         return super(Enum, self).stringify(value)
 
     def get_schema(self):
-        return {'enum': self._valid_values}
+        schema = super(Enum, self).get_schema()
+        schema['enum'] = self._valid_values
+        return schema
 
 
 class StringPattern(FieldType):
