@@ -124,7 +124,7 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         kwargs = dict(
             [(argname, self._ser.deserialize_entity(
                 context, self._ser.serialize_entity(context, arg)))
-             for argname, arg in six.iteritems(kwargs)])
+             for argname, arg in kwargs.items()])
         return args, kwargs
 
     def object_action(self, context, objinst, objmethod, args, kwargs):

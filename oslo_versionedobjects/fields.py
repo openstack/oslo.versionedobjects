@@ -711,14 +711,14 @@ class DictProxyField(object):
         if getattr(obj, self._fld_name) is None:
             return
         return {self._key_type(k): v
-                for k, v in six.iteritems(getattr(obj, self._fld_name))}
+                for k, v in getattr(obj, self._fld_name).items()}
 
     def __set__(self, obj, val):
         if val is None:
             setattr(obj, self._fld_name, val)
         else:
             setattr(obj, self._fld_name,
-                    {six.text_type(k): v for k, v in six.iteritems(val)})
+                    {six.text_type(k): v for k, v in val.items()})
 
 
 class Set(CompoundFieldType):
@@ -1266,7 +1266,7 @@ class CoercedDict(CoercedCollectionMixin, dict):
 
     def _coerce_dict(self, d):
         res = {}
-        for key, element in six.iteritems(d):
+        for key, element in d.items():
             res[key] = self._coerce_item(key, element)
         return res
 
