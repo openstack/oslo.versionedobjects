@@ -911,7 +911,7 @@ class TestObject(TestField):
         class TestFoo(TestFakeObject, obj_base.ComparableVersionedObject):
             fields = {
                 'name': fields.StringField(),
-                'bar': fields.ObjectField('TestBar')
+                'bar': fields.ObjectField('TestBar', nullable=True)
             }
 
         bar = TestBar(name='bar')
@@ -1041,7 +1041,7 @@ class TestObject(TestField):
                              'versioned_object.name',
                              'versioned_object.version',
                              'versioned_object.data'],
-                'type': 'object'
+                'type': ['object']
             },
             self.field.get_schema())
 
