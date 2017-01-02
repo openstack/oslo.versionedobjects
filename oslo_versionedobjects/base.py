@@ -56,7 +56,7 @@ def _make_class_properties(cls):
         for name, field in supercls.fields.items():
             if name not in cls.fields:
                 cls.fields[name] = field
-    for name, field in six.iteritems(cls.fields):
+    for name, field in cls.fields.items():
         if not isinstance(field, obj_fields.Field):
             raise exception.ObjectFieldInvalid(
                 field=name, objname=cls.obj_name())
@@ -208,7 +208,7 @@ def remotable(fn):
         if self.indirection_api:
             updates, result = self.indirection_api.object_action(
                 ctxt, self, fn.__name__, args, kwargs)
-            for key, value in six.iteritems(updates):
+            for key, value in updates.items():
                 if key in self.fields:
                     field = self.fields[key]
                     # NOTE(ndipanov): Since VersionedObjectSerializer will have
@@ -933,7 +933,7 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
         iterable = values.__class__
         if issubclass(iterable, dict):
             return iterable([(k, action_fn(context, v))
-                             for k, v in six.iteritems(values)])
+                             for k, v in values.items()])
         else:
             # NOTE(danms, gibi) A set can't have an unhashable value inside,
             # such as a dict. Convert the set to list, which is fine, since we
