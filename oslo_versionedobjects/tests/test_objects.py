@@ -2076,7 +2076,7 @@ class TestSchemaGeneration(test.TestCase):
     class FakeComplexObject(base.VersionedObject):
         fields = {
             'a_dict': fields.DictOfListOfStringsField(),
-            'an_obj': fields.ObjectField('FakeObject'),
+            'an_obj': fields.ObjectField('FakeObject', nullable=True),
             'list_of_objs': fields.ListOfObjectsField('FakeObject'),
         }
 
@@ -2085,7 +2085,7 @@ class TestSchemaGeneration(test.TestCase):
         self.assertEqual({
             '$schema': 'http://json-schema.org/draft-04/schema#',
             'title': 'FakeObject',
-            'type': 'object',
+            'type': ['object'],
             'properties': {
                 'versioned_object.namespace': {
                     'type': 'string'
@@ -2159,7 +2159,7 @@ class TestSchemaGeneration(test.TestCase):
                                              'versioned_object.name',
                                              'versioned_object.version',
                                              'versioned_object.data'],
-                                'type': 'object'},
+                                'type': ['object', 'null']},
                         'list_of_objs': {
                             'items': {
                                 'properties': {
@@ -2184,10 +2184,10 @@ class TestSchemaGeneration(test.TestCase):
                                              'versioned_object.name',
                                              'versioned_object.version',
                                              'versioned_object.data'],
-                                'type': 'object'},
+                                'type': ['object']},
                             'readonly': False,
                             'type': ['array']}},
-                    'required': ['a_dict', 'an_obj', 'list_of_objs'],
+                    'required': ['a_dict', 'list_of_objs'],
                     'type': 'object'},
                 'versioned_object.name': {'type': 'string'},
                 'versioned_object.namespace': {'type': 'string'},
@@ -2197,7 +2197,7 @@ class TestSchemaGeneration(test.TestCase):
                          'versioned_object.version',
                          'versioned_object.data'],
             'title': 'FakeComplexObject',
-            'type': 'object'}
+            'type': ['object']}
         self.assertEqual(expected_schema, schema)
 
         fake_obj = self.FakeComplexObject(

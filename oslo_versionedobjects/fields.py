@@ -838,7 +838,7 @@ class Object(FieldType):
             required_fields = [key for key, field in sorted(cls.fields.items())
                                if not field.nullable]
             schema = {
-                'type': 'object',
+                'type': ['object'],
                 'properties': {
                     namespace_key: {
                         'type': 'string'
