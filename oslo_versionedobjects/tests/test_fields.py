@@ -978,6 +978,12 @@ class TestObject(TestField):
                           "TestAnimal", "VersionedObject"],
                          fields.Object._get_all_obj_names(babe))
 
+        # When stringifying we should see the subclass object name
+        # not the base class object name
+        self.assertEqual("TestDog", animals.stringify(wolfy))
+        self.assertEqual("TestCrocodile", animals.stringify(ticktock))
+        self.assertEqual("TestPig", animals.stringify(babe))
+
         # Everything is an animal
         self.assertEqual(wolfy, animals.coerce(None, "animal", wolfy))
         self.assertEqual(ticktock, animals.coerce(None, "animal", ticktock))

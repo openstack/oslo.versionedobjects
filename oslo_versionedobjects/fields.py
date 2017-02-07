@@ -821,7 +821,7 @@ class Object(FieldType):
         else:
             ident = ''
 
-        return '%s%s' % (self._obj_name, ident)
+        return '%s%s' % (value.obj_name(), ident)
 
     def get_schema(self):
         from oslo_versionedobjects import base as obj_base
