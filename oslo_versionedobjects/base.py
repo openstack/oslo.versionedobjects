@@ -26,7 +26,7 @@ from oslo_utils import excutils
 from oslo_utils import versionutils as vutils
 import six
 
-from oslo_versionedobjects._i18n import _, _LE
+from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
 
@@ -84,7 +84,7 @@ def _make_class_properties(cls):
             except Exception:
                 with excutils.save_and_reraise_exception():
                     attr = "%s.%s" % (self.obj_name(), name)
-                    LOG.exception(_LE('Error setting %(attr)s'),
+                    LOG.exception('Error setting %(attr)s',
                                   {'attr': attr})
 
         def deleter(self, name=name):
@@ -360,8 +360,8 @@ class VersionedObject(object):
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
         if objname not in VersionedObjectRegistry.obj_classes():
-            LOG.error(_LE('Unable to instantiate unregistered object type '
-                          '%(objtype)s'), dict(objtype=objname))
+            LOG.error('Unable to instantiate unregistered object type '
+                      '%(objtype)s'), dict(objtype=objname)
             raise exception.UnsupportedObjectError(objtype=objname)
 
         # NOTE(comstud): If there's not an exact match, return the highest

@@ -31,7 +31,7 @@ from oslo_utils import excutils
 import six
 import webob.exc
 
-from oslo_versionedobjects._i18n import _, _LE
+from oslo_versionedobjects._i18n import _
 
 LOG = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ class VersionedObjectsException(Exception):
                 exc_info = sys.exc_info()
                 # kwargs doesn't match a variable in the message
                 # log the issue and the kwargs
-                LOG.exception(_LE('Exception in string format operation'))
+                LOG.exception('Exception in string format operation')
                 for name, value in kwargs.items():
                     LOG.error("%s: %s" % (name, value))    # noqa
 
