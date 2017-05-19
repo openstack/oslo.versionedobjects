@@ -26,7 +26,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 import six
 
-from oslo_versionedobjects._i18n import _, _LE
+from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import _utils
 from oslo_versionedobjects import exception
 
@@ -376,7 +376,7 @@ class MACAddress(StringPattern):
             lowered = value.lower().replace('-', ':')
             if MACAddress._REGEX.match(lowered):
                 return lowered
-        raise ValueError(_LE("Malformed MAC %s"), value)
+        raise ValueError(_("Malformed MAC %s") % (value,))
 
 
 class PCIAddress(StringPattern):
@@ -390,7 +390,7 @@ class PCIAddress(StringPattern):
             newvalue = value.lower()
             if PCIAddress._REGEX.match(newvalue):
                 return newvalue
-        raise ValueError(_LE("Malformed PCI address %s"), value)
+        raise ValueError(_("Malformed PCI address %s") % (value,))
 
 
 class Integer(FieldType):
