@@ -1200,6 +1200,20 @@ class _TestObject(object):
         obj2 = MySensitiveObj()
         self.assertEqual('MySensitiveObj(data=<?>)', repr(obj2))
 
+    def test_obj_repr_unicode(self):
+        obj = MyObj(bar=u'\u0191\u01A1\u01A1')
+        # verify the unicode string has been encoded as ASCII if on python 2
+        if six.PY2:
+            self.assertEqual("MyObj(bar='\xc6\x91\xc6\xa1\xc6\xa1',foo=<?>,"
+                             "missing=<?>,mutable_default=<?>,readonly=<?>,"
+                             "rel_object=<?>,rel_objects=<?>,timestamp=<?>)",
+                             repr(obj))
+        else:
+            self.assertEqual("MyObj(bar='\u0191\u01A1\u01A1',foo=<?>,"
+                             "missing=<?>,mutable_default=<?>,readonly=<?>,"
+                             "rel_object=<?>,rel_objects=<?>,timestamp=<?>)",
+                             repr(obj))
+
     def test_obj_make_obj_compatible_with_relationships(self):
         subobj = MyOwnedObject(baz=1)
         obj = MyObj(rel_object=subobj)
