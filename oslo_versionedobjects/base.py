@@ -1129,7 +1129,7 @@ def obj_tree_get_versions(objname, tree=None):
     level object with other objects as fields. It walks the tree recursively
     to determine all the objects (by symbolic name) that could be contained
     within the top-level object, and the maximum versions of each. The result
-    is a dict like:
+    is a dict like::
 
       {'MyObject': '1.23', ... }
 

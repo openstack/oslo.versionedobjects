@@ -9,7 +9,7 @@ IOT lightbulb
 
     Full source located at :example:`iot_bulb`.
 
-.. literalinclude:: ../../oslo_versionedobjects/examples/iot_bulb.py
+.. literalinclude:: ../../../oslo_versionedobjects/examples/iot_bulb.py
     :language: python
     :linenos:
     :lines: 14-
