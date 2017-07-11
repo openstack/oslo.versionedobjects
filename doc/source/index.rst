@@ -13,29 +13,18 @@ upgrade compatibility across distributed services.
 * Source: http://git.openstack.org/cgit/openstack/oslo.versionedobjects
 * Bugs: http://bugs.launchpad.net/oslo.versionedobjects
 
-Contents
-========
+----
 
 .. toctree::
    :maxdepth: 2
 
-   installation
-   api/index
-   usage
-   examples
-   opts
-   contributing
+   install/index
+   user/index
+   configuration/index
+   reference/index
+   contributor/index
 
-Release Notes
-=============
-
-.. toctree::
-   :maxdepth: 1
-
-   history
-
-Indices and tables
-==================
+.. rubric:: Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`

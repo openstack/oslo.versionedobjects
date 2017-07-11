@@ -1036,7 +1036,7 @@ class UUIDField(AutoTypedField):
     your own objects/fields.py
 
     :Example:
-         .. code-block:: python
+        .. code-block:: python
 
             import oslo_versionedobjects.fields as ovo_fields
 
@@ -1049,8 +1049,8 @@ class UUIDField(AutoTypedField):
             class UUIDField(ovo_fields.AutoTypedField):
                 AUTO_TYPE = UUID()
 
-        and then in your objects use
-        ``<your_projects>.object.fields.UUIDField``.
+    and then in your objects use
+    ``<your_projects>.object.fields.UUIDField``.
 
     This will become default behaviour in the future.
     """
