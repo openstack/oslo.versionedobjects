@@ -314,7 +314,7 @@ class VersionedObject(object):
                                   field.stringify(getattr(self, name)) or
                                   '<?>'))
                       for name, field in sorted(self.fields.items())]))
-        if not six.PY3:
+        if six.PY2:
             repr_str = encodeutils.safe_encode(repr_str, incoming='utf-8')
         return repr_str
 
