@@ -706,6 +706,9 @@ class ComparableVersionedObject(object):
             return self.obj_to_primitive() == obj.obj_to_primitive()
         return NotImplemented
 
+    def __hash__(self):
+        return super(ComparableVersionedObject, self).__hash__()
+
     def __ne__(self, obj):
         if hasattr(obj, 'obj_to_primitive'):
             return self.obj_to_primitive() != obj.obj_to_primitive()
