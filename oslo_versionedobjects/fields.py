@@ -359,7 +359,7 @@ class UUID(StringPattern):
                               "release. Please update your "
                               "code to input valid UUIDs or accept "
                               "ValueErrors for invalid UUIDs. See "
-                              "http://docs.openstack.org/developer/oslo.versionedobjects/api/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
+                              "https://docs.openstack.org/oslo.versionedobjects/latest/reference/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
                               "for further details" % value, FutureWarning)
 
             return str(value)

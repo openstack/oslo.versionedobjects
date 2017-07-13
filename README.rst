@@ -26,6 +26,6 @@ independent of external APIs or database schema for the purposes of providing
 upgrade compatibility across distributed services.
 
 * Free software: Apache license
-* Documentation: http://docs.openstack.org/developer/oslo.versionedobjects
+* Documentation: https://docs.openstack.org/oslo.versionedobjects/latest
 * Source: http://git.openstack.org/cgit/openstack/oslo.versionedobjects
 * Bugs: http://bugs.launchpad.net/oslo.versionedobjects
