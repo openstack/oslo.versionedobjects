@@ -468,7 +468,7 @@ class DateTime(FieldType):
             # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
             # but are returned without a timezone attached.
             # As a transitional aid, assume a tz-naive object is in UTC.
-            value = value.replace(tzinfo=iso8601.iso8601.Utc())
+            value = value.replace(tzinfo=iso8601.UTC)
         elif not self.tzinfo_aware:
             value = value.replace(tzinfo=None)
         return value
