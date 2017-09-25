@@ -715,6 +715,18 @@ class ComparableVersionedObject(object):
         return NotImplemented
 
 
+class TimestampedObject(object):
+    """Mixin class for db backed objects with timestamp fields.
+
+    Sqlalchemy models that inherit from the oslo_db TimestampMixin will include
+    these fields and the corresponding objects will benefit from this mixin.
+    """
+    fields = {
+        'created_at': obj_fields.DateTimeField(nullable=True),
+        'updated_at': obj_fields.DateTimeField(nullable=True),
+    }
+
+
 class VersionedObjectDictCompat(object):
     """Mix-in to provide dictionary key access compatibility
 
