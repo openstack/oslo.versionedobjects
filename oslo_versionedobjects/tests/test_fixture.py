@@ -190,7 +190,7 @@ class TestObjectComparators(test.TestCase):
     def test_compare_obj_with_dt(self):
         mock_test = mock.Mock()
         mock_test.assertEqual = mock.Mock()
-        dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.Utc())
+        dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.UTC)
         replaced_dt = dt.replace(tzinfo=None)
         my_obj = self.MyComparedObjectWithTZ(tzfield=dt)
         my_db_obj = {'tzfield': replaced_dt}
