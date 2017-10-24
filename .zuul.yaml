@@ -1,0 +1,21 @@
+- project:
+    name: openstack/oslo.versionedobjects
+    check:
+      jobs:
+        - oslo.versionedobjects-src-grenade-devstack-multinode
+
+- job:
+    name: oslo.versionedobjects-src-grenade-devstack-multinode
+    parent: legacy-dsvm-base-multinode
+    voting: false
+    irrelevant-files:
+      - ^(test-|)requirements.txt$
+      - ^setup.cfg$
+    run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/run
+    post-run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/post
+    timeout: 10800
+    required-projects:
+      - openstack-dev/grenade
+      - openstack-infra/devstack-gate
+      - openstack/oslo.versionedobjects
+    nodeset: legacy-ubuntu-xenial-2-node
