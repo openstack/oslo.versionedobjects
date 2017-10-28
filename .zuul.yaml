@@ -11,8 +11,8 @@
     irrelevant-files:
       - ^(test-|)requirements.txt$
       - ^setup.cfg$
-    run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/run
-    post-run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/post
+    run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/run.yaml
+    post-run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/post.yaml
     timeout: 10800
     required-projects:
       - openstack-dev/grenade
