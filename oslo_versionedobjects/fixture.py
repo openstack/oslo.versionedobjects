@@ -369,12 +369,13 @@ class ObjectVersionChecker(object):
             for my_version, child_version in versions:
                 _my_version = vutils.convert_version_to_tuple(my_version)
                 _ch_version = vutils.convert_version_to_tuple(child_version)
-                assert (last_my_version < _my_version
-                        and last_child_version <= _ch_version), \
-                    ('Object %s relationship '
-                     '%s->%s for field %s is out of order') % (
-                         obj_class.obj_name(), my_version,
-                         child_version, field)
+                if not (last_my_version < _my_version
+                        and last_child_version <= _ch_version):
+                    raise AssertionError(('Object %s relationship %s->%s for '
+                                          'field %s is out of order') % (
+                                              obj_class.obj_name(),
+                                              my_version, child_version,
+                                              field))
                 last_my_version = _my_version
                 last_child_version = _ch_version
 
