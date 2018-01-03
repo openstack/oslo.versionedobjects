@@ -2,9 +2,9 @@
  oslo.versionedobjects Release Notes
 =====================================
 
- .. toctree::
-    :maxdepth: 1
+.. toctree::
+   :maxdepth: 1
 
-    unreleased
-    pike
-    ocata
+   unreleased
+   pike
+   ocata
