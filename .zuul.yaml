@@ -1,5 +1,4 @@
 - project:
-    name: openstack/oslo.versionedobjects
     check:
       jobs:
         - oslo.versionedobjects-src-grenade-devstack-multinode
