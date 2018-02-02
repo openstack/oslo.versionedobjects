@@ -13,6 +13,7 @@
 #    under the License.
 
 import datetime
+import warnings
 
 import iso8601
 import mock
@@ -295,6 +296,11 @@ class TestUUID(TestField):
         self.test_coerce_good_values()
         self.test_from_primitive()
         self.test_to_primitive()
+
+    def test_validation_warning_can_be_escalated_to_exception(self):
+        warnings.filterwarnings(action='error')
+        self.assertRaises(FutureWarning, self.field.coerce, 'obj', 'attr',
+                          'not a uuid')
 
     def test_get_schema(self):
         field = fields.UUIDField()

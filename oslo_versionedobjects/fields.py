@@ -347,7 +347,10 @@ class UUID(StringPattern):
     def coerce(obj, attr, value):
         # FIXME(danms): We should actually verify the UUIDness here
         with warnings.catch_warnings():
-            warnings.simplefilter("once")
+            # Change the warning action only if no other filter exists
+            # for this warning to allow the client to define other action
+            # like 'error' for this warning.
+            warnings.filterwarnings(action="once", append=True)
             try:
                 uuid.UUID(str(value))
             except Exception:
