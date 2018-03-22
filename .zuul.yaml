@@ -3,6 +3,10 @@
       jobs:
         - oslo.versionedobjects-src-grenade-devstack-multinode
 
+        - openstack-tox-lower-constraints
+    gate:
+      jobs:
+        - openstack-tox-lower-constraints
 - job:
     name: oslo.versionedobjects-src-grenade-devstack-multinode
     parent: legacy-dsvm-base-multinode
