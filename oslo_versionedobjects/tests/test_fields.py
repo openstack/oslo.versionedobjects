@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #    Copyright 2013 Red Hat, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -285,6 +286,9 @@ class TestUUID(TestField):
             ('da66a411-af0e-4829-9b67-475017ddz152',
                 'da66a411-af0e-4829-9b67-475017ddz152'),
             ('fake_uuid', 'fake_uuid'),
+            (u'fake_uāid', u'fake_uāid'),
+            (b'fake_u\xe1id'.decode('latin_1'),
+                b'fake_u\xe1id'.decode('latin_1')),
             ('1', '1'),
             (1, '1')
         ]

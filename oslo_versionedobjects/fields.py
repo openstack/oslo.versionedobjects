@@ -352,7 +352,7 @@ class UUID(StringPattern):
             # like 'error' for this warning.
             warnings.filterwarnings(action="once", append=True)
             try:
-                uuid.UUID(str(value))
+                uuid.UUID(u"%s" % value)
             except Exception:
                 # This is to ensure no breaking behaviour for current
                 # users
@@ -363,9 +363,11 @@ class UUID(StringPattern):
                               "code to input valid UUIDs or accept "
                               "ValueErrors for invalid UUIDs. See "
                               "https://docs.openstack.org/oslo.versionedobjects/latest/reference/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
-                              "for further details" % value, FutureWarning)
+                              "for further details" %
+                              repr(value).encode('utf8'),
+                              FutureWarning)
 
-            return str(value)
+            return u"%s" % value
 
 
 class MACAddress(StringPattern):
