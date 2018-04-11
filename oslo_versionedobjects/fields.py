@@ -352,7 +352,7 @@ class UUID(StringPattern):
             # like 'error' for this warning.
             warnings.filterwarnings(action="once", append=True)
             try:
-                uuid.UUID(u"%s" % value)
+                uuid.UUID("%s" % value)
             except Exception:
                 # This is to ensure no breaking behaviour for current
                 # users
@@ -367,7 +367,7 @@ class UUID(StringPattern):
                               repr(value).encode('utf8'),
                               FutureWarning)
 
-            return u"%s" % value
+            return "%s" % value
 
 
 class MACAddress(StringPattern):
