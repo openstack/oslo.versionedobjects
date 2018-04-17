@@ -160,7 +160,7 @@ class TestString(TestField):
         self.coerce_good_values = [
             ('foo', 'foo'), (1, '1'), (1.0, '1.0'), (True, 'True')]
         if six.PY2:
-            self.coerce_good_values += [(long(1), '1')]
+            self.coerce_good_values += [(long(1), '1')]  # noqa
         self.coerce_bad_values = [None]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
