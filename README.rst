@@ -12,11 +12,11 @@ oslo.versionedobjects
 ===================================
 
 .. image:: https://img.shields.io/pypi/v/oslo.versionedobjects.svg
-    :target: https://pypi.python.org/pypi/oslo.versionedobjects/
+    :target: https://pypi.org/project/oslo.versionedobjects/
     :alt: Latest Version
 
 .. image:: https://img.shields.io/pypi/dm/oslo.versionedobjects.svg
-    :target: https://pypi.python.org/pypi/oslo.versionedobjects/
+    :target: https://pypi.org/project/oslo.versionedobjects/
     :alt: Downloads
 
 The oslo.versionedobjects library provides a generic versioned object model
