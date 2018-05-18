@@ -32,7 +32,6 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error
-from oslotest import moxstubout
 import six
 import testtools
 
@@ -145,9 +144,6 @@ class TestCase(testtools.TestCase):
         # because sqlalchemy-migrate messes with the warnings filters.
         self.useFixture(obj_fixtures.WarningsFixture())
 
-        mox_fixture = self.useFixture(moxstubout.MoxStubout())
-        self.mox = mox_fixture.mox
-        self.stubs = mox_fixture.stubs
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
 
