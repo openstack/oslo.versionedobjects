@@ -813,6 +813,15 @@ class TestSetOfIntegers(TestField):
     def test_stringify(self):
         self.assertEqual('set([1,2])', self.field.stringify(set([1, 2])))
 
+    def test_repr(self):
+        self.assertEqual("Set(default=<class 'oslo_versionedobjects.fields."
+                         "UnspecifiedDefault'>,nullable=False)",
+                         repr(self.field))
+        self.assertEqual("Set(default=set([]),nullable=False)",
+                         repr(fields.SetOfIntegersField(default=set())))
+        self.assertEqual("Set(default=set([1,a]),nullable=False)",
+                         repr(fields.SetOfIntegersField(default={1, 'a'})))
+
 
 class TestListOfSetsOfIntegers(TestField):
     def setUp(self):

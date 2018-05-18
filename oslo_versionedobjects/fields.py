@@ -144,8 +144,14 @@ class Field(object):
         self._read_only = read_only
 
     def __repr__(self):
+        if isinstance(self._default, set):
+            # make a py27 and py35 compatible representation. See bug 1771804
+            default = 'set([%s])' % ','.join(sorted([six.text_type(v)
+                                                     for v in self._default]))
+        else:
+            default = str(self._default)
         return '%s(default=%s,nullable=%s)' % (self._type.__class__.__name__,
-                                               self._default, self._nullable)
+                                               default, self._nullable)
 
     @property
     def nullable(self):

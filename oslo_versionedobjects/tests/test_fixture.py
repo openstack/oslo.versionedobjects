@@ -601,6 +601,20 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
 
+    def test_get_fingerprint_with_defaulted_set(self):
+        class ClassWithDefaultedSetField(base.VersionedObject):
+            VERSION = 1.0
+            fields = {
+                'empty_default': fields.SetOfIntegersField(default=set()),
+                'non_empty_default': fields.SetOfIntegersField(default={1, 2})
+            }
+        self._add_class(self.obj_classes, ClassWithDefaultedSetField)
+
+        # it is expected that this hash is stable across python versions
+        expected = '1.0-bcc44920f2f727eca463c6eb4fe8445b'
+        actual = self.ovc._get_fingerprint(ClassWithDefaultedSetField.__name__)
+        self.assertEqual(expected, actual)
+
     def test_get_dependencies(self):
         # Make sure _get_dependencies() generates a correct tree when parsing
         # an object
