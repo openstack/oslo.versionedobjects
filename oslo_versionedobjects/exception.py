@@ -155,7 +155,8 @@ class OrphanedObjectError(VersionedObjectsException):
 
 
 class IncompatibleObjectVersion(VersionedObjectsException):
-    msg_fmt = _('Version %(objver)s of %(objname)s is not supported')
+    msg_fmt = _('Version %(objver)s of %(objname)s is not supported, '
+                'supported version is %(supported)s')
 
 
 class ReadOnlyFieldError(VersionedObjectsException):
