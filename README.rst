@@ -29,3 +29,4 @@ upgrade compatibility across distributed services.
 * Documentation: https://docs.openstack.org/oslo.versionedobjects/latest
 * Source: http://git.openstack.org/cgit/openstack/oslo.versionedobjects
 * Bugs: http://bugs.launchpad.net/oslo.versionedobjects
+* Release notes: https://docs.openstack.org/releasenotes/oslo.versionedobjects/
