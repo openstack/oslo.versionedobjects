@@ -1,6 +1,6 @@
-=============
- exception
-=============
+=========
+exception
+=========
 
 .. automodule:: oslo_versionedobjects.exception
    :members:
