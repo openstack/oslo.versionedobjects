@@ -4,6 +4,14 @@
       jobs:
         - oslo.versionedobjects-src-grenade-devstack-multinode
 
+    templates:
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - publish-openstack-docs-pti
+      - check-requirements
+      - lib-forward-testing
+      - release-notes-jobs-python3
+      - periodic-stable-jobs
 - job:
     name: oslo.versionedobjects-src-grenade-devstack-multinode
     parent: legacy-dsvm-base-multinode
