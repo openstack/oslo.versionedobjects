@@ -206,8 +206,8 @@ class ObjectVersionChecker(object):
         """Follow a chain of remotable things down to the original function."""
         if isinstance(thing, classmethod):
             return self._find_remotable_method(cls, thing.__get__(None, cls))
-        elif (inspect.ismethod(thing)
-              or inspect.isfunction(thing)) and hasattr(thing, 'remotable'):
+        elif (inspect.ismethod(thing) or
+              inspect.isfunction(thing)) and hasattr(thing, 'remotable'):
             return self._find_remotable_method(cls, thing.original_fn,
                                                parent_was_remotable=True)
         elif parent_was_remotable:
@@ -370,8 +370,8 @@ class ObjectVersionChecker(object):
             for my_version, child_version in versions:
                 _my_version = vutils.convert_version_to_tuple(my_version)
                 _ch_version = vutils.convert_version_to_tuple(child_version)
-                if not (last_my_version < _my_version
-                        and last_child_version <= _ch_version):
+                if not (last_my_version < _my_version and
+                        last_child_version <= _ch_version):
                     raise AssertionError(('Object %s relationship %s->%s for '
                                           'field %s is out of order') % (
                                               obj_class.obj_name(),

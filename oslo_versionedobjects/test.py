@@ -20,8 +20,8 @@ Some black magic for inline callbacks.
 
 """
 
-import eventlet
-eventlet.monkey_patch(os=False)
+import eventlet  # noqa
+eventlet.monkey_patch(os=False)  # noqa
 
 import inspect
 import mock
