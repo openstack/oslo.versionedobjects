@@ -1180,6 +1180,10 @@ class ListOfObjectsField(AutoTypedField):
         super(ListOfObjectsField, self).__init__(**kwargs)
 
 
+class ListOfUUIDField(AutoTypedField):
+    AUTO_TYPE = List(UUID())
+
+
 class IPAddressField(AutoTypedField):
     AUTO_TYPE = IPAddress()
 

@@ -851,6 +851,24 @@ class TestListOfIntegers(TestField):
         self.assertEqual('[[1, 2]]', self.field.stringify([[1, 2]]))
 
 
+class TestListOfUUIDField(TestField):
+    def setUp(self):
+        super(TestListOfUUIDField, self).setUp()
+        self.field = fields.ListOfUUIDField()
+        self.uuid1 = '6b2097ea-d0e3-44dd-b131-95472b3ea8fd'
+        self.uuid2 = '478c193d-2533-4e71-ab2b-c7683f67d7f9'
+        self.coerce_good_values = [([self.uuid1, self.uuid2],
+                                    [self.uuid1, self.uuid2])]
+        # coerce_bad_values is intentionally ignored since the UUID field
+        # allows non-UUID values for now. See TestUUIDField for examples.
+        self.to_primitive_values = [([self.uuid1], [self.uuid1])]
+        self.from_primitive_values = [([self.uuid1], [self.uuid1])]
+
+    def test_stringify(self):
+        self.assertEqual('[%s,%s]' % (self.uuid1, self.uuid2),
+                         self.field.stringify([self.uuid1, self.uuid2]))
+
+
 class TestLocalMethods(test.TestCase):
     @mock.patch.object(obj_base.LOG, 'exception')
     def test__make_class_properties_setter_value_error(self, mock_log):
