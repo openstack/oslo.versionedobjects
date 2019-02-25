@@ -1229,3 +1229,41 @@ class TestIPV6Network(TestField):
         invalid_vals = [x for x in self.coerce_bad_values]
         for invalid_val in invalid_vals:
             self.assertNotRegex(str(invalid_val), pattern)
+
+
+class FakeCounter(six.Iterator):
+    def __init__(self):
+        self.n = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.n <= 4:
+            self.n += 1
+            return self.n
+        else:
+            raise StopIteration
+
+
+class TestListTypes(test.TestCase):
+
+    def test_regular_list(self):
+        fields.List(fields.Integer).coerce(None, None, [1, 2])
+
+    def test_non_iterable(self):
+        self.assertRaises(ValueError,
+                          fields.List(fields.Integer).coerce, None, None, 2)
+
+    def test_string_iterable(self):
+        self.assertRaises(ValueError,
+                          fields.List(fields.Integer).coerce, None, None,
+                          'hello')
+
+    def test_mapping_iterable(self):
+        self.assertRaises(ValueError,
+                          fields.List(fields.Integer).coerce, None, None,
+                          {'a': 1, 'b': 2})
+
+    def test_iter_class(self):
+        fields.List(fields.Integer).coerce(None, None, FakeCounter())

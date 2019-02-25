@@ -13,6 +13,7 @@
 #    under the License.
 
 import abc
+import collections
 import datetime
 from distutils import versionpredicate
 import re
@@ -642,7 +643,9 @@ class CompoundFieldType(FieldType):
 
 class List(CompoundFieldType):
     def coerce(self, obj, attr, value):
-        if not isinstance(value, list):
+
+        if (not isinstance(value, collections.Iterable) or
+           isinstance(value, six.string_types + (collections.Mapping,))):
             raise ValueError(_('A list is required in field %(attr)s, '
                                'not a %(type)s') %
                              {'attr': attr, 'type': type(value).__name__})
