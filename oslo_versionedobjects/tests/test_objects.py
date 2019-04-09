@@ -1080,7 +1080,7 @@ class _TestObject(object):
                          set(TestSubclassedObject.fields.keys()))
 
     def test_obj_as_admin(self):
-        self.skip('oslo.context does not support elevated()')
+        self.skipTest('oslo.context does not support elevated()')
         obj = MyObj(context=self.context)
 
         def fake(*args, **kwargs):
@@ -1740,7 +1740,7 @@ class TestObjectListBase(test.TestCase):
                     list_obj_class.__name__))
 
     def test_object_version_mappings(self):
-        self.skip('this needs to be generalized')
+        self.skipTest('this needs to be generalized')
         # Find all object list classes and make sure that they at least handle
         # all the current object versions
         for obj_classes in base.VersionedObjectRegistry.obj_classes().values():

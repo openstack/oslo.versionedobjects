@@ -13,7 +13,14 @@
 #    under the License.
 
 import abc
-import collections
+# TODO(smcginnis) update this once six has support for collections.abc
+# (https://github.com/benjaminp/six/pull/241) or clean up once we drop py2.7.
+try:
+    from collections.abc import Iterable
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Iterable
+    from collections import Mapping
 import datetime
 from distutils import versionpredicate
 import re
@@ -625,14 +632,14 @@ class IPV6Network(IPNetwork):
             'fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|'
             # ::255.255.255.255 ::ffff:255.255.255.255 ::ffff:0:255.255.255.255
             '::(ffff(:0{1,4}){0,1}:){0,1}'
-            '(' + ipv4seg + '\.){3,3}' +
+            '(' + ipv4seg + r'\.){3,3}' +
             ipv4seg + '|'
             # 2001:db8:3:4::192.0.2.33 64:ff9b::192.0.2.33
             '(' + ipv6seg + ':){1,4}:'
-            '(' + ipv4seg + '\.){3,3}' +
+            '(' + ipv4seg + r'\.){3,3}' +
             ipv4seg +
             # /128
-            '(\/(d|dd|1[0-1]d|12[0-8]))$'
+            r'(\/(d|dd|1[0-1]d|12[0-8]))$'
             )
 
 
@@ -644,8 +651,8 @@ class CompoundFieldType(FieldType):
 class List(CompoundFieldType):
     def coerce(self, obj, attr, value):
 
-        if (not isinstance(value, collections.Iterable) or
-           isinstance(value, six.string_types + (collections.Mapping,))):
+        if (not isinstance(value, Iterable) or
+           isinstance(value, six.string_types + (Mapping,))):
             raise ValueError(_('A list is required in field %(attr)s, '
                                'not a %(type)s') %
                              {'attr': attr, 'type': type(value).__name__})
