@@ -23,7 +23,7 @@
     post-run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/post.yaml
     timeout: 10800
     required-projects:
-      - openstack-dev/grenade
-      - openstack-infra/devstack-gate
+      - openstack/grenade
+      - openstack/devstack-gate
       - openstack/oslo.versionedobjects
     nodeset: legacy-ubuntu-xenial-2-node
