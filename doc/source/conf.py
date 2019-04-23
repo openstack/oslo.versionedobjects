@@ -45,7 +45,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'oslo.versionedobjects'
 copyright = u'2014, OpenStack Foundation'
-source_tree = 'http://git.openstack.org/cgit/openstack/%s/tree' % project
+source_tree = 'https://opendev.org/openstack/%s' % project
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True

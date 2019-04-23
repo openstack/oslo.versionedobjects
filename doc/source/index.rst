@@ -10,7 +10,7 @@ upgrade compatibility across distributed services.
 
 * Free software: Apache license
 * Documentation: https://docs.openstack.org/oslo.versionedobjects/latest/
-* Source: https://git.openstack.org/cgit/openstack/oslo.versionedobjects
+* Source: https://opendev.org/openstack/oslo.versionedobjects
 * Bugs: https://bugs.launchpad.net/oslo.versionedobjects
 
 ----

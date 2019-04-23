@@ -7,9 +7,9 @@ Team and repository tags
 
 .. Change things from this point on
 
-===================================
+=====================
 oslo.versionedobjects
-===================================
+=====================
 
 .. image:: https://img.shields.io/pypi/v/oslo.versionedobjects.svg
     :target: https://pypi.org/project/oslo.versionedobjects/
@@ -27,6 +27,6 @@ upgrade compatibility across distributed services.
 
 * Free software: Apache license
 * Documentation: https://docs.openstack.org/oslo.versionedobjects/latest
-* Source: http://git.openstack.org/cgit/openstack/oslo.versionedobjects
+* Source: http://opendev.org/openstack/oslo.versionedobjects
 * Bugs: http://bugs.launchpad.net/oslo.versionedobjects
 * Release notes: https://docs.openstack.org/releasenotes/oslo.versionedobjects/
