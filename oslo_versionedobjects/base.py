@@ -30,6 +30,11 @@ from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
 
+if six.PY3:
+    from collections import abc as collections_abc
+else:
+    import collections as collections_abc
+
 
 LOG = logging.getLogger('object')
 
@@ -790,7 +795,7 @@ class VersionedObjectDictCompat(object):
             setattr(self, key, value)
 
 
-class ObjectListBase(collections.Sequence):
+class ObjectListBase(collections_abc.Sequence):
     """Mixin class for lists of objects.
 
     This mixin class can be added as a base class for an object that
