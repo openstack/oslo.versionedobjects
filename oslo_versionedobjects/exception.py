@@ -189,3 +189,8 @@ class InvalidTargetVersion(VersionedObjectsException):
 
 class TargetBeforeSubobjectExistedException(VersionedObjectsException):
     msg_fmt = _("No subobject existed at version %(target_version)s")
+
+
+class UnregisteredSubobject(VersionedObjectsException):
+    msg_fmt = _("%(child_objname)s is referenced by %(parent_objname)s but "
+                "is not registered")

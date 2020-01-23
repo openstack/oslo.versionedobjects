@@ -1172,7 +1172,11 @@ def obj_tree_get_versions(objname, tree=None):
         else:
             continue
 
-        obj_tree_get_versions(child_cls, tree=tree)
+        try:
+            obj_tree_get_versions(child_cls, tree=tree)
+        except IndexError:
+            raise exception.UnregisteredSubobject(
+                child_objname=child_cls, parent_objname=objname)
     return tree
 
 
