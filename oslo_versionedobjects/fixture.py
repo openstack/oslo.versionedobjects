@@ -20,6 +20,7 @@
 
 """
 
+from collections import namedtuple
 from collections import OrderedDict
 import copy
 import datetime
@@ -196,6 +197,31 @@ class ObjectHashMismatch(Exception):
             ','.join(set(self.expected.keys() + self.actual.keys())))
 
 
+CompatArgSpec = namedtuple(
+    'ArgSpec', ('args', 'varargs', 'keywords', 'defaults'))
+
+
+def get_method_spec(method):
+    """Get a stable and compatible method spec.
+
+    Newer features in Python3 (kw-only arguments and annotations) are
+    not supported or representable with inspect.getargspec() but many
+    object hashes are already recorded using that method. This attempts
+    to return something compatible with getargspec() when possible (i.e.
+    when those features are not used), and otherwise just returns the
+    newer getfullargspec() representation.
+    """
+    fullspec = inspect.getfullargspec(method)
+    if any([fullspec.kwonlyargs, fullspec.kwonlydefaults,
+            fullspec.annotations]):
+        # Method uses newer-than-getargspec() features, so return the
+        # newer full spec
+        return fullspec
+    else:
+        return CompatArgSpec(fullspec.args, fullspec.varargs,
+                             fullspec.varkw, fullspec.defaults)
+
+
 class ObjectVersionChecker(object):
     def __init__(self, obj_classes=base.VersionedObjectRegistry.obj_classes()):
         self.obj_classes = obj_classes
@@ -227,7 +253,7 @@ class ObjectVersionChecker(object):
                or isinstance(thing, classmethod):
                 method = self._find_remotable_method(obj_class, thing)
                 if method:
-                    methods.append((name, inspect.getargspec(method)))
+                    methods.append((name, get_method_spec(method)))
         methods.sort()
         # NOTE(danms): Things that need a version bump are any fields
         # and their types, or the signatures of any remotable methods.

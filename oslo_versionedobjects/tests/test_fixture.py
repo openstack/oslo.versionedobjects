@@ -16,6 +16,7 @@ import collections
 import copy
 import datetime
 import hashlib
+import inspect
 
 import iso8601
 import mock
@@ -529,7 +530,7 @@ class TestObjectVersionChecker(test.TestCase):
         MyObject.VERSION = '1.1'
         argspec = 'vulpix'
 
-        with mock.patch('inspect.getargspec') as mock_gas:
+        with mock.patch.object(fixture, 'get_method_spec') as mock_gas:
             mock_gas.return_value = argspec
             fp = self.ovc._get_fingerprint(MyObject.__name__)
 
@@ -552,7 +553,7 @@ class TestObjectVersionChecker(test.TestCase):
         MyObject.child_versions = child_versions
         argspec = 'onix'
 
-        with mock.patch('inspect.getargspec') as mock_gas:
+        with mock.patch.object(fixture, 'get_method_spec') as mock_gas:
             mock_gas.return_value = argspec
             fp = self.ovc._get_fingerprint(MyObject.__name__)
 
@@ -736,3 +737,29 @@ class TestStableObjectJsonFixture(test.TestCase):
             self.assertEqual(
                 ['a', 'z'],
                 obj.obj_to_primitive()['versioned_object.changes'])
+
+
+class TestMethodSpec(test.TestCase):
+    def setUp(self):
+        super(TestMethodSpec, self).setUp()
+
+        def test_method1(a, b, kw1=123, **kwargs):
+            pass
+
+        def test_method2(a, b, *args):
+            pass
+
+        def test_method3(a, b, *args, kw1=123, **kwargs):
+            pass
+
+        self._test_method1 = test_method1
+        self._test_method2 = test_method2
+        self._test_method3 = test_method3
+
+    def test_method_spec_compat(self):
+        self.assertEqual(inspect.getargspec(self._test_method1),
+                         fixture.get_method_spec(self._test_method1))
+        self.assertEqual(inspect.getargspec(self._test_method2),
+                         fixture.get_method_spec(self._test_method2))
+        self.assertEqual(inspect.getfullargspec(self._test_method3),
+                         fixture.get_method_spec(self._test_method3))
