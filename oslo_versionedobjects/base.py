@@ -16,24 +16,19 @@
 
 import abc
 import collections
+from collections import abc as collections_abc
 import copy
+import functools
 import logging
 import warnings
 
 import oslo_messaging as messaging
-from oslo_utils import encodeutils
 from oslo_utils import excutils
 from oslo_utils import versionutils as vutils
-import six
 
 from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
-
-if six.PY3:
-    from collections import abc as collections_abc
-else:
-    import collections as collections_abc
 
 
 LOG = logging.getLogger('object')
@@ -172,7 +167,7 @@ class VersionedObjectRegistry(object):
 # requested action and the result will be returned here.
 def remotable_classmethod(fn):
     """Decorator for remotable classmethods."""
-    @six.wraps(fn)
+    @functools.wraps(fn)
     def wrapper(cls, context, *args, **kwargs):
         if cls.indirection_api:
             version_manifest = obj_tree_get_versions(cls.obj_name())
@@ -204,7 +199,7 @@ def remotable_classmethod(fn):
 # "orphaned" and remotable methods cannot be called.
 def remotable(fn):
     """Decorator for remotable object methods."""
-    @six.wraps(fn)
+    @functools.wraps(fn)
     def wrapper(self, *args, **kwargs):
         ctxt = self._context
         if ctxt is None:
@@ -319,8 +314,6 @@ class VersionedObject(object):
                                   field.stringify(getattr(self, name)) or
                                   '<?>'))
                       for name, field in sorted(self.fields.items())]))
-        if six.PY2:
-            repr_str = encodeutils.safe_encode(repr_str, incoming='utf-8')
         return repr_str
 
     def __contains__(self, name):
@@ -748,32 +741,15 @@ class VersionedObjectDictCompat(object):
                     name in self.obj_extra_fields):
                 yield name
 
-    iterkeys = __iter__
+    keys = __iter__
 
-    def itervalues(self):
+    def values(self):
         for name in self:
             yield getattr(self, name)
 
-    def iteritems(self):
+    def items(self):
         for name in self:
             yield name, getattr(self, name)
-
-    if six.PY3:
-        # NOTE(haypo): Python 3 dictionaries don't have iterkeys(),
-        # itervalues() or iteritems() methods. These methods are provided to
-        # ease the transition from Python 2 to Python 3.
-        keys = iterkeys
-        values = itervalues
-        items = iteritems
-    else:
-        def keys(self):
-            return list(self.iterkeys())
-
-        def values(self):
-            return list(self.itervalues())
-
-        def items(self):
-            return list(self.iteritems())
 
     def __getitem__(self, name):
         return getattr(self, name)
@@ -983,8 +959,7 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
         return entity
 
 
-@six.add_metaclass(abc.ABCMeta)
-class VersionedObjectIndirectionAPI(object):
+class VersionedObjectIndirectionAPI(object, metaclass=abc.ABCMeta):
     def object_action(self, context, objinst, objmethod, args, kwargs):
         """Perform an action on a VersionedObject instance.
 

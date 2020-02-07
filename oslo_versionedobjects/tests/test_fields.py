@@ -19,7 +19,6 @@ import warnings
 import iso8601
 import mock
 import netaddr
-import six
 import testtools
 
 from oslo_versionedobjects import _utils
@@ -159,8 +158,6 @@ class TestString(TestField):
         self.field = fields.StringField()
         self.coerce_good_values = [
             ('foo', 'foo'), (1, '1'), (1.0, '1.0'), (True, 'True')]
-        if six.PY2:
-            self.coerce_good_values += [(long(1), '1')]  # noqa
         self.coerce_bad_values = [None]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
@@ -1061,7 +1058,7 @@ class TestObject(TestField):
         ex = self.assertRaises(ValueError, self.field.coerce,
                                'obj', 'attr', [{}])
         self.assertEqual('An object of type TestableObject is required '
-                         'in field attr, not a list', six.text_type(ex))
+                         'in field attr, not a list', str(ex))
 
     def test_get_schema(self):
         self.assertEqual(
@@ -1231,7 +1228,7 @@ class TestIPV6Network(TestField):
             self.assertNotRegex(str(invalid_val), pattern)
 
 
-class FakeCounter(six.Iterator):
+class FakeCounter(object):
     def __init__(self):
         self.n = 0
 

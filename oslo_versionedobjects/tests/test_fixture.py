@@ -19,7 +19,6 @@ import hashlib
 
 import iso8601
 import mock
-import six
 
 from oslo_versionedobjects import base
 from oslo_versionedobjects import exception
@@ -538,7 +537,7 @@ class TestObjectVersionChecker(test.TestCase):
         exp_methods = sorted([('remotable_method', argspec),
                               ('remotable_classmethod', argspec)])
         expected_relevant_data = (exp_fields, exp_methods)
-        expected_hash = hashlib.md5(six.binary_type(repr(
+        expected_hash = hashlib.md5(bytes(repr(
             expected_relevant_data).encode())).hexdigest()
         expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
 
@@ -564,7 +563,7 @@ class TestObjectVersionChecker(test.TestCase):
             child_versions.items()))
         exp_relevant_data = (exp_fields, exp_methods, exp_child_versions)
 
-        expected_hash = hashlib.md5(six.binary_type(repr(
+        expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()
         expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
 
@@ -594,7 +593,7 @@ class TestObjectVersionChecker(test.TestCase):
         exp_extra_data = ExtraDataObj
         exp_relevant_data = (exp_fields, exp_methods, exp_extra_data)
 
-        expected_hash = hashlib.md5(six.binary_type(repr(
+        expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()
         expected_fp = '%s-%s' % (ExtraDataObj.VERSION, expected_hash)
 

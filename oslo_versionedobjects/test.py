@@ -23,6 +23,7 @@ Some black magic for inline callbacks.
 import eventlet  # noqa
 eventlet.monkey_patch(os=False)  # noqa
 
+import functools
 import inspect
 import mock
 import os
@@ -32,7 +33,6 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error
-import six
 import testtools
 
 from oslo_versionedobjects.tests import obj_fixtures
@@ -54,7 +54,7 @@ class skipIf(object):
         condition = self.condition
         reason = self.reason
         if inspect.isfunction(func_or_cls):
-            @six.wraps(func_or_cls)
+            @functools.wraps(func_or_cls)
             def wrapped(*args, **kwargs):
                 if condition:
                     raise testtools.TestCase.skipException(reason)
@@ -64,7 +64,7 @@ class skipIf(object):
         elif inspect.isclass(func_or_cls):
             orig_func = getattr(func_or_cls, 'setUp')
 
-            @six.wraps(orig_func)
+            @functools.wraps(orig_func)
             def new_func(self, *args, **kwargs):
                 if condition:
                     raise testtools.TestCase.skipException(reason)

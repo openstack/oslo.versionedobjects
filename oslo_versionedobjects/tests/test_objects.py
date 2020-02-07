@@ -17,7 +17,6 @@ import datetime
 import jsonschema
 import logging
 import pytz
-import six
 
 import mock
 from oslo_context import context
@@ -858,15 +857,9 @@ class _TestObject(object):
                          ['bar', 'foo'])
         self.assertEqual(sorted(obj.keys()),
                          ['bar', 'foo'])
-        self.assertEqual(sorted(obj.iterkeys()),
-                         ['bar', 'foo'])
         self.assertEqual(sorted(obj.values(), key=str),
                          [123, u'text'])
-        self.assertEqual(sorted(obj.itervalues(), key=str),
-                         [123, u'text'])
         self.assertEqual(sorted(obj.items()),
-                         [('bar', u'text'), ('foo', 123)])
-        self.assertEqual(sorted(list(obj.iteritems())),
                          [('bar', u'text'), ('foo', 123)])
         self.assertEqual(dict(obj),
                          {'foo': 123, 'bar': u'text'})
@@ -1204,16 +1197,10 @@ class _TestObject(object):
     def test_obj_repr_unicode(self):
         obj = MyObj(bar=u'\u0191\u01A1\u01A1')
         # verify the unicode string has been encoded as ASCII if on python 2
-        if six.PY2:
-            self.assertEqual("MyObj(bar='\xc6\x91\xc6\xa1\xc6\xa1',foo=<?>,"
-                             "missing=<?>,mutable_default=<?>,readonly=<?>,"
-                             "rel_object=<?>,rel_objects=<?>,timestamp=<?>)",
-                             repr(obj))
-        else:
-            self.assertEqual("MyObj(bar='\u0191\u01A1\u01A1',foo=<?>,"
-                             "missing=<?>,mutable_default=<?>,readonly=<?>,"
-                             "rel_object=<?>,rel_objects=<?>,timestamp=<?>)",
-                             repr(obj))
+        self.assertEqual("MyObj(bar='\u0191\u01A1\u01A1',foo=<?>,"
+                         "missing=<?>,mutable_default=<?>,readonly=<?>,"
+                         "rel_object=<?>,rel_objects=<?>,timestamp=<?>)",
+                         repr(obj))
 
     def test_obj_make_obj_compatible_with_relationships(self):
         subobj = MyOwnedObject(baz=1)
@@ -1996,11 +1983,11 @@ class TestObjectSerializer(_BaseTestCase):
         thing = {'key': obj}
         primitive = ser.serialize_entity(self.context, thing)
         self.assertEqual(1, len(primitive))
-        for item in six.itervalues(primitive):
+        for item in primitive.values():
             self.assertNotIsInstance(item, base.VersionedObject)
         thing2 = ser.deserialize_entity(self.context, primitive)
         self.assertEqual(1, len(thing2))
-        for item in six.itervalues(thing2):
+        for item in thing2.values():
             self.assertIsInstance(item, MyObj)
 
         # object-action updates dict case

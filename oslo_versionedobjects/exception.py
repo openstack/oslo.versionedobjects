@@ -22,13 +22,12 @@ SHOULD include dedicated exception logging.
 
 """
 
+import functools
 import inspect
 import logging
-import sys
 
 from oslo_config import cfg
 from oslo_utils import excutils
-import six
 import webob.exc
 
 from oslo_versionedobjects._i18n import _
@@ -81,7 +80,7 @@ def wrap_exception(notifier=None, get_notifier=None):
                         payload.update({'args': cleansed})
 
                         # If f has multiple decorators, they must use
-                        # six.wraps to ensure the name is
+                        # functools.wraps to ensure the name is
                         # propagated.
                         event_type = f.__name__
 
@@ -89,7 +88,7 @@ def wrap_exception(notifier=None, get_notifier=None):
                                                            event_type,
                                                            payload)
 
-        return six.wraps(f)(wrapped)
+        return functools.wraps(f)(wrapped)
     return inner
 
 
@@ -118,9 +117,7 @@ class VersionedObjectsException(Exception):
         if not message:
             try:
                 message = self.msg_fmt % kwargs
-
             except Exception:
-                exc_info = sys.exc_info()
                 # kwargs doesn't match a variable in the message
                 # log the issue and the kwargs
                 LOG.exception('Exception in string format operation')
@@ -128,7 +125,7 @@ class VersionedObjectsException(Exception):
                     LOG.error("%s: %s" % (name, value))    # noqa
 
                 if CONF.oslo_versionedobjects.fatal_exception_format_errors:
-                    raise six.reraise(*exc_info)
+                    raise
                 else:
                     # at least get the core message out if something happened
                     message = self.msg_fmt

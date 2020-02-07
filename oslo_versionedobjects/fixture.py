@@ -28,7 +28,6 @@ import inspect
 import logging
 import mock
 from oslo_utils import versionutils as vutils
-import six
 
 import fixtures
 from oslo_versionedobjects import base
@@ -131,7 +130,7 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         objinst = self._ser.deserialize_entity(
             context, self._ser.serialize_entity(
                 context, objinst))
-        objmethod = six.text_type(objmethod)
+        objmethod = str(objmethod)
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         original = objinst.obj_clone()
         with mock.patch('oslo_versionedobjects.base.VersionedObject.'
@@ -143,9 +142,9 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
 
     def object_class_action(self, context, objname, objmethod, objver,
                             args, kwargs):
-        objname = six.text_type(objname)
-        objmethod = six.text_type(objmethod)
-        objver = six.text_type(objver)
+        objname = str(objname)
+        objmethod = str(objmethod)
+        objver = str(objver)
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         cls = base.VersionedObject.obj_class_from_name(objname, objver)
         with mock.patch('oslo_versionedobjects.base.VersionedObject.'
@@ -158,10 +157,9 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
 
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
-        objname = six.text_type(objname)
-        objmethod = six.text_type(objmethod)
-        object_versions = {six.text_type(o): six.text_type(v)
-                           for o, v in object_versions.items()}
+        objname = str(objname)
+        objmethod = str(objmethod)
+        object_versions = {str(o): str(v) for o, v in object_versions.items()}
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         objver = object_versions[objname]
         cls = base.VersionedObject.obj_class_from_name(objname, objver)
@@ -247,7 +245,7 @@ class ObjectVersionChecker(object):
             relevant_data += extra_data_func(obj_class)
 
         fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
-            six.binary_type(repr(relevant_data).encode())).hexdigest())
+            bytes(repr(relevant_data).encode())).hexdigest())
         return fingerprint
 
     def get_hashes(self, extra_data_func=None):

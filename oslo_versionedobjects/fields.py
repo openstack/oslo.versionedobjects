@@ -13,14 +13,7 @@
 #    under the License.
 
 import abc
-# TODO(smcginnis) update this once six has support for collections.abc
-# (https://github.com/benjaminp/six/pull/241) or clean up once we drop py2.7.
-try:
-    from collections.abc import Iterable
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Iterable
-    from collections import Mapping
+from collections import abc as collections_abc
 import datetime
 from distutils import versionpredicate
 import re
@@ -32,7 +25,6 @@ import iso8601
 import netaddr
 from oslo_utils import strutils
 from oslo_utils import timeutils
-import six
 
 from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import _utils
@@ -61,8 +53,7 @@ class ElementTypeError(TypeError):
                    })
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AbstractFieldType(object):
+class AbstractFieldType(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def coerce(self, obj, attr, value):
         """This is called to coerce (if possible) a value on assignment.
@@ -153,9 +144,13 @@ class Field(object):
 
     def __repr__(self):
         if isinstance(self._default, set):
+            # TODO(stephenfin): Drop this when we switch from
+            # 'inspect.getargspec' to 'inspect.getfullargspec', since our
+            # hashes will have to change anyway
             # make a py27 and py35 compatible representation. See bug 1771804
-            default = 'set([%s])' % ','.join(sorted([six.text_type(v)
-                                                     for v in self._default]))
+            default = 'set([%s])' % ','.join(
+                sorted([str(v) for v in self._default])
+            )
         else:
             default = str(self._default)
         return '%s(default=%s,nullable=%s)' % (self._type.__class__.__name__,
@@ -269,14 +264,13 @@ class String(FieldType):
     @staticmethod
     def coerce(obj, attr, value):
         # FIXME(danms): We should really try to avoid the need to do this
-        accepted_types = six.integer_types + (float, six.string_types,
-                                              datetime.datetime)
+        accepted_types = (int, float, str, datetime.datetime)
         if isinstance(value, accepted_types):
-            return six.text_type(value)
-        else:
-            raise ValueError(_('A string is required in field %(attr)s, '
-                               'not a %(type)s') %
-                             {'attr': attr, 'type': type(value).__name__})
+            return str(value)
+
+        raise ValueError(_('A string is required in field %(attr)s, '
+                           'not a %(type)s') %
+                         {'attr': attr, 'type': type(value).__name__})
 
     @staticmethod
     def stringify(value):
@@ -391,7 +385,7 @@ class MACAddress(StringPattern):
 
     @staticmethod
     def coerce(obj, attr, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             lowered = value.lower().replace('-', ':')
             if MACAddress._REGEX.match(lowered):
                 return lowered
@@ -405,7 +399,7 @@ class PCIAddress(StringPattern):
 
     @staticmethod
     def coerce(obj, attr, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             newvalue = value.lower()
             if PCIAddress._REGEX.match(newvalue):
                 return newvalue
@@ -474,7 +468,7 @@ class DateTime(FieldType):
         super(DateTime, self).__init__(*args, **kwargs)
 
     def coerce(self, obj, attr, value):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             # NOTE(danms): Being tolerant of isotime strings here will help us
             # during our objects transition
             value = timeutils.parse_isotime(value)
@@ -513,7 +507,7 @@ class IPAddress(StringPattern):
         try:
             return netaddr.IPAddress(value)
         except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
+            raise ValueError(str(e))
 
     def from_primitive(self, obj, attr, value):
         return self.coerce(obj, attr, value)
@@ -572,7 +566,7 @@ class IPNetwork(IPAddress):
         try:
             return netaddr.IPNetwork(value)
         except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
+            raise ValueError(str(e))
 
 
 class IPV4Network(IPNetwork):
@@ -586,7 +580,7 @@ class IPV4Network(IPNetwork):
         try:
             return netaddr.IPNetwork(value, version=4)
         except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
+            raise ValueError(str(e))
 
 
 class IPV6Network(IPNetwork):
@@ -600,7 +594,7 @@ class IPV6Network(IPNetwork):
         try:
             return netaddr.IPNetwork(value, version=6)
         except netaddr.AddrFormatError as e:
-            raise ValueError(six.text_type(e))
+            raise ValueError(str(e))
 
     def _create_pattern(self):
         ipv6seg = '[0-9a-fA-F]{1,4}'
@@ -651,8 +645,8 @@ class CompoundFieldType(FieldType):
 class List(CompoundFieldType):
     def coerce(self, obj, attr, value):
 
-        if (not isinstance(value, Iterable) or
-           isinstance(value, six.string_types + (Mapping,))):
+        if (not isinstance(value, collections_abc.Iterable) or
+                isinstance(value, (str, collections_abc.Mapping))):
             raise ValueError(_('A list is required in field %(attr)s, '
                                'not a %(type)s') %
                              {'attr': attr, 'type': type(value).__name__})
@@ -719,7 +713,7 @@ class DictProxyField(object):
     This will take care of the conversion while the dict field will make sure
     that we store the raw json-serializable data on the object.
 
-    key_type should return a type that unambiguously responds to six.text_type
+    key_type should return a type that unambiguously responds to str
     so that calling key_type on it yields the same thing.
     """
     def __init__(self, dict_field_name, key_type=int):
@@ -738,8 +732,7 @@ class DictProxyField(object):
         if val is None:
             setattr(obj, self._fld_name, val)
         else:
-            setattr(obj, self._fld_name,
-                    {six.text_type(k): v for k, v in val.items()})
+            setattr(obj, self._fld_name, {str(k): v for k, v in val.items()})
 
 
 class Set(CompoundFieldType):
@@ -1296,12 +1289,8 @@ class CoercedDict(CoercedCollectionMixin, dict):
         return res
 
     def _coerce_item(self, key, item):
-        if not isinstance(key, six.string_types):
-            # NOTE(guohliu) In order to keep compatibility with python3
-            # we need to use six.string_types rather than basestring here,
-            # since six.string_types is a tuple, so we need to pass the
-            # real type in.
-            raise KeyTypeError(six.string_types[0], key)
+        if not isinstance(key, str):
+            raise KeyTypeError(str, key)
         if hasattr(self, "_element_type") and self._element_type is not None:
             att_name = "%s[%s]" % (self._field, key)
             return self._element_type.coerce(self._obj, att_name, item)
