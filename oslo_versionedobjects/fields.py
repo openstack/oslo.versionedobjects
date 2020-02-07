@@ -1255,8 +1255,7 @@ class CoercedList(CoercedCollectionMixin, list):
         super(CoercedList, self).append(self._coerce_item(len(self) + 1, x))
 
     def extend(self, t):
-        l = len(self)
-        coerced_items = [self._coerce_item(l + index, item)
+        coerced_items = [self._coerce_item(len(self) + index, item)
                          for index, item in enumerate(t)]
         super(CoercedList, self).extend(coerced_items)
 
@@ -1264,8 +1263,7 @@ class CoercedList(CoercedCollectionMixin, list):
         super(CoercedList, self).insert(i, self._coerce_item(i, x))
 
     def __iadd__(self, y):
-        l = len(self)
-        coerced_items = [self._coerce_item(l + index, item)
+        coerced_items = [self._coerce_item(len(self) + index, item)
                          for index, item in enumerate(y)]
         return super(CoercedList, self).__iadd__(coerced_items)
 

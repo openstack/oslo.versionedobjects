@@ -40,6 +40,7 @@ class IOTLightbulb(base.VersionedObject):
         'manufactured_on': obj_fields.DateTimeField(),
     }
 
+
 # Now do some basic operations on a light bulb.
 bulb = IOTLightbulb(serial='abc-123', manufactured_on=datetime.now())
 print("The __str__() output of this new object: %s" % bulb)
