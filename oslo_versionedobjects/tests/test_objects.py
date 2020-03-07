@@ -2341,6 +2341,22 @@ class TestUtilityMethods(test.TestCase):
                           'TestChildTwo': '4.56'},
                          tree)
 
+    def test_missing_referenced(self):
+        """Ensure a missing child object is highlighted."""
+        @base.VersionedObjectRegistry.register
+        class TestObjectFoo(base.VersionedObject):
+            VERSION = '1.23'
+            fields = {
+                # note that this object does not exist
+                'child': fields.ObjectField('TestChildBar'),
+            }
+
+        exc = self.assertRaises(exception.UnregisteredSubobject,
+                                base.obj_tree_get_versions,
+                                'TestObjectFoo')
+        self.assertIn('TestChildBar is referenced by TestObjectFoo',
+                      exc.format_message())
+
 
 class TestListObjectConcat(test.TestCase):
     def test_list_object_concat(self):
