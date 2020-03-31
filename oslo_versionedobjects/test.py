@@ -25,8 +25,8 @@ eventlet.monkey_patch(os=False)  # noqa
 
 import functools
 import inspect
-import mock
 import os
+from unittest import mock
 
 import fixtures
 from oslo_concurrency import lockutils

@@ -17,8 +17,8 @@ import datetime
 import jsonschema
 import logging
 import pytz
+from unittest import mock
 
-import mock
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils

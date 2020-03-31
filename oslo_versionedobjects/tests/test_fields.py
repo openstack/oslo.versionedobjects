@@ -14,10 +14,10 @@
 #    under the License.
 
 import datetime
+from unittest import mock
 import warnings
 
 import iso8601
-import mock
 import netaddr
 import testtools
 

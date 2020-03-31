@@ -27,10 +27,11 @@ import datetime
 import hashlib
 import inspect
 import logging
-import mock
-from oslo_utils import versionutils as vutils
+from unittest import mock
 
 import fixtures
+from oslo_utils import versionutils as vutils
+
 from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 

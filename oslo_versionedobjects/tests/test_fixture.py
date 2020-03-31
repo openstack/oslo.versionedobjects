@@ -17,9 +17,9 @@ import copy
 import datetime
 import hashlib
 import inspect
+from unittest import mock
 
 import iso8601
-import mock
 
 from oslo_versionedobjects import base
 from oslo_versionedobjects import exception
