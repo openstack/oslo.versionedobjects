@@ -15,6 +15,9 @@ upgrade compatibility across distributed services.
 
 ----
 
+Contents
+========
+
 .. toctree::
    :maxdepth: 2
 
@@ -24,7 +27,14 @@ upgrade compatibility across distributed services.
    reference/index
    contributor/index
 
-.. rubric:: Indices and tables
+Release Notes
+=============
+
+Read also the `oslo.versionedobjects Release Notes
+<https://docs.openstack.org/releasenotes/oslo.versionedobjects/>`_.
+
+Indices and tables
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
