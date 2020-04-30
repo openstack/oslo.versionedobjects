@@ -292,11 +292,12 @@ class TestUUID(TestField):
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
 
-    def test_validation_enabled(self):
-
-        self.test_coerce_good_values()
-        self.test_from_primitive()
-        self.test_to_primitive()
+    @mock.patch('warnings.warn')
+    def test_coerce_good_values(self, mock_warn):
+        super().test_coerce_good_values()
+        mock_warn.assert_has_calls(
+            [mock.call(mock.ANY, FutureWarning)] * 8,
+        )
 
     def test_validation_warning_can_be_escalated_to_exception(self):
         warnings.filterwarnings(action='error')
