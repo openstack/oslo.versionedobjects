@@ -28,9 +28,9 @@ extensions = [
 ]
 
 # openstackdocstheme options
-repository_name = 'openstack/oslo.versionedobjects'
-bug_project = 'oslo.versionedobjects'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/oslo.versionedobjects'
+openstackdocs_bug_project = 'oslo.versionedobjects'
+openstackdocs_bug_tag = ''
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -61,7 +61,7 @@ extlinks = {
 }
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # -- Options for HTML output --------------------------------------------------
 
@@ -72,7 +72,6 @@ pygments_style = 'sphinx'
 # html_static_path = ['static']
 html_theme = 'openstackdocs'
 
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
