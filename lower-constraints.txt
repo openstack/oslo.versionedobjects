@@ -16,7 +16,7 @@ GitPython==1.0.1
 greenlet==0.4.10
 iso8601==0.1.11
 Jinja2==2.10
-jsonschema==2.6.0
+jsonschema==3.2.0
 keystoneauth1==3.4.0
 kombu==4.0.0
 linecache2==1.0.0
