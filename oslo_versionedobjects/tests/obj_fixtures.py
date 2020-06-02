@@ -15,7 +15,6 @@
 #    under the License.
 
 """Fixtures for VersionedObject tests."""
-from __future__ import absolute_import
 
 import gettext
 import logging
