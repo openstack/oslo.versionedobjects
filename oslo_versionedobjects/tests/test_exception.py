@@ -40,7 +40,7 @@ class ExceptionTestCase(test.TestCase):
         notifier.reset_mock()
 
         # wrap_exception() must reraise the exception
-        self.assertRaises(ValueError,
+        self.assertRaises(ValueError,  # nosec
                           test.raise_exc, context, exc, admin_password="xxx")
 
         # wrap_exception() strips admin_password from args
