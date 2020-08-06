@@ -1,7 +1,7 @@
 - project:
     check:
       jobs:
-        - oslo.versionedobjects-src-grenade-devstack-multinode
+        - oslo.versionedobjects-src-grenade-multinode
     templates:
       - check-requirements
       - lib-forward-testing-python3
@@ -12,17 +12,11 @@
       - release-notes-jobs-python3
 
 - job:
-    name: oslo.versionedobjects-src-grenade-devstack-multinode
-    parent: legacy-dsvm-base-multinode
+    name: oslo.versionedobjects-src-grenade-multinode
+    parent: grenade-multinode
     voting: false
     irrelevant-files:
       - ^(test-|)requirements.txt$
       - ^setup.cfg$
-    run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/run.yaml
-    post-run: playbooks/legacy/oslo.versionedobjects-src-grenade-devstack-multinode/post.yaml
-    timeout: 10800
     required-projects:
-      - openstack/grenade
-      - openstack/devstack-gate
-      - openstack/oslo.versionedobjects
-    nodeset: legacy-ubuntu-xenial-2-node
+      - opendev.org/openstack/oslo.versionedobjects
