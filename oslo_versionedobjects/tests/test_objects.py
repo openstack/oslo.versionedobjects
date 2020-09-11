@@ -1923,7 +1923,7 @@ class TestObjectSerializer(_BaseTestCase):
             }
 
         @base.VersionedObjectRegistry.register  # noqa
-        class Parent(base.VersionedObject):
+        class Parent(base.VersionedObject):  # noqa
             VERSION = '1.1'
 
             fields = {
