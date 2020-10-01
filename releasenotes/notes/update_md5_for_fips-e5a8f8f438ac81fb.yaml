@@ -1,0 +1,4 @@
+---
+features:
+  - Updated _get_fingerprint to use new oslo.utils encapsulation of md5 to
+    allow md5 hashes to be returned on a FIPS enabled system.
