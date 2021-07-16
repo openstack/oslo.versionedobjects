@@ -584,7 +584,7 @@ class TestObjectVersionChecker(test.TestCase):
         argspec = 'cubone'
         self._add_class(self.obj_classes, ExtraDataObj)
 
-        with mock.patch('inspect.getargspec') as mock_gas:
+        with mock.patch.object(fixture, 'get_method_spec') as mock_gas:
             mock_gas.return_value = argspec
             fp = self.ovc._get_fingerprint(ExtraDataObj.__name__,
                                            extra_data_func=get_data)
