@@ -178,8 +178,8 @@ class TestCase(testtools.TestCase):
                          baseclass)
 
         for name in sorted(implmethods.keys()):
-            baseargs = inspect.getargspec(basemethods[name])
-            implargs = inspect.getargspec(implmethods[name])
+            baseargs = inspect.getfullargspec(basemethods[name])
+            implargs = inspect.getfullargspec(implmethods[name])
 
             self.assertEqual(baseargs, implargs,
                              "%s args don't match base class %s" %
