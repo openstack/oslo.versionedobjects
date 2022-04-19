@@ -58,8 +58,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'oslo.versionedobjects Release Notes'
-copyright = u'2016, oslo.versionedobjects Developers'
+project = 'oslo.versionedobjects Release Notes'
+copyright = '2016, oslo.versionedobjects Developers'
 
 # Release notes do not need a version in the title, they span
 # multiple versions.
@@ -206,8 +206,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'oslo.versionedobjectsReleaseNotes.tex',
-     u'oslo.versionedobjects Release Notes Documentation',
-     u'oslo.versionedobjects Developers', 'manual'),
+     'oslo.versionedobjects Release Notes Documentation',
+     'oslo.versionedobjects Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -237,8 +237,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'oslo.versionedobjectsReleaseNotes',
-     u'oslo.versionedobjects Release Notes Documentation',
-     [u'oslo.versionedobjects Developers'], 1)
+     'oslo.versionedobjects Release Notes Documentation',
+     ['oslo.versionedobjects Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -252,8 +252,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'oslo.versionedobjectsReleaseNotes',
-     u'oslo.versionedobjects Release Notes Documentation',
-     u'oslo.versionedobjects Developers', 'oslo.versionedobjectsReleaseNotes',
+     'oslo.versionedobjects Release Notes Documentation',
+     'oslo.versionedobjects Developers', 'oslo.versionedobjectsReleaseNotes',
      'One line description of project.',
      'Miscellaneous'),
 ]

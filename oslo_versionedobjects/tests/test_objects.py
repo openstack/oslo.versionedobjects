@@ -849,7 +849,7 @@ class _TestObject(object):
         self.assertRaises(ValueError, fail)
 
     def test_object_dict_syntax(self):
-        obj = MyObj(foo=123, bar=u'text')
+        obj = MyObj(foo=123, bar='text')
         self.assertEqual(obj['foo'], 123)
         self.assertIn('bar', obj)
         self.assertNotIn('missing', obj)
@@ -858,11 +858,11 @@ class _TestObject(object):
         self.assertEqual(sorted(obj.keys()),
                          ['bar', 'foo'])
         self.assertEqual(sorted(obj.values(), key=str),
-                         [123, u'text'])
+                         [123, 'text'])
         self.assertEqual(sorted(obj.items()),
-                         [('bar', u'text'), ('foo', 123)])
+                         [('bar', 'text'), ('foo', 123)])
         self.assertEqual(dict(obj),
-                         {'foo': 123, 'bar': u'text'})
+                         {'foo': 123, 'bar': 'text'})
 
     def test_non_dict_remotable(self):
         @base.VersionedObjectRegistry.register
@@ -1195,7 +1195,7 @@ class _TestObject(object):
         self.assertEqual('MySensitiveObj(data=<?>)', repr(obj2))
 
     def test_obj_repr_unicode(self):
-        obj = MyObj(bar=u'\u0191\u01A1\u01A1')
+        obj = MyObj(bar='\u0191\u01A1\u01A1')
         # verify the unicode string has been encoded as ASCII if on python 2
         self.assertEqual("MyObj(bar='\u0191\u01A1\u01A1',foo=<?>,"
                          "missing=<?>,mutable_default=<?>,readonly=<?>,"
