@@ -1,15 +1,16 @@
 # Andi Chandler <andi@gowling.com>, 2017. #zanata
 # Andi Chandler <andi@gowling.com>, 2018. #zanata
 # Andi Chandler <andi@gowling.com>, 2020. #zanata
+# Andi Chandler <andi@gowling.com>, 2022. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: oslo.versionedobjects\n"
+"Project-Id-Version: oslo.versionedobjects Release Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-05-21 17:26+0000\n"
+"POT-Creation-Date: 2022-05-11 16:10+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2020-05-04 09:27+0000\n"
+"PO-Revision-Date: 2022-06-13 07:39+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -22,11 +23,17 @@ msgstr "1.19.0"
 msgid "2.0.0"
 msgstr "2.0.0"
 
+msgid "2.4.0"
+msgstr "2.4.0"
+
 msgid "Current Series Release Notes"
 msgstr "Current Series Release Notes"
 
 msgid "Introduce reno for deployer release notes."
 msgstr "Introduce Reno for deployer release notes."
+
+msgid "New Features"
+msgstr "New Features"
 
 msgid "Ocata Series Release Notes"
 msgstr "Ocata Series Release Notes"
@@ -56,11 +63,30 @@ msgstr ""
 msgid "Train Series Release Notes"
 msgstr "Train Series Release Notes"
 
+msgid ""
+"Updated _get_fingerprint to use new oslo.utils encapsulation of md5 to allow "
+"md5 hashes to be returned on a FIPS enabled system."
+msgstr ""
+"Updated _get_fingerprint to use new oslo.utils encapsulation of MD5 to allow "
+"MD5 hashes to be returned on a FIPS-enabled system."
+
 msgid "Upgrade Notes"
 msgstr "Upgrade Notes"
 
 msgid "Ussuri Series Release Notes"
 msgstr "Ussuri Series Release Notes"
+
+msgid "Victoria Series Release Notes"
+msgstr "Victoria Series Release Notes"
+
+msgid "Wallaby Series Release Notes"
+msgstr "Wallaby Series Release Notes"
+
+msgid "Xena Series Release Notes"
+msgstr "Xena Series Release Notes"
+
+msgid "Yoga Series Release Notes"
+msgstr "Yoga Series Release Notes"
 
 msgid "oslo.versionedobjects Release Notes"
 msgstr "oslo.versionedobjects Release Notes"
