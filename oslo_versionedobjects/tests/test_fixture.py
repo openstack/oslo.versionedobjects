@@ -757,11 +757,15 @@ class TestMethodSpec(test.TestCase):
         self._test_method3 = test_method3
 
     def test_method_spec_compat(self):
-        self.assertEqual(inspect.ArgSpec(args=['a', 'b', 'kw1'], varargs=None,
-                                         keywords='kwargs', defaults=(123,)),
+        self.assertEqual(fixture.CompatArgSpec(args=['a', 'b', 'kw1'],
+                                               varargs=None,
+                                               keywords='kwargs',
+                                               defaults=(123,)),
                          fixture.get_method_spec(self._test_method1))
-        self.assertEqual(inspect.ArgSpec(args=['a', 'b'], varargs='args',
-                                         keywords=None, defaults=None),
+        self.assertEqual(fixture.CompatArgSpec(args=['a', 'b'],
+                                               varargs='args',
+                                               keywords=None,
+                                               defaults=None),
                          fixture.get_method_spec(self._test_method2))
         self.assertEqual(inspect.getfullargspec(self._test_method3),
                          fixture.get_method_spec(self._test_method3))
