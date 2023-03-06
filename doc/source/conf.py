@@ -57,7 +57,7 @@ add_module_names = True
 # Shortened external links.
 extlinks = {
     'example': (source_tree +
-                '/%s/examples/%%s.py' % project.replace(".", "_"), ''),
+                '/%s/examples/%%s.py' % project.replace(".", "_"), None),
 }
 
 # The name of the Pygments (syntax highlighting) style to use.
