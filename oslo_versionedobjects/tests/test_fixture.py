@@ -538,8 +538,13 @@ class TestObjectVersionChecker(test.TestCase):
         exp_methods = sorted([('remotable_method', argspec),
                               ('remotable_classmethod', argspec)])
         expected_relevant_data = (exp_fields, exp_methods)
+        # NOTE(hberaud) the following hashlib usage will emit a bandit
+        # warning. It can be solved by passing `usedforsecurity=False` to
+        # the md5 function, however, this parameter was introduced with py39
+        # so passing it will break py38 unittest. I'd suggest to ignore this
+        # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
-            expected_relevant_data).encode())).hexdigest()
+            expected_relevant_data).encode())).hexdigest()  # nosec
         expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
@@ -564,8 +569,13 @@ class TestObjectVersionChecker(test.TestCase):
             child_versions.items()))
         exp_relevant_data = (exp_fields, exp_methods, exp_child_versions)
 
+        # NOTE(hberaud) the following hashlib usage will emit a bandit
+        # warning. It can be solved by passing `usedforsecurity=False` to
+        # the md5 function, however, this parameter was introduced with py39
+        # so passing it will break py38 unittest. I'd suggest to ignore this
+        # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
-            exp_relevant_data).encode())).hexdigest()
+            exp_relevant_data).encode())).hexdigest()  # nosec
         expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
@@ -594,8 +604,13 @@ class TestObjectVersionChecker(test.TestCase):
         exp_extra_data = ExtraDataObj
         exp_relevant_data = (exp_fields, exp_methods, exp_extra_data)
 
+        # NOTE(hberaud) the following hashlib usage will emit a bandit
+        # warning. It can be solved by passing `usedforsecurity=False` to
+        # the md5 function, however, this parameter was introduced with py39
+        # so passing it will break py38 unittest. I'd suggest to ignore this
+        # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
-            exp_relevant_data).encode())).hexdigest()
+            exp_relevant_data).encode())).hexdigest()  # nosec
         expected_fp = '%s-%s' % (ExtraDataObj.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
