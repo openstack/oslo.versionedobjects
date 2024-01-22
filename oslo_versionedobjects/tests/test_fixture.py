@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
 import copy
 import datetime
 import hashlib
@@ -565,8 +564,9 @@ class TestObjectVersionChecker(test.TestCase):
         exp_fields = sorted(list(MyObject.fields.items()))
         exp_methods = sorted([('remotable_method', argspec),
                               ('remotable_classmethod', argspec)])
-        exp_child_versions = collections.OrderedDict(sorted(
-            child_versions.items()))
+        exp_child_versions = fixture.OsloOrderedDict(
+            sorted(child_versions.items())
+        )
         exp_relevant_data = (exp_fields, exp_methods, exp_child_versions)
 
         # NOTE(hberaud) the following hashlib usage will emit a bandit
