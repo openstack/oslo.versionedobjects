@@ -223,7 +223,8 @@ class TestMACAddress(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        invalid_vals = [x for x in self.coerce_bad_values
+                        if isinstance(x, str)]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
@@ -255,7 +256,8 @@ class TestPCIAddress(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        invalid_vals = [x for x in self.coerce_bad_values
+                        if isinstance(x, str)]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
@@ -312,7 +314,8 @@ class TestUUID(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values[:4]:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values if type(x) == 'str']
+        invalid_vals = [x for x in self.coerce_bad_values
+                        if isinstance(x, str)]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
