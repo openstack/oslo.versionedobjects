@@ -16,7 +16,6 @@ import copy
 import datetime
 import jsonschema
 import logging
-import pytz
 from unittest import mock
 
 from oslo_context import context
@@ -1097,7 +1096,7 @@ class _TestObject(object):
         obj.obj_reset_changes()
         self.assertEqual({}, obj.obj_get_changes())
 
-        timestamp = datetime.datetime(2001, 1, 1, tzinfo=pytz.utc)
+        timestamp = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
         with mock.patch.object(timeutils, 'utcnow') as mock_utcnow:
             mock_utcnow.return_value = timestamp
             obj.timestamp = timeutils.utcnow()
