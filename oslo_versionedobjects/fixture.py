@@ -24,13 +24,13 @@ from collections import namedtuple
 from collections import OrderedDict
 import copy
 import datetime
+import hashlib
 import inspect
 import logging
 from reprlib import recursive_repr
 from unittest import mock
 
 import fixtures
-from oslo_utils.secretutils import md5
 from oslo_utils import versionutils as vutils
 
 from oslo_versionedobjects import base
@@ -288,7 +288,7 @@ class ObjectVersionChecker(object):
         if extra_data_func:
             relevant_data += extra_data_func(obj_class)
 
-        fingerprint = '%s-%s' % (obj_class.VERSION, md5(
+        fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
             bytes(repr(relevant_data).encode()),
             usedforsecurity=False).hexdigest())
         return fingerprint
