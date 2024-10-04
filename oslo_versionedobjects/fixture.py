@@ -26,6 +26,7 @@ import copy
 import datetime
 import inspect
 import logging
+from reprlib import recursive_repr
 from unittest import mock
 
 import fixtures
@@ -99,6 +100,22 @@ def compare_obj(test, obj, db_obj, subs=None, allow_missing=None,
             comparator(db_val, obj_val)
         else:
             test.assertEqual(db_val, obj_val)
+
+
+class OsloOrderedDict(OrderedDict):
+    """Oslo version of OrderedDict for Python consistency."""
+
+    @recursive_repr()
+    def __repr__(self):
+        if not self:
+            return '%s()' % self.__class__.__bases__[0].__name__
+        # NOTE(jamespage):
+        # Python >= 3.12 uses a dict instead of a list which changes the
+        # repr of the versioned object and its associated hash value
+        # Switch back to using list an use super class name.
+        return '%s(%r)' % (
+            self.__class__.__bases__[0].__name__, list(self.items())
+        )
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
@@ -263,7 +280,7 @@ class ObjectVersionChecker(object):
         # and return value changes, for example).
         if hasattr(obj_class, 'child_versions'):
             relevant_data = (obj_fields, methods,
-                             OrderedDict(
+                             OsloOrderedDict(
                                  sorted(obj_class.child_versions.items())))
         else:
             relevant_data = (obj_fields, methods)
