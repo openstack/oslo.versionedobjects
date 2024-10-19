@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #    Copyright 2013 Red Hat, Inc.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -50,8 +49,8 @@ class FakeEnum(fields.Enum):
     ALL = (FROG, PLATYPUS, ALLIGATOR)
 
     def __init__(self, **kwargs):
-        super(FakeEnum, self).__init__(valid_values=FakeEnum.ALL,
-                                       **kwargs)
+        super().__init__(valid_values=FakeEnum.ALL,
+                         **kwargs)
 
 
 class FakeEnumAlt(fields.Enum):
@@ -59,11 +58,11 @@ class FakeEnumAlt(fields.Enum):
     PLATYPUS = "platypus"
     AARDVARK = "aardvark"
 
-    ALL = set([FROG, PLATYPUS, AARDVARK])
+    ALL = {FROG, PLATYPUS, AARDVARK}
 
     def __init__(self, **kwargs):
-        super(FakeEnumAlt, self).__init__(valid_values=FakeEnumAlt.ALL,
-                                          **kwargs)
+        super().__init__(valid_values=FakeEnumAlt.ALL,
+                         **kwargs)
 
 
 class FakeEnumField(fields.BaseEnumField):
@@ -93,7 +92,7 @@ class FakeStateMachineField(fields.StateMachine):
     _TYPES = (ACTIVE, PENDING, ERROR)
 
     def __init__(self, **kwargs):
-        super(FakeStateMachineField, self).__init__(self._TYPES, **kwargs)
+        super().__init__(self._TYPES, **kwargs)
 
 
 class FakeEnumAltField(fields.BaseEnumField):
@@ -107,7 +106,7 @@ class TestFieldType(test.TestCase):
 
 class TestField(test.TestCase):
     def setUp(self):
-        super(TestField, self).setUp()
+        super().setUp()
         self.field = fields.Field(FakeFieldType())
         self.coerce_good_values = [('foo', '*foo*')]
         self.coerce_bad_values = []
@@ -129,7 +128,7 @@ class TestField(test.TestCase):
                                                                in_val))
 
     def test_from_primitive(self):
-        class ObjectLikeThing(object):
+        class ObjectLikeThing:
             _context = 'context'
 
         for prim_val, out_val in self.from_primitive_values:
@@ -142,7 +141,7 @@ class TestField(test.TestCase):
 
 class TestSchema(test.TestCase):
     def setUp(self):
-        super(TestSchema, self).setUp()
+        super().setUp()
         self.field = fields.Field(FakeFieldType(), nullable=True,
                                   default='', read_only=False)
 
@@ -154,7 +153,7 @@ class TestSchema(test.TestCase):
 
 class TestString(TestField):
     def setUp(self):
-        super(TestString, self).setUp()
+        super().setUp()
         self.field = fields.StringField()
         self.coerce_good_values = [
             ('foo', 'foo'), (1, '1'), (1.0, '1.0'), (True, 'True')]
@@ -175,7 +174,7 @@ class TestString(TestField):
 
 class TestSensitiveString(TestString):
     def setUp(self):
-        super(TestSensitiveString, self).setUp()
+        super().setUp()
         self.field = fields.SensitiveStringField()
 
     def test_stringify(self):
@@ -186,7 +185,7 @@ class TestSensitiveString(TestString):
 
 class TestVersionPredicate(TestString):
     def setUp(self):
-        super(TestVersionPredicate, self).setUp()
+        super().setUp()
         self.field = fields.VersionPredicateField()
         self.coerce_good_values = [('>=1.0', '>=1.0'),
                                    ('==1.1', '==1.1'),
@@ -198,7 +197,7 @@ class TestVersionPredicate(TestString):
 
 class TestMACAddress(TestField):
     def setUp(self):
-        super(TestMACAddress, self).setUp()
+        super().setUp()
         self.field = fields.MACAddressField()
         self.coerce_good_values = [
             ('c6:df:11:a5:c8:5d', 'c6:df:11:a5:c8:5d'),
@@ -231,7 +230,7 @@ class TestMACAddress(TestField):
 
 class TestPCIAddress(TestField):
     def setUp(self):
-        super(TestPCIAddress, self).setUp()
+        super().setUp()
         self.field = fields.PCIAddressField()
         self.coerce_good_values = [
             ('0000:02:00.0', '0000:02:00.0'),
@@ -264,7 +263,7 @@ class TestPCIAddress(TestField):
 
 class TestUUID(TestField):
     def setUp(self):
-        super(TestUUID, self).setUp()
+        super().setUp()
         self.field = fields.UUIDField()
         self.coerce_good_values = [
             ('da66a411-af0e-4829-9b67-475017ddd152',
@@ -322,7 +321,7 @@ class TestUUID(TestField):
 
 class TestBaseEnum(TestField):
     def setUp(self):
-        super(TestBaseEnum, self).setUp()
+        super().setUp()
         self.field = FakeEnumField()
         self.coerce_good_values = [('frog', 'frog'),
                                    ('platypus', 'platypus'),
@@ -355,7 +354,7 @@ class TestBaseEnum(TestField):
 
 class TestEnum(TestField):
     def setUp(self):
-        super(TestEnum, self).setUp()
+        super().setUp()
         self.field = fields.EnumField(
             valid_values=['foo', 'bar', 1, True])
         self.coerce_good_values = [('foo', 'foo'), (1, '1'), (True, 'True')]
@@ -490,7 +489,7 @@ class TestInteger(TestField):
 
 class TestNonNegativeInteger(TestField):
     def setUp(self):
-        super(TestNonNegativeInteger, self).setUp()
+        super().setUp()
         self.field = fields.NonNegativeIntegerField()
         self.coerce_good_values = [(1, 1), ('1', 1)]
         self.coerce_bad_values = ['-2', '4.2', 'foo', None]
@@ -504,7 +503,7 @@ class TestNonNegativeInteger(TestField):
 
 class TestFloat(TestField):
     def setUp(self):
-        super(TestFloat, self).setUp()
+        super().setUp()
         self.field = fields.FloatField()
         self.coerce_good_values = [(1.1, 1.1), ('1.1', 1.1)]
         self.coerce_bad_values = ['foo', None]
@@ -521,7 +520,7 @@ class TestFloat(TestField):
 
 class TestNonNegativeFloat(TestField):
     def setUp(self):
-        super(TestNonNegativeFloat, self).setUp()
+        super().setUp()
         self.field = fields.NonNegativeFloatField()
         self.coerce_good_values = [(1.1, 1.1), ('1.1', 1.1)]
         self.coerce_bad_values = ['-4.2', 'foo', None]
@@ -553,7 +552,7 @@ class TestBoolean(TestField):
 
 class TestFlexibleBoolean(TestField):
     def setUp(self):
-        super(TestFlexibleBoolean, self).setUp()
+        super().setUp()
         self.field = fields.FlexibleBooleanField()
         self.coerce_good_values = [(True, True), (False, False),
                                    ("true", True), ("false", False),
@@ -570,7 +569,7 @@ class TestFlexibleBoolean(TestField):
 
 class TestDateTime(TestField):
     def setUp(self):
-        super(TestDateTime, self).setUp()
+        super().setUp()
         self.dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.UTC)
         self.field = fields.DateTimeField()
         self.coerce_good_values = [(self.dt, self.dt),
@@ -594,7 +593,7 @@ class TestDateTime(TestField):
 
 class TestDateTimeNoTzinfo(TestField):
     def setUp(self):
-        super(TestDateTimeNoTzinfo, self).setUp()
+        super().setUp()
         self.dt = datetime.datetime(1955, 11, 5)
         self.field = fields.DateTimeField(tzinfo_aware=False)
         self.coerce_good_values = [(self.dt, self.dt),
@@ -617,7 +616,7 @@ class TestDateTimeNoTzinfo(TestField):
 
 class TestDict(TestField):
     def setUp(self):
-        super(TestDict, self).setUp()
+        super().setUp()
         self.field = fields.Field(fields.Dict(FakeFieldType()))
         self.coerce_good_values = [({'foo': 'bar'}, {'foo': '*bar*'}),
                                    ({'foo': 1}, {'foo': '*1*'})]
@@ -638,7 +637,7 @@ class TestDict(TestField):
 
 class TestDictOfStrings(TestField):
     def setUp(self):
-        super(TestDictOfStrings, self).setUp()
+        super().setUp()
         self.field = fields.DictOfStringsField()
         self.coerce_good_values = [({'foo': 'bar'}, {'foo': 'bar'}),
                                    ({'foo': 1}, {'foo': '1'})]
@@ -652,7 +651,7 @@ class TestDictOfStrings(TestField):
 
 class TestDictOfIntegers(TestField):
     def setUp(self):
-        super(TestDictOfIntegers, self).setUp()
+        super().setUp()
         self.field = fields.DictOfIntegersField()
         self.coerce_good_values = [({'foo': '42'}, {'foo': 42}),
                                    ({'foo': 4.2}, {'foo': 4})]
@@ -667,7 +666,7 @@ class TestDictOfIntegers(TestField):
 
 class TestDictOfStringsNone(TestField):
     def setUp(self):
-        super(TestDictOfStringsNone, self).setUp()
+        super().setUp()
         self.field = fields.DictOfNullableStringsField()
         self.coerce_good_values = [({'foo': 'bar'}, {'foo': 'bar'}),
                                    ({'foo': 1}, {'foo': '1'}),
@@ -684,7 +683,7 @@ class TestDictOfStringsNone(TestField):
 
 class TestListOfDictOfNullableStringsField(TestField):
     def setUp(self):
-        super(TestListOfDictOfNullableStringsField, self).setUp()
+        super().setUp()
         self.field = fields.ListOfDictOfNullableStringsField()
         self.coerce_good_values = [([{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}],
                                     [{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}]),
@@ -707,7 +706,7 @@ class TestListOfDictOfNullableStringsField(TestField):
 
 class TestList(TestField):
     def setUp(self):
-        super(TestList, self).setUp()
+        super().setUp()
         self.field = fields.Field(fields.List(FakeFieldType()))
         self.coerce_good_values = [(['foo', 'bar'], ['*foo*', '*bar*'])]
         self.coerce_bad_values = ['foo']
@@ -731,7 +730,7 @@ class TestList(TestField):
 
 class TestListOfStrings(TestField):
     def setUp(self):
-        super(TestListOfStrings, self).setUp()
+        super().setUp()
         self.field = fields.ListOfStringsField()
         self.coerce_good_values = [(['foo', 'bar'], ['foo', 'bar'])]
         self.coerce_bad_values = ['foo']
@@ -744,7 +743,7 @@ class TestListOfStrings(TestField):
 
 class TestDictOfListOfStrings(TestField):
     def setUp(self):
-        super(TestDictOfListOfStrings, self).setUp()
+        super().setUp()
         self.field = fields.DictOfListOfStringsField()
         self.coerce_good_values = [({'foo': ['1', '2']}, {'foo': ['1', '2']}),
                                    ({'foo': [1]}, {'foo': ['1']})]
@@ -760,7 +759,7 @@ class TestDictOfListOfStrings(TestField):
 
 class TestListOfEnum(TestField):
     def setUp(self):
-        super(TestListOfEnum, self).setUp()
+        super().setUp()
         self.field = fields.ListOfEnumField(valid_values=['foo', 'bar'])
         self.coerce_good_values = [(['foo', 'bar'], ['foo', 'bar'])]
         self.coerce_bad_values = ['foo', ['foo', 'bar1']]
@@ -783,16 +782,16 @@ class TestListOfEnum(TestField):
 
 class TestSet(TestField):
     def setUp(self):
-        super(TestSet, self).setUp()
+        super().setUp()
         self.field = fields.Field(fields.Set(FakeFieldType()))
-        self.coerce_good_values = [(set(['foo', 'bar']),
-                                    set(['*foo*', '*bar*']))]
+        self.coerce_good_values = [({'foo', 'bar'},
+                                    {'*foo*', '*bar*'})]
         self.coerce_bad_values = [['foo'], {'foo': 'bar'}]
-        self.to_primitive_values = [(set(['foo']), tuple(['!foo!']))]
-        self.from_primitive_values = [(tuple(['!foo!']), set(['foo']))]
+        self.to_primitive_values = [({'foo'}, tuple(['!foo!']))]
+        self.from_primitive_values = [(tuple(['!foo!']), {'foo'})]
 
     def test_stringify(self):
-        self.assertEqual('set([123])', self.field.stringify(set([123])))
+        self.assertEqual('set([123])', self.field.stringify({123}))
 
     def test_get_schema(self):
         self.assertEqual({'type': ['array'], 'uniqueItems': True,
@@ -803,16 +802,16 @@ class TestSet(TestField):
 
 class TestSetOfIntegers(TestField):
     def setUp(self):
-        super(TestSetOfIntegers, self).setUp()
+        super().setUp()
         self.field = fields.SetOfIntegersField()
-        self.coerce_good_values = [(set(['1', 2]),
-                                    set([1, 2]))]
-        self.coerce_bad_values = [set(['foo'])]
-        self.to_primitive_values = [(set([1]), tuple([1]))]
-        self.from_primitive_values = [(tuple([1]), set([1]))]
+        self.coerce_good_values = [({'1', 2},
+                                    {1, 2})]
+        self.coerce_bad_values = [{'foo'}]
+        self.to_primitive_values = [({1}, tuple([1]))]
+        self.from_primitive_values = [(tuple([1]), {1})]
 
     def test_stringify(self):
-        self.assertEqual('set([1,2])', self.field.stringify(set([1, 2])))
+        self.assertEqual('set([1,2])', self.field.stringify({1, 2}))
 
     def test_repr(self):
         self.assertEqual("Set(default=<class 'oslo_versionedobjects.fields."
@@ -826,21 +825,21 @@ class TestSetOfIntegers(TestField):
 
 class TestListOfSetsOfIntegers(TestField):
     def setUp(self):
-        super(TestListOfSetsOfIntegers, self).setUp()
+        super().setUp()
         self.field = fields.ListOfSetsOfIntegersField()
-        self.coerce_good_values = [([set(['1', 2]), set([3, '4'])],
-                                    [set([1, 2]), set([3, 4])])]
-        self.coerce_bad_values = [[set(['foo'])]]
-        self.to_primitive_values = [([set([1])], [tuple([1])])]
-        self.from_primitive_values = [([tuple([1])], [set([1])])]
+        self.coerce_good_values = [([{'1', 2}, {3, '4'}],
+                                    [{1, 2}, {3, 4}])]
+        self.coerce_bad_values = [[{'foo'}]]
+        self.to_primitive_values = [([{1}], [tuple([1])])]
+        self.from_primitive_values = [([tuple([1])], [{1}])]
 
     def test_stringify(self):
-        self.assertEqual('[set([1,2])]', self.field.stringify([set([1, 2])]))
+        self.assertEqual('[set([1,2])]', self.field.stringify([{1, 2}]))
 
 
 class TestListOfIntegers(TestField):
     def setUp(self):
-        super(TestListOfIntegers, self).setUp()
+        super().setUp()
         self.field = fields.ListOfIntegersField()
         self.coerce_good_values = [(['1', 2], [1, 2]),
                                    ([1, 2], [1, 2])]
@@ -854,7 +853,7 @@ class TestListOfIntegers(TestField):
 
 class TestListOfUUIDField(TestField):
     def setUp(self):
-        super(TestListOfUUIDField, self).setUp()
+        super().setUp()
         self.field = fields.ListOfUUIDField()
         self.uuid1 = '6b2097ea-d0e3-44dd-b131-95472b3ea8fd'
         self.uuid2 = '478c193d-2533-4e71-ab2b-c7683f67d7f9'
@@ -866,7 +865,7 @@ class TestListOfUUIDField(TestField):
         self.from_primitive_values = [([self.uuid1], [self.uuid1])]
 
     def test_stringify(self):
-        self.assertEqual('[%s,%s]' % (self.uuid1, self.uuid2),
+        self.assertEqual('[{},{}]'.format(self.uuid1, self.uuid2),
                          self.field.stringify([self.uuid1, self.uuid2]))
 
 
@@ -902,7 +901,7 @@ class TestLocalMethods(test.TestCase):
 
 class TestObject(TestField):
     def setUp(self):
-        super(TestObject, self).setUp()
+        super().setUp()
 
         @obj_base.VersionedObjectRegistry.register
         class TestableObject(obj_base.VersionedObject):
@@ -978,7 +977,7 @@ class TestObject(TestField):
             pass
 
         # Non-versioned object mixin
-        class TestScary(object):
+        class TestScary:
             pass
 
         class TestCrocodile(TestReptile, TestPet, TestScary):
@@ -1092,7 +1091,7 @@ class TestObject(TestField):
 
 class TestIPAddress(TestField):
     def setUp(self):
-        super(TestIPAddress, self).setUp()
+        super().setUp()
         self.field = fields.IPAddressField()
         self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
                                    ('::1', netaddr.IPAddress('::1')),
@@ -1109,7 +1108,7 @@ class TestIPAddress(TestField):
 
 class TestIPAddressV4(TestField):
     def setUp(self):
-        super(TestIPAddressV4, self).setUp()
+        super().setUp()
         self.field = fields.IPV4AddressField()
         self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
                                    (netaddr.IPAddress('1.2.3.4'),
@@ -1127,7 +1126,7 @@ class TestIPAddressV4(TestField):
 
 class TestIPAddressV6(TestField):
     def setUp(self):
-        super(TestIPAddressV6, self).setUp()
+        super().setUp()
         self.field = fields.IPV6AddressField()
         self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
                                    (netaddr.IPAddress('::1'),
@@ -1144,7 +1143,7 @@ class TestIPAddressV6(TestField):
 
 class TestIPV4AndV6Address(TestField):
     def setUp(self):
-        super(TestIPV4AndV6Address, self).setUp()
+        super().setUp()
         self.field = fields.IPV4AndV6Address()
         self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
                                    (netaddr.IPAddress('::1'),
@@ -1171,7 +1170,7 @@ class TestIPV4AndV6Address(TestField):
 
 class TestIPNetwork(TestField):
     def setUp(self):
-        super(TestIPNetwork, self).setUp()
+        super().setUp()
         self.field = fields.IPNetworkField()
         self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
                                    ('1.2.3.4/24',
@@ -1186,7 +1185,7 @@ class TestIPNetwork(TestField):
 
 class TestIPV4Network(TestField):
     def setUp(self):
-        super(TestIPV4Network, self).setUp()
+        super().setUp()
         self.field = fields.IPV4NetworkField()
         self.coerce_good_values = [('1.2.3.4/24',
                                     netaddr.IPNetwork('1.2.3.4/24'))]
@@ -1210,7 +1209,7 @@ class TestIPV4Network(TestField):
 
 class TestIPV6Network(TestField):
     def setUp(self):
-        super(TestIPV6Network, self).setUp()
+        super().setUp()
         self.field = fields.IPV6NetworkField()
         self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
                                    (netaddr.IPNetwork('::1/32'),
@@ -1232,7 +1231,7 @@ class TestIPV6Network(TestField):
             self.assertNotRegex(str(invalid_val), pattern)
 
 
-class FakeCounter(object):
+class FakeCounter:
     def __init__(self):
         self.n = 0
 

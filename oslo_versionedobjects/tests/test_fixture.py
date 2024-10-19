@@ -211,7 +211,7 @@ class FakeResource(base.VersionedObject):
 
 class TestObjectVersionChecker(test.TestCase):
     def setUp(self):
-        super(TestObjectVersionChecker, self).setUp()
+        super().setUp()
         objects = [MyObject, MyObject2, ]
         self.obj_classes = {obj.__name__: [obj] for obj in objects}
         self.ovc = fixture.ObjectVersionChecker(obj_classes=self.obj_classes)
@@ -544,7 +544,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             expected_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
+        expected_fp = '{}-{}'.format(MyObject.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
@@ -576,7 +576,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '%s-%s' % (MyObject.VERSION, expected_hash)
+        expected_fp = '{}-{}'.format(MyObject.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
@@ -611,7 +611,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '%s-%s' % (ExtraDataObj.VERSION, expected_hash)
+        expected_fp = '{}-{}'.format(ExtraDataObj.VERSION, expected_hash)
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
@@ -756,7 +756,7 @@ class TestStableObjectJsonFixture(test.TestCase):
 
 class TestMethodSpec(test.TestCase):
     def setUp(self):
-        super(TestMethodSpec, self).setUp()
+        super().setUp()
 
         def test_method1(a, b, kw1=123, **kwargs):
             pass

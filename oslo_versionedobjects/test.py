@@ -45,7 +45,7 @@ class TestingException(Exception):
     pass
 
 
-class skipIf(object):
+class skipIf:
     def __init__(self, condition, reason):
         self.condition = condition
         self.reason = reason
@@ -109,7 +109,7 @@ class TestCase(testtools.TestCase):
 
     def setUp(self):
         """Run before each test method to initialize test environment."""
-        super(TestCase, self).setUp()
+        super().setUp()
         self.useFixture(obj_fixtures.Timeout(
             os.environ.get('OS_TEST_TIMEOUT', 0),
             self.TIMEOUT_SCALING_FACTOR))
@@ -186,7 +186,7 @@ class TestCase(testtools.TestCase):
                              (name, baseclass))
 
 
-class APICoverage(object):
+class APICoverage:
 
     cover_api = None
 

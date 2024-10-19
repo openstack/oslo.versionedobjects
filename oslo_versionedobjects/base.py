@@ -34,7 +34,7 @@ from oslo_versionedobjects import fields as obj_fields
 LOG = logging.getLogger('object')
 
 
-class _NotSpecifiedSentinel(object):
+class _NotSpecifiedSentinel:
     pass
 
 
@@ -83,7 +83,7 @@ def _make_class_properties(cls):
                 return setattr(self, attrname, field_value)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    attr = "%s.%s" % (self.obj_name(), name)
+                    attr = "{}.{}".format(self.obj_name(), name)
                     LOG.exception('Error setting %(attr)s',
                                   {'attr': attr})
 
@@ -96,7 +96,7 @@ def _make_class_properties(cls):
         setattr(cls, name, property(getter, setter, deleter))
 
 
-class VersionedObjectRegistry(object):
+class VersionedObjectRegistry:
     _registry = None
 
     def __new__(cls, *args, **kwargs):
@@ -230,7 +230,7 @@ def remotable(fn):
     return wrapper
 
 
-class VersionedObject(object):
+class VersionedObject:
     """Base class and object factory.
 
     This forms the base of all objects that can be remoted or instantiated
@@ -307,12 +307,12 @@ class VersionedObject(object):
             setattr(self, key, kwargs[key])
 
     def __repr__(self):
-        repr_str = '%s(%s)' % (
+        repr_str = '{}({})'.format(
             self.obj_name(),
-            ','.join(['%s=%s' % (name,
-                                 (self.obj_attr_is_set(name) and
-                                  field.stringify(getattr(self, name)) or
-                                  '<?>'))
+            ','.join(['{}={}'.format(name,
+                                     (self.obj_attr_is_set(name) and
+                                      field.stringify(getattr(self, name)) or
+                                      '<?>'))
                       for name, field in sorted(self.fields.items())]))
         return repr_str
 
@@ -343,7 +343,7 @@ class VersionedObject(object):
 
     @classmethod
     def _obj_primitive_key(cls, field):
-        return '%s.%s' % (cls.OBJ_SERIAL_NAMESPACE, field)
+        return '{}.{}'.format(cls.OBJ_SERIAL_NAMESPACE, field)
 
     @classmethod
     def _obj_primitive_field(cls, primitive, field,
@@ -395,7 +395,7 @@ class VersionedObject(object):
             if name in objdata:
                 setattr(self, name, field.from_primitive(self, name,
                                                          objdata[name]))
-        self._changed_fields = set([x for x in changes if x in self.fields])
+        self._changed_fields = {x for x in changes if x in self.fields}
         return self
 
     @classmethod
@@ -408,7 +408,7 @@ class VersionedObject(object):
             # NOTE(danms): We don't do anything with this now, but it's
             # there for "the future"
             raise exception.UnsupportedObjectError(
-                objtype='%s.%s' % (objns, objname))
+                objtype='{}.{}'.format(objns, objname))
         objclass = cls.obj_class_from_name(objname, objver)
         return objclass._obj_from_primitive(context, objver, primitive)
 
@@ -610,8 +610,8 @@ class VersionedObject(object):
 
     def obj_what_changed(self):
         """Returns a set of fields that have been modified."""
-        changes = set([field for field in self._changed_fields
-                       if field in self.fields])
+        changes = {field for field in self._changed_fields
+                   if field in self.fields}
         for field in self.fields:
             if (self.obj_attr_is_set(field) and
                     isinstance(getattr(self, field), VersionedObject) and
@@ -691,7 +691,7 @@ class VersionedObject(object):
         return self._context
 
 
-class ComparableVersionedObject(object):
+class ComparableVersionedObject:
     """Mix-in to provide comparison methods
 
     When objects are to be compared with each other (in tests for example),
@@ -705,7 +705,7 @@ class ComparableVersionedObject(object):
         return NotImplemented
 
     def __hash__(self):
-        return super(ComparableVersionedObject, self).__hash__()
+        return super().__hash__()
 
     def __ne__(self, obj):
         if hasattr(obj, 'obj_to_primitive'):
@@ -713,7 +713,7 @@ class ComparableVersionedObject(object):
         return NotImplemented
 
 
-class TimestampedObject(object):
+class TimestampedObject:
     """Mixin class for db backed objects with timestamp fields.
 
     Sqlalchemy models that inherit from the oslo_db TimestampMixin will include
@@ -725,7 +725,7 @@ class TimestampedObject(object):
     }
 
 
-class VersionedObjectDictCompat(object):
+class VersionedObjectDictCompat:
     """Mix-in to provide dictionary key access compatibility
 
     If an object needs to support attribute access using
@@ -759,7 +759,7 @@ class VersionedObjectDictCompat(object):
 
     def get(self, key, value=_NotSpecifiedSentinel):
         if key not in self.obj_fields:
-            raise AttributeError("'%s' object has no attribute '%s'" % (
+            raise AttributeError("'{}' object has no attribute '{}'".format(
                 self.__class__, key))
         if value != _NotSpecifiedSentinel and not self.obj_attr_is_set(key):
             return value
@@ -789,7 +789,7 @@ class ObjectListBase(collections_abc.Sequence):
     child_versions = {}
 
     def __init__(self, *args, **kwargs):
-        super(ObjectListBase, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         if 'objects' not in kwargs:
             self.objects = []
             self._changed_fields.discard('objects')
@@ -959,7 +959,7 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):
         return entity
 
 
-class VersionedObjectIndirectionAPI(object, metaclass=abc.ABCMeta):
+class VersionedObjectIndirectionAPI(metaclass=abc.ABCMeta):
     def object_action(self, context, objinst, objmethod, args, kwargs):
         """Perform an action on a VersionedObject instance.
 

@@ -112,7 +112,7 @@ class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
         self.rel_object = MyOwnedObject(baz=42)
 
     def obj_make_compatible(self, primitive, target_version):
-        super(MyObj, self).obj_make_compatible(primitive, target_version)
+        super().obj_make_compatible(primitive, target_version)
         # NOTE(danms): Simulate an older version that had a different
         # format for the 'bar' attribute
         if target_version == '1.1' and 'bar' in primitive:
@@ -156,7 +156,7 @@ class MySensitiveObj(base.VersionedObject):
         pass
 
 
-class RandomMixInWithNoFields(object):
+class RandomMixInWithNoFields:
     """Used to test object inheritance using a mixin that has no fields."""
     pass
 
@@ -189,7 +189,7 @@ class TestRegistry(test.TestCase):
     def test_obj_tracking(self):
 
         @base.VersionedObjectRegistry.register
-        class NewBaseClass(object):
+        class NewBaseClass:
             VERSION = '1.0'
             fields = {}
 
@@ -330,7 +330,7 @@ class TestRegistry(test.TestCase):
         mock_registry.return_value = mock_reg_obj
         mock_reg_obj._register_class = mock.Mock()
 
-        class my_class(object):
+        class my_class:
             pass
 
         base.VersionedObjectRegistry.register(my_class)
@@ -338,7 +338,7 @@ class TestRegistry(test.TestCase):
 
     @mock.patch.object(base.VersionedObjectRegistry, 'register')
     def test_register_if(self, mock_register):
-        class my_class(object):
+        class my_class:
             pass
 
         base.VersionedObjectRegistry.register_if(True)(my_class)
@@ -346,7 +346,7 @@ class TestRegistry(test.TestCase):
 
     @mock.patch.object(base, '_make_class_properties')
     def test_register_if_false(self, mock_make_props):
-        class my_class(object):
+        class my_class:
             pass
 
         base.VersionedObjectRegistry.register_if(False)(my_class)
@@ -357,7 +357,7 @@ class TestRegistry(test.TestCase):
         mock_reg_callable = mock.Mock()
         mock_register_if.return_value = mock_reg_callable
 
-        class my_class(object):
+        class my_class:
             pass
 
         base.VersionedObjectRegistry.objectify(my_class)
@@ -389,7 +389,7 @@ class TestObjMakeList(test.TestCase):
 
 class TestGetSubobjectVersion(test.TestCase):
     def setUp(self):
-        super(TestGetSubobjectVersion, self).setUp()
+        super().setUp()
         self.backport_mock = mock.MagicMock()
         self.rels = [('1.1', '1.0'), ('1.3', '1.1')]
 
@@ -521,7 +521,7 @@ class TestDoSubobjectBackport(test.TestCase):
 
 class _BaseTestCase(test.TestCase):
     def setUp(self):
-        super(_BaseTestCase, self).setUp()
+        super().setUp()
         self.user_id = 'fake-user'
         self.project_id = 'fake-project'
         self.context = context.RequestContext(self.user_id, self.project_id)
@@ -542,7 +542,7 @@ class _BaseTestCase(test.TestCase):
     def assertNotIsInstance(self, obj, cls, msg=None):
         """Python < v2.7 compatibility.  Assert 'not isinstance(obj, cls)."""
         try:
-            f = super(_BaseTestCase, self).assertNotIsInstance
+            f = super().assertNotIsInstance
         except AttributeError:
             self.assertThat(obj,
                             matchers.Not(matchers.IsInstance(cls)),
@@ -732,17 +732,17 @@ class TestFixture(_BaseTestCase):
 
 class _LocalTest(_BaseTestCase):
     def setUp(self):
-        super(_LocalTest, self).setUp()
+        super().setUp()
         self.assertIsNone(base.VersionedObject.indirection_api)
 
 
 class _RemoteTest(_BaseTestCase):
     def setUp(self):
-        super(_RemoteTest, self).setUp()
+        super().setUp()
         self.useFixture(fixture.IndirectionFixture())
 
 
-class _TestObject(object):
+class _TestObject:
     # def test_object_attrs_in_init(self):
     #     # Spot check a few
     #     objects.Instance
@@ -899,11 +899,11 @@ class _TestObject(object):
 
     def test_changes_in_primitive(self):
         obj = MyObj(foo=123)
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(obj.obj_what_changed(), {'foo'})
         primitive = obj.obj_to_primitive()
         self.assertIn('versioned_object.changes', primitive)
         obj2 = MyObj.obj_from_primitive(primitive)
-        self.assertEqual(obj2.obj_what_changed(), set(['foo']))
+        self.assertEqual(obj2.obj_what_changed(), {'foo'})
         obj2.obj_reset_changes()
         self.assertEqual(obj2.obj_what_changed(), set())
 
@@ -938,34 +938,34 @@ class _TestObject(object):
     def test_changed_1(self):
         obj = MyObj.query(self.context)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(obj.obj_what_changed(), {'foo'})
         obj._update_test()
-        self.assertEqual(obj.obj_what_changed(), set(['foo', 'bar']))
+        self.assertEqual(obj.obj_what_changed(), {'foo', 'bar'})
         self.assertEqual(obj.foo, 123)
 
     def test_changed_2(self):
         obj = MyObj.query(self.context)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(obj.obj_what_changed(), {'foo'})
         obj.save()
-        self.assertEqual(obj.obj_what_changed(), set([]))
+        self.assertEqual(obj.obj_what_changed(), set())
         self.assertEqual(obj.foo, 123)
 
     def test_changed_3(self):
         obj = MyObj.query(self.context)
         obj.foo = 123
-        self.assertEqual(obj.obj_what_changed(), set(['foo']))
+        self.assertEqual(obj.obj_what_changed(), {'foo'})
         obj.refresh()
-        self.assertEqual(obj.obj_what_changed(), set([]))
+        self.assertEqual(obj.obj_what_changed(), set())
         self.assertEqual(obj.foo, 321)
         self.assertEqual(obj.bar, 'refreshed')
 
     def test_changed_4(self):
         obj = MyObj.query(self.context)
         obj.bar = 'something'
-        self.assertEqual(obj.obj_what_changed(), set(['bar']))
+        self.assertEqual(obj.obj_what_changed(), {'bar'})
         obj.modify_save_modify()
-        self.assertEqual(obj.obj_what_changed(), set(['foo', 'rel_object']))
+        self.assertEqual(obj.obj_what_changed(), {'foo', 'rel_object'})
         self.assertEqual(obj.foo, 42)
         self.assertEqual(obj.bar, 'meow')
         self.assertIsInstance(obj.rel_object, MyOwnedObject)
@@ -979,14 +979,14 @@ class _TestObject(object):
         obj = ParentObject()
         self.assertEqual(set(), obj.obj_what_changed())
         obj.foo = 1
-        self.assertEqual(set(['foo']), obj.obj_what_changed())
+        self.assertEqual({'foo'}, obj.obj_what_changed())
         bar = MyObj()
         obj.bar = bar
-        self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
+        self.assertEqual({'foo', 'bar'}, obj.obj_what_changed())
         obj.obj_reset_changes()
         self.assertEqual(set(), obj.obj_what_changed())
         bar.foo = 1
-        self.assertEqual(set(['bar']), obj.obj_what_changed())
+        self.assertEqual({'bar'}, obj.obj_what_changed())
 
     def test_changed_with_bogus_field(self):
         obj = MyObj()
@@ -994,7 +994,7 @@ class _TestObject(object):
         # Add a bogus field name to the changed list, as could be the
         # case if we're sent some broken primitive from another node.
         obj._changed_fields.add('does_not_exist')
-        self.assertEqual(set(['foo']), obj.obj_what_changed())
+        self.assertEqual({'foo'}, obj.obj_what_changed())
         self.assertEqual({'foo': 123}, obj.obj_get_changes())
 
     def test_static_result(self):
@@ -1025,19 +1025,19 @@ class _TestObject(object):
     def test_obj_reset_changes_recursive(self):
         obj = MyObj(rel_object=MyOwnedObject(baz=123),
                     rel_objects=[MyOwnedObject(baz=456)])
-        self.assertEqual(set(['rel_object', 'rel_objects']),
+        self.assertEqual({'rel_object', 'rel_objects'},
                          obj.obj_what_changed())
         obj.obj_reset_changes()
-        self.assertEqual(set(['rel_object']), obj.obj_what_changed())
-        self.assertEqual(set(['baz']), obj.rel_object.obj_what_changed())
-        self.assertEqual(set(['baz']), obj.rel_objects[0].obj_what_changed())
+        self.assertEqual({'rel_object'}, obj.obj_what_changed())
+        self.assertEqual({'baz'}, obj.rel_object.obj_what_changed())
+        self.assertEqual({'baz'}, obj.rel_objects[0].obj_what_changed())
         obj.obj_reset_changes(recursive=True, fields=['foo'])
-        self.assertEqual(set(['rel_object']), obj.obj_what_changed())
-        self.assertEqual(set(['baz']), obj.rel_object.obj_what_changed())
-        self.assertEqual(set(['baz']), obj.rel_objects[0].obj_what_changed())
+        self.assertEqual({'rel_object'}, obj.obj_what_changed())
+        self.assertEqual({'baz'}, obj.rel_object.obj_what_changed())
+        self.assertEqual({'baz'}, obj.rel_objects[0].obj_what_changed())
         obj.obj_reset_changes(recursive=True)
-        self.assertEqual(set([]), obj.rel_object.obj_what_changed())
-        self.assertEqual(set([]), obj.obj_what_changed())
+        self.assertEqual(set(), obj.rel_object.obj_what_changed())
+        self.assertEqual(set(), obj.obj_what_changed())
 
     def test_get(self):
         obj = MyObj(foo=1)
@@ -1146,7 +1146,7 @@ class _TestObject(object):
         obj = MyObj(context=self.context, foo=123, bar='abc')
         self.assertEqual(123, obj.foo)
         self.assertEqual('abc', obj.bar)
-        self.assertEqual(set(['foo', 'bar']), obj.obj_what_changed())
+        self.assertEqual({'foo', 'bar'}, obj.obj_what_changed())
 
     def test_obj_read_only(self):
         obj = MyObj(context=self.context, foo=123, bar='abc')
@@ -1388,7 +1388,7 @@ class _TestObject(object):
                                                 version_manifest=None)
 
     def test_comparable_objects(self):
-        class NonVersionedObject(object):
+        class NonVersionedObject:
             pass
 
         obj1 = MyComparableObj(foo=1)
@@ -1404,7 +1404,7 @@ class _TestObject(object):
         obj = MyCompoundObject()
         obj.foo = [1, 2, 3]
         obj.bar = {"a": 1, "b": 2, "c": 3}
-        obj.baz = set([1, 2, 3])
+        obj.baz = {1, 2, 3}
         copy = obj.obj_clone()
         self.assertEqual(obj.foo, copy.foo)
         self.assertEqual(obj.bar, copy.bar)
@@ -1415,7 +1415,7 @@ class _TestObject(object):
         copy.baz.add("4")
         self.assertEqual([1, 2, 3, 4], copy.foo)
         self.assertEqual({"a": 1, "b": 2, "c": 3, "d": 4}, copy.bar)
-        self.assertEqual(set([1, 2, 3, 4]), copy.baz)
+        self.assertEqual({1, 2, 3, 4}, copy.baz)
 
     def test_obj_list_fields_modifications(self):
         @base.VersionedObjectRegistry.register
@@ -1543,31 +1543,31 @@ class _TestObject(object):
                 'set_field': fields.Field(fields.Set(fields.Integer()))
             }
         obj = ObjWithSet()
-        obj.set_field = set([42])
+        obj.set_field = {42}
 
         def add(value):
             obj.set_field.add(value)
 
         def update_w_set(value):
-            obj.set_field.update(set([value]))
+            obj.set_field.update({value})
 
         def update_w_list(value):
             obj.set_field.update([value, value, value])
 
         def sym_diff_upd(value):
-            obj.set_field.symmetric_difference_update(set([value]))
+            obj.set_field.symmetric_difference_update({value})
 
         def union(value):
-            obj.set_field = obj.set_field | set([value])
+            obj.set_field = obj.set_field | {value}
 
         def iunion(value):
-            obj.set_field |= set([value])
+            obj.set_field |= {value}
 
         def xor(value):
-            obj.set_field = obj.set_field ^ set([value])
+            obj.set_field = obj.set_field ^ {value}
 
         def ixor(value):
-            obj.set_field ^= set([value])
+            obj.set_field ^= {value}
         # positive tests to ensure that coercing works properly
         sym_diff_upd("42")
         add("1")
@@ -1577,8 +1577,8 @@ class _TestObject(object):
         iunion("5")
         xor("6")
         ixor("7")
-        self.assertEqual(set([1, 2, 3, 4, 5, 6, 7]), obj.set_field)
-        obj.set_field = set([42])
+        self.assertEqual({1, 2, 3, 4, 5, 6, 7}, obj.set_field)
+        obj.set_field = {42}
         obj.obj_reset_changes()
         # negative tests with non-coerceable values
         self.assertRaises(ValueError, add, "abc")
@@ -1590,7 +1590,7 @@ class _TestObject(object):
         self.assertRaises(ValueError, xor, "abc")
         self.assertRaises(ValueError, ixor, "abc")
         # ensure that nothing has been changed
-        self.assertEqual(set([42]), obj.set_field)
+        self.assertEqual({42}, obj.set_field)
         self.assertEqual({}, obj.obj_get_changes())
 
 
@@ -1609,7 +1609,7 @@ class TestObject(_LocalTest, _TestObject):
     def test_set_all_defaults(self):
         obj = MyObj()
         obj.obj_set_defaults()
-        self.assertEqual(set(['mutable_default', 'foo']),
+        self.assertEqual({'mutable_default', 'foo'},
                          obj.obj_what_changed())
         self.assertEqual(1, obj.foo)
 
@@ -1668,7 +1668,7 @@ class TestObjectListBase(test.TestCase):
             fields = {'foo': fields.IntegerField()}
 
             def __init__(self, foo):
-                super(MyElement, self).__init__()
+                super().__init__()
                 self.foo = foo
 
         class Foo(base.ObjectListBase, base.VersionedObject):
@@ -1802,12 +1802,12 @@ class TestObjectListBase(test.TestCase):
             fields = {'foo': fields.StringField()}
 
         obj = Foo(objects=[])
-        self.assertEqual(set(['objects']), obj.obj_what_changed())
+        self.assertEqual({'objects'}, obj.obj_what_changed())
         obj.objects.append(Bar(foo='test'))
-        self.assertEqual(set(['objects']), obj.obj_what_changed())
+        self.assertEqual({'objects'}, obj.obj_what_changed())
         obj.obj_reset_changes()
         # This should still look dirty because the child is dirty
-        self.assertEqual(set(['objects']), obj.obj_what_changed())
+        self.assertEqual({'objects'}, obj.obj_what_changed())
         obj.objects[0].obj_reset_changes()
         # This should now look clean because the child is clean
         self.assertEqual(set(), obj.obj_what_changed())
@@ -1849,7 +1849,7 @@ class TestObjectSerializer(_BaseTestCase):
 
     def test_serialize_set_to_list(self):
         ser = base.VersionedObjectSerializer()
-        self.assertEqual([1, 2], ser.serialize_entity(None, set([1, 2])))
+        self.assertEqual([1, 2], ser.serialize_entity(None, {1, 2}))
 
     @mock.patch('oslo_versionedobjects.base.VersionedObject.indirection_api')
     def _test_deserialize_entity_newer(self, obj_version, backported_to,
@@ -2215,7 +2215,7 @@ class TestSchemaGeneration(test.TestCase):
 
 class TestNamespaceCompatibility(test.TestCase):
     def setUp(self):
-        super(TestNamespaceCompatibility, self).setUp()
+        super().setUp()
 
         @base.VersionedObjectRegistry.register_if(False)
         class TestObject(base.VersionedObject):
@@ -2454,7 +2454,7 @@ class TestTimestampedObject(test.TestCase):
     """
 
     def setUp(self):
-        super(TestTimestampedObject, self).setUp()
+        super().setUp()
 
         @base.VersionedObjectRegistry.register_if(False)
         class MyTimestampedObject(base.VersionedObject,
