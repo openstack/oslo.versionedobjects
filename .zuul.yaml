@@ -15,6 +15,11 @@
     parent: grenade-multinode
     voting: false
     irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+      - ^.git.*$
+      - ^.*/locale/.*po$
       - ^(test-|)requirements.txt$
       - ^setup.cfg$
       - ^\.pre-commit-config\.yaml$
