@@ -17,5 +17,6 @@
     irrelevant-files:
       - ^(test-|)requirements.txt$
       - ^setup.cfg$
+      - ^\.pre-commit-config\.yaml$
     required-projects:
       - opendev.org/openstack/oslo.versionedobjects
