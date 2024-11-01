@@ -113,14 +113,14 @@ class OsloOrderedDict(OrderedDict):
         # Python >= 3.12 uses a dict instead of a list which changes the
         # repr of the versioned object and its associated hash value
         # Switch back to using list an use super class name.
-        return '%s(%r)' % (
+        return '{}({!r})'.format(
             self.__class__.__bases__[0].__name__, list(self.items())
         )
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
     def __init__(self, serializer=None):
-        super(FakeIndirectionAPI, self).__init__()
+        super().__init__()
         self._ser = serializer or base.VersionedObjectSerializer()
 
     def _get_changes(self, orig_obj, new_obj):
@@ -139,10 +139,10 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
             [self._ser.deserialize_entity(
                 context, self._ser.serialize_entity(context, arg))
              for arg in args])
-        kwargs = dict(
-            [(argname, self._ser.deserialize_entity(
-                context, self._ser.serialize_entity(context, arg)))
-             for argname, arg in kwargs.items()])
+        kwargs = {
+            argname: self._ser.deserialize_entity(
+                context, self._ser.serialize_entity(context, arg))
+            for argname, arg in kwargs.items()}
         return args, kwargs
 
     def object_action(self, context, objinst, objmethod, args, kwargs):
@@ -199,7 +199,7 @@ class IndirectionFixture(fixtures.Fixture):
         self.indirection_api = indirection_api or FakeIndirectionAPI()
 
     def setUp(self):
-        super(IndirectionFixture, self).setUp()
+        super().setUp()
         self.useFixture(fixtures.MonkeyPatch(
             'oslo_versionedobjects.base.VersionedObject.indirection_api',
             self.indirection_api))
@@ -240,7 +240,7 @@ def get_method_spec(method):
                              fullspec.varkw, fullspec.defaults)
 
 
-class ObjectVersionChecker(object):
+class ObjectVersionChecker:
     def __init__(self, obj_classes=base.VersionedObjectRegistry.obj_classes()):
         self.obj_classes = obj_classes
 
@@ -288,7 +288,7 @@ class ObjectVersionChecker(object):
         if extra_data_func:
             relevant_data += extra_data_func(obj_class)
 
-        fingerprint = '%s-%s' % (obj_class.VERSION, hashlib.md5(
+        fingerprint = '{}-{}'.format(obj_class.VERSION, hashlib.md5(
             bytes(repr(relevant_data).encode()),
             usedforsecurity=False).hexdigest())
         return fingerprint
@@ -344,8 +344,8 @@ class ObjectVersionChecker(object):
     def test_relationships(self, expected_tree):
         actual_tree = self.get_dependency_tree()
 
-        stored = set([(x, str(y)) for x, y in expected_tree.items()])
-        computed = set([(x, str(y)) for x, y in actual_tree.items()])
+        stored = {(x, str(y)) for x, y in expected_tree.items()}
+        computed = {(x, str(y)) for x, y in actual_tree.items()}
         changed = stored.symmetric_difference(computed)
         expected = {}
         actual = {}
@@ -445,7 +445,7 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
     """
 
     def setUp(self):
-        super(VersionedObjectRegistryFixture, self).setUp()
+        super().setUp()
         self._base_test_obj_backup = copy.deepcopy(
             base.VersionedObjectRegistry._registry._obj_classes)
         self.addCleanup(self._restore_obj_registry)
@@ -475,7 +475,7 @@ class StableObjectJsonFixture(fixtures.Fixture):
         self._original_otp = base.VersionedObject.obj_to_primitive
 
     def setUp(self):
-        super(StableObjectJsonFixture, self).setUp()
+        super().setUp()
 
         def _doit(obj, *args, **kwargs):
             result = self._original_otp(obj, *args, **kwargs)

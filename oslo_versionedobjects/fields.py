@@ -33,7 +33,7 @@ from oslo_versionedobjects import exception
 
 class KeyTypeError(TypeError):
     def __init__(self, expected, value):
-        super(KeyTypeError, self).__init__(
+        super().__init__(
             _('Key %(key)s must be of type %(expected)s not %(actual)s'
               ) % {'key': repr(value),
                    'expected': expected.__name__,
@@ -43,7 +43,7 @@ class KeyTypeError(TypeError):
 
 class ElementTypeError(TypeError):
     def __init__(self, expected, key, value):
-        super(ElementTypeError, self).__init__(
+        super().__init__(
             _('Element %(key)s:%(val)s must be of type %(expected)s'
               ' not %(actual)s'
               ) % {'key': key,
@@ -53,7 +53,7 @@ class ElementTypeError(TypeError):
                    })
 
 
-class AbstractFieldType(object, metaclass=abc.ABCMeta):
+class AbstractFieldType(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def coerce(self, obj, attr, value):
         """This is called to coerce (if possible) a value on assignment.
@@ -130,11 +130,11 @@ class FieldType(AbstractFieldType):
         raise NotImplementedError()
 
 
-class UnspecifiedDefault(object):
+class UnspecifiedDefault:
     pass
 
 
-class Field(object):
+class Field:
     def __init__(self, field_type, nullable=False,
                  default=UnspecifiedDefault, read_only=False):
         self._type = field_type
@@ -153,8 +153,8 @@ class Field(object):
             )
         else:
             default = str(self._default)
-        return '%s(default=%s,nullable=%s)' % (self._type.__class__.__name__,
-                                               default, self._nullable)
+        return '{}(default={},nullable={})'.format(
+            self._type.__class__.__name__, default, self._nullable)
 
     @property
     def nullable(self):
@@ -286,7 +286,7 @@ class SensitiveString(String):
     Passwords in the string value are masked when stringified.
     """
     def stringify(self, value):
-        return super(SensitiveString, self).stringify(
+        return super().stringify(
             strutils.mask_password(value))
 
 
@@ -309,11 +309,11 @@ class Enum(String):
         try:
             # Test validity of the values
             for value in valid_values:
-                super(Enum, self).coerce(None, 'init', value)
+                super().coerce(None, 'init', value)
         except (TypeError, ValueError):
             raise exception.EnumValidValuesInvalidError()
         self._valid_values = valid_values
-        super(Enum, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def valid_values(self):
@@ -323,16 +323,16 @@ class Enum(String):
         if value not in self._valid_values:
             msg = _("Field value %s is invalid") % value
             raise ValueError(msg)
-        return super(Enum, self).coerce(obj, attr, value)
+        return super().coerce(obj, attr, value)
 
     def stringify(self, value):
         if value not in self._valid_values:
             msg = _("Field value %s is invalid") % value
             raise ValueError(msg)
-        return super(Enum, self).stringify(value)
+        return super().stringify(value)
 
     def get_schema(self):
-        schema = super(Enum, self).get_schema()
+        schema = super().get_schema()
         schema['enum'] = self._valid_values
         return schema
 
@@ -465,7 +465,7 @@ class FlexibleBoolean(Boolean):
 class DateTime(FieldType):
     def __init__(self, tzinfo_aware=True, *args, **kwargs):
         self.tzinfo_aware = tzinfo_aware
-        super(DateTime, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def coerce(self, obj, attr, value):
         if isinstance(value, str):
@@ -586,7 +586,7 @@ class IPV4Network(IPNetwork):
 class IPV6Network(IPNetwork):
 
     def __init__(self, *args, **kwargs):
-        super(IPV6Network, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.PATTERN = self._create_pattern()
 
     @staticmethod
@@ -684,19 +684,19 @@ class Dict(CompoundFieldType):
         primitive = {}
         for key, element in value.items():
             primitive[key] = self._element_type.to_primitive(
-                obj, '%s["%s"]' % (attr, key), element)
+                obj, '{}["{}"]'.format(attr, key), element)
         return primitive
 
     def from_primitive(self, obj, attr, value):
         concrete = {}
         for key, element in value.items():
             concrete[key] = self._element_type.from_primitive(
-                obj, '%s["%s"]' % (attr, key), element)
+                obj, '{}["{}"]'.format(attr, key), element)
         return concrete
 
     def stringify(self, value):
         return '{%s}' % (
-            ','.join(['%s=%s' % (key, self._element_type.stringify(val))
+            ','.join(['{}={}'.format(key, self._element_type.stringify(val))
                       for key, val in sorted(value.items())]))
 
     def get_schema(self):
@@ -704,7 +704,7 @@ class Dict(CompoundFieldType):
                 'additionalProperties': self._element_type.get_schema()}
 
 
-class DictProxyField(object):
+class DictProxyField:
     """Descriptor allowing us to assign pinning data as a dict of key_types
 
     This allows us to have an object field that will be a dict of key_type
@@ -751,8 +751,8 @@ class Set(CompoundFieldType):
             self._element_type.to_primitive(obj, attr, x) for x in value)
 
     def from_primitive(self, obj, attr, value):
-        return set([self._element_type.from_primitive(obj, attr, x)
-                    for x in value])
+        return {self._element_type.from_primitive(obj, attr, x)
+                for x in value}
 
     def stringify(self, value):
         return 'set([%s])' % (
@@ -767,7 +767,7 @@ class Object(FieldType):
     def __init__(self, obj_name, subclasses=False, **kwargs):
         self._obj_name = obj_name
         self._subclasses = subclasses
-        super(Object, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @staticmethod
     def _get_all_obj_names(obj):
@@ -835,7 +835,7 @@ class Object(FieldType):
         else:
             ident = ''
 
-        return '%s%s' % (value.obj_name(), ident)
+        return '{}{}'.format(value.obj_name(), ident)
 
     def get_schema(self):
         from oslo_versionedobjects import base as obj_base
@@ -890,7 +890,7 @@ class AutoTypedField(Field):
     AUTO_TYPE = None
 
     def __init__(self, **kwargs):
-        super(AutoTypedField, self).__init__(self.AUTO_TYPE, **kwargs)
+        super().__init__(self.AUTO_TYPE, **kwargs)
 
 
 class StringField(AutoTypedField):
@@ -924,7 +924,7 @@ class BaseEnumField(AutoTypedField):
                 typename=self.AUTO_TYPE.__class__.__name__,
                 fieldname=self.__class__.__name__)
 
-        super(BaseEnumField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def __repr__(self):
         valid_values = self._type.valid_values
@@ -933,9 +933,9 @@ class BaseEnumField(AutoTypedField):
             'default': self._default,
             }
         args.update({'valid_values': valid_values})
-        return '%s(%s)' % (self._type.__class__.__name__,
-                           ','.join(['%s=%s' % (k, v)
-                                     for k, v in sorted(args.items())]))
+        return '{}({})'.format(self._type.__class__.__name__,
+                               ','.join(['{}={}'.format(k, v)
+                                         for k, v in sorted(args.items())]))
 
     @property
     def valid_values(self):
@@ -955,7 +955,7 @@ class EnumField(BaseEnumField):
 
     def __init__(self, valid_values, **kwargs):
         self.AUTO_TYPE = Enum(valid_values=valid_values)
-        super(EnumField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class StateMachine(EnumField):
@@ -1009,7 +1009,7 @@ class StateMachine(EnumField):
         return 'unknown'
 
     def coerce(self, obj, attr, value):
-        super(StateMachine, self).coerce(obj, attr, value)
+        super().coerce(obj, attr, value)
         my_name = self._my_name(obj)
         msg = _("%(object)s.%(name)s is not allowed to transition out of "
                 "%(value)s state")
@@ -1113,7 +1113,7 @@ class FlexibleBooleanField(AutoTypedField):
 class DateTimeField(AutoTypedField):
     def __init__(self, tzinfo_aware=True, **kwargs):
         self.AUTO_TYPE = DateTime(tzinfo_aware=tzinfo_aware)
-        super(DateTimeField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class DictOfStringsField(AutoTypedField):
@@ -1139,7 +1139,7 @@ class DictOfListOfStringsField(AutoTypedField):
 class ListOfEnumField(AutoTypedField):
     def __init__(self, valid_values, **kwargs):
         self.AUTO_TYPE = List(Enum(valid_values))
-        super(ListOfEnumField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def __repr__(self):
         valid_values = self._type._element_type._type.valid_values
@@ -1148,9 +1148,9 @@ class ListOfEnumField(AutoTypedField):
             'default': self._default,
             }
         args.update({'valid_values': valid_values})
-        return '%s(%s)' % (self._type.__class__.__name__,
-                           ','.join(['%s=%s' % (k, v)
-                                     for k, v in sorted(args.items())]))
+        return '{}({})'.format(self._type.__class__.__name__,
+                               ','.join(['{}={}'.format(k, v)
+                                         for k, v in sorted(args.items())]))
 
 
 class SetOfIntegersField(AutoTypedField):
@@ -1173,14 +1173,14 @@ class ObjectField(AutoTypedField):
     def __init__(self, objtype, subclasses=False, **kwargs):
         self.AUTO_TYPE = Object(objtype, subclasses)
         self.objname = objtype
-        super(ObjectField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class ListOfObjectsField(AutoTypedField):
     def __init__(self, objtype, subclasses=False, **kwargs):
         self.AUTO_TYPE = List(Object(objtype, subclasses))
         self.objname = objtype
-        super(ListOfObjectsField, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class ListOfUUIDField(AutoTypedField):
@@ -1215,12 +1215,12 @@ class IPV6NetworkField(AutoTypedField):
     AUTO_TYPE = IPV6Network()
 
 
-class CoercedCollectionMixin(object):
+class CoercedCollectionMixin:
     def __init__(self, *args, **kwargs):
         self._element_type = None
         self._obj = None
         self._field = None
-        super(CoercedCollectionMixin, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def enable_coercing(self, element_type, obj, field):
         self._element_type = element_type
@@ -1247,30 +1247,30 @@ class CoercedList(CoercedCollectionMixin, list):
             step = i.step or 1
             coerced_items = [self._coerce_item(start + index * step, item)
                              for index, item in enumerate(y)]
-            super(CoercedList, self).__setitem__(i, coerced_items)
+            super().__setitem__(i, coerced_items)
         else:
-            super(CoercedList, self).__setitem__(i, self._coerce_item(i, y))
+            super().__setitem__(i, self._coerce_item(i, y))
 
     def append(self, x):
-        super(CoercedList, self).append(self._coerce_item(len(self) + 1, x))
+        super().append(self._coerce_item(len(self) + 1, x))
 
     def extend(self, t):
         coerced_items = [self._coerce_item(len(self) + index, item)
                          for index, item in enumerate(t)]
-        super(CoercedList, self).extend(coerced_items)
+        super().extend(coerced_items)
 
     def insert(self, i, x):
-        super(CoercedList, self).insert(i, self._coerce_item(i, x))
+        super().insert(i, self._coerce_item(i, x))
 
     def __iadd__(self, y):
         coerced_items = [self._coerce_item(len(self) + index, item)
                          for index, item in enumerate(y)]
-        return super(CoercedList, self).__iadd__(coerced_items)
+        return super().__iadd__(coerced_items)
 
     def __setslice__(self, i, j, y):
         coerced_items = [self._coerce_item(i + index, item)
                          for index, item in enumerate(y)]
-        return super(CoercedList, self).__setslice__(i, j, coerced_items)
+        return super().__setslice__(i, j, coerced_items)
 
 
 class CoercedDict(CoercedCollectionMixin, dict):
@@ -1290,26 +1290,26 @@ class CoercedDict(CoercedCollectionMixin, dict):
         if not isinstance(key, str):
             raise KeyTypeError(str, key)
         if hasattr(self, "_element_type") and self._element_type is not None:
-            att_name = "%s[%s]" % (self._field, key)
+            att_name = "{}[{}]".format(self._field, key)
             return self._element_type.coerce(self._obj, att_name, item)
         else:
             return item
 
     def __setitem__(self, key, value):
-        super(CoercedDict, self).__setitem__(key,
-                                             self._coerce_item(key, value))
+        super().__setitem__(key,
+                            self._coerce_item(key, value))
 
     def update(self, other=None, **kwargs):
         if other is not None:
-            super(CoercedDict, self).update(self._coerce_dict(other),
-                                            **self._coerce_dict(kwargs))
+            super().update(self._coerce_dict(other),
+                           **self._coerce_dict(kwargs))
         else:
-            super(CoercedDict, self).update(**self._coerce_dict(kwargs))
+            super().update(**self._coerce_dict(kwargs))
 
     def setdefault(self, key, default=None):
-        return super(CoercedDict, self).setdefault(key,
-                                                   self._coerce_item(key,
-                                                                     default))
+        return super().setdefault(key,
+                                  self._coerce_item(key,
+                                                    default))
 
 
 class CoercedSet(CoercedCollectionMixin, set):
@@ -1321,7 +1321,8 @@ class CoercedSet(CoercedCollectionMixin, set):
     def _coerce_element(self, element):
         if hasattr(self, "_element_type") and self._element_type is not None:
             return self._element_type.coerce(self._obj,
-                                             "%s[%s]" % (self._field, element),
+                                             "{}[{}]".format(
+                                                 self._field, element),
                                              element)
         else:
             return element
@@ -1333,17 +1334,17 @@ class CoercedSet(CoercedCollectionMixin, set):
         return coerced
 
     def add(self, value):
-        return super(CoercedSet, self).add(self._coerce_element(value))
+        return super().add(self._coerce_element(value))
 
     def update(self, values):
-        return super(CoercedSet, self).update(self._coerce_iterable(values))
+        return super().update(self._coerce_iterable(values))
 
     def symmetric_difference_update(self, values):
-        return super(CoercedSet, self).symmetric_difference_update(
+        return super().symmetric_difference_update(
             self._coerce_iterable(values))
 
     def __ior__(self, y):
-        return super(CoercedSet, self).__ior__(self._coerce_iterable(y))
+        return super().__ior__(self._coerce_iterable(y))
 
     def __ixor__(self, y):
-        return super(CoercedSet, self).__ixor__(self._coerce_iterable(y))
+        return super().__ixor__(self._coerce_iterable(y))

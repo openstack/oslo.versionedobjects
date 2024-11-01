@@ -49,7 +49,7 @@ class ConvertedException(webob.exc.WSGIHTTPException):
         self.code = code
         self.title = title
         self.explanation = explanation
-        super(ConvertedException, self).__init__()
+        super().__init__()
 
 
 def _cleanse_dict(original):
@@ -122,7 +122,7 @@ class VersionedObjectsException(Exception):
                 # log the issue and the kwargs
                 LOG.exception('Exception in string format operation')
                 for name, value in kwargs.items():
-                    LOG.error("%s: %s" % (name, value))    # noqa
+                    LOG.error("{}: {}".format(name, value))    # noqa
 
                 if CONF.oslo_versionedobjects.fatal_exception_format_errors:
                     raise
@@ -130,7 +130,7 @@ class VersionedObjectsException(Exception):
                     # at least get the core message out if something happened
                     message = self.msg_fmt
 
-        super(VersionedObjectsException, self).__init__(message)
+        super().__init__(message)
 
     def format_message(self):
         # NOTE(mrodden): use the first argument to the python Exception object

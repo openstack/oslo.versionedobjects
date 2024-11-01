@@ -19,7 +19,7 @@ from oslo_versionedobjects import test
 notifier = mock.Mock()
 
 
-class TestWrapper(object):
+class TestWrapper:
     @exception.wrap_exception(notifier=notifier)
     def raise_exc(self, context, exc, admin_password):
         raise exc
