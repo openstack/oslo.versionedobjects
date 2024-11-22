@@ -15,7 +15,6 @@
 import abc
 from collections import abc as collections_abc
 import datetime
-from distutils import versionpredicate
 import re
 import uuid
 import warnings
@@ -25,6 +24,7 @@ import iso8601
 import netaddr
 from oslo_utils import strutils
 from oslo_utils import timeutils
+from oslo_utils import versionutils
 
 from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import _utils
@@ -293,8 +293,12 @@ class SensitiveString(String):
 class VersionPredicate(String):
     @staticmethod
     def coerce(obj, attr, value):
+        if not isinstance(value, str):
+            raise ValueError(_('Version %(val)s should be a string type, not '
+                               '%(real_type)s') %
+                             {'val': value, 'real_type': type(value)})
         try:
-            versionpredicate.VersionPredicate('check (%s)' % value)
+            versionutils.VersionPredicate(value)
         except ValueError:
             raise ValueError(_('Version %(val)s is not a valid predicate in '
                                'field %(attr)s') %
