@@ -16,7 +16,6 @@ import datetime
 from unittest import mock
 import warnings
 
-import iso8601
 import netaddr
 import testtools
 
@@ -572,7 +571,7 @@ class TestFlexibleBoolean(TestField):
 class TestDateTime(TestField):
     def setUp(self):
         super().setUp()
-        self.dt = datetime.datetime(1955, 11, 5, tzinfo=iso8601.iso8601.UTC)
+        self.dt = datetime.datetime(1955, 11, 5, tzinfo=datetime.timezone.utc)
         self.field = fields.DateTimeField()
         self.coerce_good_values = [(self.dt, self.dt),
                                    (_utils.isotime(self.dt), self.dt)]
@@ -585,7 +584,7 @@ class TestDateTime(TestField):
             '1955-11-05T18:00:00Z',
             self.field.stringify(
                 datetime.datetime(1955, 11, 5, 18, 0, 0,
-                                  tzinfo=iso8601.iso8601.UTC)))
+                                  tzinfo=datetime.timezone.utc)))
 
     def test_get_schema(self):
         self.assertEqual({'type': ['string'], 'format': 'date-time',

@@ -20,7 +20,6 @@ import uuid
 import warnings
 
 import copy
-import iso8601
 import netaddr
 from oslo_utils import strutils
 from oslo_utils import timeutils
@@ -485,7 +484,7 @@ class DateTime(FieldType):
             # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
             # but are returned without a timezone attached.
             # As a transitional aid, assume a tz-naive object is in UTC.
-            value = value.replace(tzinfo=iso8601.UTC)
+            value = value.replace(tzinfo=datetime.timezone.utc)
         elif not self.tzinfo_aware:
             value = value.replace(tzinfo=None)
         return value
