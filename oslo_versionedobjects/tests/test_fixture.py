@@ -542,7 +542,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             expected_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '{}-{}'.format(MyObject.VERSION, expected_hash)
+        expected_fp = f'{MyObject.VERSION}-{expected_hash}'
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
@@ -574,7 +574,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '{}-{}'.format(MyObject.VERSION, expected_hash)
+        expected_fp = f'{MyObject.VERSION}-{expected_hash}'
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")
@@ -609,7 +609,7 @@ class TestObjectVersionChecker(test.TestCase):
         # bandit rule while py38 is in our supported runtimes.
         expected_hash = hashlib.md5(bytes(repr(
             exp_relevant_data).encode())).hexdigest()  # nosec
-        expected_fp = '{}-{}'.format(ExtraDataObj.VERSION, expected_hash)
+        expected_fp = f'{ExtraDataObj.VERSION}-{expected_hash}'
 
         self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
                                           "generate a correct fingerprint.")

@@ -122,7 +122,7 @@ class VersionedObjectsException(Exception):
                 # log the issue and the kwargs
                 LOG.exception('Exception in string format operation')
                 for name, value in kwargs.items():
-                    LOG.error("{}: {}".format(name, value))    # noqa
+                    LOG.error(f"{name}: {value}")    # noqa
 
                 if CONF.oslo_versionedobjects.fatal_exception_format_errors:
                     raise

@@ -687,19 +687,19 @@ class Dict(CompoundFieldType):
         primitive = {}
         for key, element in value.items():
             primitive[key] = self._element_type.to_primitive(
-                obj, '{}["{}"]'.format(attr, key), element)
+                obj, f'{attr}["{key}"]', element)
         return primitive
 
     def from_primitive(self, obj, attr, value):
         concrete = {}
         for key, element in value.items():
             concrete[key] = self._element_type.from_primitive(
-                obj, '{}["{}"]'.format(attr, key), element)
+                obj, f'{attr}["{key}"]', element)
         return concrete
 
     def stringify(self, value):
         return '{%s}' % (
-            ','.join(['{}={}'.format(key, self._element_type.stringify(val))
+            ','.join([f'{key}={self._element_type.stringify(val)}'
                       for key, val in sorted(value.items())]))
 
     def get_schema(self):
@@ -838,7 +838,7 @@ class Object(FieldType):
         else:
             ident = ''
 
-        return '{}{}'.format(value.obj_name(), ident)
+        return f'{value.obj_name()}{ident}'
 
     def get_schema(self):
         from oslo_versionedobjects import base as obj_base
@@ -937,7 +937,7 @@ class BaseEnumField(AutoTypedField):
             }
         args.update({'valid_values': valid_values})
         return '{}({})'.format(self._type.__class__.__name__,
-                               ','.join(['{}={}'.format(k, v)
+                               ','.join([f'{k}={v}'
                                          for k, v in sorted(args.items())]))
 
     @property
@@ -1152,7 +1152,7 @@ class ListOfEnumField(AutoTypedField):
             }
         args.update({'valid_values': valid_values})
         return '{}({})'.format(self._type.__class__.__name__,
-                               ','.join(['{}={}'.format(k, v)
+                               ','.join([f'{k}={v}'
                                          for k, v in sorted(args.items())]))
 
 
@@ -1293,7 +1293,7 @@ class CoercedDict(CoercedCollectionMixin, dict):
         if not isinstance(key, str):
             raise KeyTypeError(str, key)
         if hasattr(self, "_element_type") and self._element_type is not None:
-            att_name = "{}[{}]".format(self._field, key)
+            att_name = f"{self._field}[{key}]"
             return self._element_type.coerce(self._obj, att_name, item)
         else:
             return item

@@ -866,7 +866,7 @@ class TestListOfUUIDField(TestField):
         self.from_primitive_values = [([self.uuid1], [self.uuid1])]
 
     def test_stringify(self):
-        self.assertEqual('[{},{}]'.format(self.uuid1, self.uuid2),
+        self.assertEqual(f'[{self.uuid1},{self.uuid2}]',
                          self.field.stringify([self.uuid1, self.uuid2]))
 
 

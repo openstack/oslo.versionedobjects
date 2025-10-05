@@ -83,7 +83,7 @@ def _make_class_properties(cls):
                 return setattr(self, attrname, field_value)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    attr = "{}.{}".format(self.obj_name(), name)
+                    attr = f"{self.obj_name()}.{name}"
                     LOG.exception('Error setting %(attr)s',
                                   {'attr': attr})
 
@@ -343,7 +343,7 @@ class VersionedObject:
 
     @classmethod
     def _obj_primitive_key(cls, field):
-        return '{}.{}'.format(cls.OBJ_SERIAL_NAMESPACE, field)
+        return f'{cls.OBJ_SERIAL_NAMESPACE}.{field}'
 
     @classmethod
     def _obj_primitive_field(cls, primitive, field,
@@ -408,7 +408,7 @@ class VersionedObject:
             # NOTE(danms): We don't do anything with this now, but it's
             # there for "the future"
             raise exception.UnsupportedObjectError(
-                objtype='{}.{}'.format(objns, objname))
+                objtype=f'{objns}.{objname}')
         objclass = cls.obj_class_from_name(objname, objver)
         return objclass._obj_from_primitive(context, objver, primitive)
 
