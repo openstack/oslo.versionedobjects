@@ -37,3 +37,7 @@ Repository = "https://opendev.org/openstack/oslo.versionedobjects"
 packages = [
     "oslo_versionedobjects"
 ]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ['B303']
