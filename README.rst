@@ -1,15 +1,10 @@
-========================
-Team and repository tags
-========================
-
-.. image:: https://governance.openstack.org/tc/badges/oslo.versionedobjects.svg
-    :target: https://governance.openstack.org/tc/reference/tags/index.html
-
-.. Change things from this point on
-
 =====================
 oslo.versionedobjects
 =====================
+
+.. image:: https://governance.openstack.org/tc/badges/oslo.versionedobjects.svg
+
+.. Change things from this point on
 
 .. image:: https://img.shields.io/pypi/v/oslo.versionedobjects.svg
     :target: https://pypi.org/project/oslo.versionedobjects/
