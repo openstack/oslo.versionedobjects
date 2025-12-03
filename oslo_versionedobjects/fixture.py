@@ -364,8 +364,8 @@ class ObjectVersionChecker:
         for n in range(version[1] + 1):
             test_version = '%d.%d' % (version[0], n)
             # Run the test with OS_DEBUG=True to see this.
-            LOG.debug('testing obj: %s version: %s' %
-                      (obj_class.obj_name(), test_version))
+            LOG.debug('testing obj: %s version: %s',
+                      obj_class.obj_name(), test_version)
             kwargs['target_version'] = test_version
             obj_class(*init_args, **init_kwargs).obj_to_primitive(**kwargs)
 
