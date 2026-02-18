@@ -192,7 +192,7 @@ class TestRegistry(test.TestCase):
     def test_obj_tracking(self):
 
         @base.VersionedObjectRegistry.register
-        class NewBaseClass:
+        class NewBaseClass(base.VersionedObject):
             VERSION = '1.0'
             fields = {}
 
@@ -328,8 +328,8 @@ class TestRegistry(test.TestCase):
         self.assertIn(
             'AVersionedObject2', base.VersionedObjectRegistry.obj_classes()
         )
-        self.assertEqual(AVersionedObject1.reg_to, "one")
-        self.assertEqual(AVersionedObject2.reg_to, "two")
+        self.assertEqual(AVersionedObject1.reg_to, "one")  # type: ignore[attr-defined]
+        self.assertEqual(AVersionedObject2.reg_to, "two")  # type: ignore[attr-defined]
 
     @mock.patch.object(base.VersionedObjectRegistry, '__new__')
     def test_register(self, mock_registry):
@@ -337,7 +337,7 @@ class TestRegistry(test.TestCase):
         mock_registry.return_value = mock_reg_obj
         mock_reg_obj._register_class = mock.Mock()
 
-        class my_class:
+        class my_class(base.VersionedObject):
             pass
 
         base.VersionedObjectRegistry.register(my_class)
@@ -345,7 +345,7 @@ class TestRegistry(test.TestCase):
 
     @mock.patch.object(base.VersionedObjectRegistry, 'register')
     def test_register_if(self, mock_register):
-        class my_class:
+        class my_class(base.VersionedObject):
             pass
 
         base.VersionedObjectRegistry.register_if(True)(my_class)
@@ -353,7 +353,7 @@ class TestRegistry(test.TestCase):
 
     @mock.patch.object(base, '_make_class_properties')
     def test_register_if_false(self, mock_make_props):
-        class my_class:
+        class my_class(base.VersionedObject):
             pass
 
         base.VersionedObjectRegistry.register_if(False)(my_class)
@@ -364,7 +364,7 @@ class TestRegistry(test.TestCase):
         mock_reg_callable = mock.Mock()
         mock_register_if.return_value = mock_reg_callable
 
-        class my_class:
+        class my_class(base.VersionedObject):
             pass
 
         base.VersionedObjectRegistry.objectify(my_class)
@@ -376,7 +376,7 @@ class TestRegistry(test.TestCase):
 class TestObjMakeList(test.TestCase):
     def test_obj_make_list(self):
         @base.VersionedObjectRegistry.register
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(base.ObjectListBase[MyObj], base.VersionedObject):
             fields = {
                 'objects': fields.ListOfObjectsField('MyObj'),
             }
@@ -432,7 +432,9 @@ class TestDoSubobjectBackport(test.TestCase):
         obj_relationships = {'child': [('1.0', '1.0'), ('1.1', '1.1')]}
 
     @base.VersionedObjectRegistry.register
-    class ParentObjList(base.VersionedObject, base.ObjectListBase):
+    class ParentObjList(
+        base.VersionedObject, base.ObjectListBase[base.VersionedObject]
+    ):
         VERSION = '1.1'
         fields = {'objects': fields.ListOfObjectsField('ChildObj')}
         obj_relationships = {'objects': [('1.0', '1.0'), ('1.1', '1.1')]}
@@ -646,7 +648,6 @@ class TestFixture(_BaseTestCase):
     def test_test_relationships(self):
         checker = fixture.ObjectVersionChecker()
         tree = checker.get_dependency_tree()
-        actual = tree['TestSubclassedObject']
         tree['TestSubclassedObject']['Foo'] = '9.8'
         expected, actual = checker.test_relationships(tree)
         self.assertEqual(['TestSubclassedObject'], list(expected.keys()))
@@ -814,7 +815,7 @@ class _RemoteTest(_BaseTestCase):
         self.useFixture(fixture.IndirectionFixture())
 
 
-class _TestObject:
+class _TestObject(_BaseTestCase):
     # def test_object_attrs_in_init(self):
     #     # Spot check a few
     #     objects.Instance
@@ -1153,7 +1154,7 @@ class _TestObject:
         self.assertRaises(AttributeError, obj.get, 'nothing', 3)
 
     def test_object_inheritance(self):
-        base_fields = []
+        base_fields: list[str] = []
         myobj_fields = [
             'foo',
             'bar',
@@ -1491,7 +1492,9 @@ class _TestObject:
 
     def test_obj_make_compatible_on_list_base(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             VERSION = '1.1'
             fields = {'objects': fields.ListOfObjectsField('MyObj')}
 
@@ -1794,7 +1797,7 @@ class TestObjectListBase(test.TestCase):
                 super().__init__()
                 self.foo = foo
 
-        class Foo(base.ObjectListBase, base.VersionedObject):
+        class Foo(base.ObjectListBase[MyElement], base.VersionedObject):
             fields = {'objects': fields.ListOfObjectsField('MyElement')}
 
         objlist = Foo(
@@ -1813,19 +1816,19 @@ class TestObjectListBase(test.TestCase):
 
     def test_serialization(self):
         @base.VersionedObjectRegistry.register
-        class Foo(base.ObjectListBase, base.VersionedObject):
-            fields = {'objects': fields.ListOfObjectsField('Bar')}
-
-        @base.VersionedObjectRegistry.register
         class Bar(base.VersionedObject):
             fields = {'foo': fields.Field(fields.String())}
+
+        @base.VersionedObjectRegistry.register
+        class Foo(base.ObjectListBase[Bar], base.VersionedObject):
+            fields = {'objects': fields.ListOfObjectsField('Bar')}
 
         obj = Foo(objects=[])
         for i in 'abc':
             bar = Bar(foo=i)
             obj.objects.append(bar)
 
-        obj2 = base.VersionedObject.obj_from_primitive(obj.obj_to_primitive())
+        obj2 = Foo.obj_from_primitive(obj.obj_to_primitive())
         self.assertFalse(obj is obj2)
         self.assertEqual([x.foo for x in obj], [y.foo for y in obj2])
 
@@ -1862,7 +1865,9 @@ class TestObjectListBase(test.TestCase):
             fields = {'foo': fields.IntegerField()}
 
         @base.VersionedObjectRegistry.register
-        class Foo(base.ObjectListBase, base.VersionedObject):
+        class Foo(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             VERSION = '1.1'
             fields = {'objects': fields.ListOfObjectsField('MyElement')}
             child_versions = {'1.0': '1.0', '1.1': '1.0'}
@@ -1881,7 +1886,9 @@ class TestObjectListBase(test.TestCase):
             fields = {'foo': fields.IntegerField()}
 
         @base.VersionedObjectRegistry.register
-        class Bar(base.ObjectListBase, base.VersionedObject):
+        class Bar(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             VERSION = '1.1'
             fields = {'objects': fields.ListOfObjectsField('MyElement')}
             obj_relationships = {'objects': [('1.0', '1.0'), ('1.1', '1.0')]}
@@ -1900,7 +1907,9 @@ class TestObjectListBase(test.TestCase):
             fields = {'foo': fields.IntegerField()}
 
         @base.VersionedObjectRegistry.register
-        class Baz(base.ObjectListBase, base.VersionedObject):
+        class Baz(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             VERSION = '1.1'
             fields = {'objects': fields.ListOfObjectsField('MyElement')}
 
@@ -1914,7 +1923,9 @@ class TestObjectListBase(test.TestCase):
 
     def test_list_changes(self):
         @base.VersionedObjectRegistry.register
-        class Foo(base.ObjectListBase, base.VersionedObject):
+        class Foo(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
         @base.VersionedObjectRegistry.register
@@ -1933,7 +1944,9 @@ class TestObjectListBase(test.TestCase):
         self.assertEqual(set(), obj.obj_what_changed())
 
     def test_initialize_objects(self):
-        class Foo(base.ObjectListBase, base.VersionedObject):
+        class Foo(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
         class Bar(base.VersionedObject):
@@ -1945,7 +1958,9 @@ class TestObjectListBase(test.TestCase):
 
     def test_obj_repr(self):
         @base.VersionedObjectRegistry.register
-        class Foo(base.ObjectListBase, base.VersionedObject):
+        class Foo(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('Bar')}
 
         @base.VersionedObjectRegistry.register
@@ -2041,14 +2056,6 @@ class TestObjectSerializer(_BaseTestCase):
     def _test_nested_backport(self, old):
         @base.VersionedObjectRegistry.register
         class Parent(base.VersionedObject):
-            VERSION = '1.0'
-
-            fields = {
-                'child': fields.ObjectField('MyObj'),
-            }
-
-        @base.VersionedObjectRegistry.register  # noqa
-        class Parent(base.VersionedObject):  # noqa
             VERSION = '1.1'
 
             fields = {
@@ -2107,8 +2114,8 @@ class TestObjectSerializer(_BaseTestCase):
             for item in thing2:
                 self.assertIsInstance(item, MyObj)
         # dict case
-        thing = {'key': obj}
-        primitive = ser.serialize_entity(self.context, thing)
+        thing_dict = {'key': obj}
+        primitive = ser.serialize_entity(self.context, thing_dict)
         self.assertEqual(1, len(primitive))
         for item in primitive.values():
             self.assertNotIsInstance(item, base.VersionedObject)
@@ -2118,10 +2125,10 @@ class TestObjectSerializer(_BaseTestCase):
             self.assertIsInstance(item, MyObj)
 
         # object-action updates dict case
-        thing = {'foo': obj.obj_to_primitive()}
-        primitive = ser.serialize_entity(self.context, thing)
-        self.assertEqual(thing, primitive)
-        thing2 = ser.deserialize_entity(self.context, thing)
+        thing_prim = {'foo': obj.obj_to_primitive()}
+        primitive = ser.serialize_entity(self.context, thing_prim)
+        self.assertEqual(thing_prim, primitive)
+        thing2 = ser.deserialize_entity(self.context, thing_prim)
         self.assertIsInstance(thing2['foo'], base.VersionedObject)
 
     def test_serializer_subclass_namespace(self):
@@ -2535,15 +2542,19 @@ class TestUtilityMethods(test.TestCase):
             base.obj_tree_get_versions,
             'TestObjectFoo',
         )
+        # assertRaises() with a callable returns the exception directly;
+        # isinstance narrows the type so mypy knows format_message() is valid
+        assert isinstance(exc, exception.UnregisteredSubobject)
         self.assertIn(
-            'TestChildBar is referenced by TestObjectFoo', exc.format_message()
+            'TestChildBar is referenced by TestObjectFoo',
+            exc.format_message(),
         )
 
 
 class TestListObjectConcat(test.TestCase):
     def test_list_object_concat(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(base.ObjectListBase[MyOwnedObject], base.VersionedObject):
             fields = {'objects': fields.ListOfObjectsField('MyOwnedObject')}
 
         values = [1, 2, 42]
@@ -2569,11 +2580,15 @@ class TestListObjectConcat(test.TestCase):
 
     def test_list_object_concat_fails_different_objects(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('MyOwnedObject')}
 
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList2(base.ObjectListBase, base.VersionedObject):
+        class MyList2(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('MyOwnedObject')}
 
         list1 = MyList(objects=[MyOwnedObject(baz=1)])
@@ -2591,7 +2606,9 @@ class TestListObjectConcat(test.TestCase):
 
     def test_list_object_concat_fails_extra_fields(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {
                 'objects': fields.ListOfObjectsField('MyOwnedObject'),
                 'foo': fields.IntegerField(nullable=True),
@@ -2612,7 +2629,9 @@ class TestListObjectConcat(test.TestCase):
 
     def test_builtin_list_add_fails(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('MyOwnedObject')}
 
         list1 = MyList(objects=[MyOwnedObject(baz=1)])
@@ -2624,7 +2643,9 @@ class TestListObjectConcat(test.TestCase):
 
     def test_builtin_list_radd_fails(self):
         @base.VersionedObjectRegistry.register_if(False)
-        class MyList(base.ObjectListBase, base.VersionedObject):
+        class MyList(
+            base.ObjectListBase[base.VersionedObject], base.VersionedObject
+        ):
             fields = {'objects': fields.ListOfObjectsField('MyOwnedObject')}
 
         list1 = MyList(objects=[MyOwnedObject(baz=1)])
@@ -2633,6 +2654,13 @@ class TestListObjectConcat(test.TestCase):
             return [] + obj
 
         self.assertRaises(TypeError, add, list1)
+
+
+@base.VersionedObjectRegistry.register_if(False)
+class MyTimestampedObject(base.VersionedObject, base.TimestampedObject):
+    fields = {
+        'field1': fields.Field(fields.String()),
+    }
 
 
 class TestTimestampedObject(test.TestCase):
@@ -2644,15 +2672,6 @@ class TestTimestampedObject(test.TestCase):
 
     def setUp(self):
         super().setUp()
-
-        @base.VersionedObjectRegistry.register_if(False)
-        class MyTimestampedObject(
-            base.VersionedObject, base.TimestampedObject
-        ):
-            fields = {
-                'field1': fields.Field(fields.String()),
-            }
-
         self.myclass = MyTimestampedObject
         self.my_object = self.myclass(field1='field1')
 
@@ -2663,13 +2682,15 @@ class TestTimestampedObject(test.TestCase):
 
     def test_timestamped_holds_timestamps(self):
         now = timeutils.utcnow(with_timezone=True)
-        self.my_object.updated_at = now
-        self.my_object.created_at = now
-        self.assertEqual(now, self.my_object.updated_at)
-        self.assertEqual(now, self.my_object.created_at)
+        self.my_object.updated_at = now  # type: ignore[attr-defined]
+        self.my_object.created_at = now  # type: ignore[attr-defined]
+        self.assertEqual(now, self.my_object.updated_at)  # type: ignore[attr-defined]
+        self.assertEqual(now, self.my_object.created_at)  # type: ignore[attr-defined]
 
     def test_timestamped_rejects_not_timestamps(self):
+        # we are intentionally assigning the wrong types hence the type ignores
         with testtools.ExpectedException(ValueError, '.*parse date.*'):
-            self.my_object.updated_at = 'a string'
+            self.my_object.updated_at = 'a string'  # type: ignore[attr-defined]
+
         with testtools.ExpectedException(ValueError, '.*parse date.*'):
-            self.my_object.created_at = 'a string'
+            self.my_object.created_at = 'a string'  # type: ignore[attr-defined]

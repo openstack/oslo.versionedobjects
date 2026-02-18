@@ -16,6 +16,7 @@ import copy
 import datetime
 import hashlib
 import inspect
+from typing import Any
 from unittest import mock
 
 from oslo_versionedobjects import base
@@ -54,7 +55,7 @@ class MyExtraObject(base.VersionedObject):
 
 
 @base.VersionedObjectRegistry.register_if(False)
-class MyListObject(base.ObjectListBase, base.VersionedObject):
+class MyListObject(base.ObjectListBase[MyObject], base.VersionedObject):
     fields = {'objects': fields.ListOfObjectsField('MyObject')}
 
 
@@ -373,7 +374,7 @@ class TestObjectVersionChecker(test.TestCase):
         with mock.patch.object(self.ovc, '_get_dependencies') as mock_gd:
             self.ovc.get_dependency_tree()
 
-        expected_calls = [(({}, MyObject),), (({}, MyObject2),)]
+        expected_calls: list[Any] = [(({}, MyObject),), (({}, MyObject2),)]
 
         self.assertEqual(
             2,
@@ -393,7 +394,7 @@ class TestObjectVersionChecker(test.TestCase):
     def test_test_relationships_none_changed(self):
         # Make sure test_relationships() generates an empty dictionary when
         # no relationships have been changed
-        dep_tree = {}
+        dep_tree: dict[str, Any] = {}
         # tree will be {'MyObject': {'MyObject2': '1.0'}}
         self._add_dependency(MyObject, MyObject2, dep_tree)
 
@@ -417,8 +418,8 @@ class TestObjectVersionChecker(test.TestCase):
     def test_test_relationships_rel_added(self):
         # Make sure expected and actual relationships differ if a
         # relationship is added to a class
-        exp_tree = {}
-        actual_tree = {}
+        exp_tree: dict[str, Any] = {}
+        actual_tree: dict[str, Any] = {}
         self._add_dependency(MyObject, MyObject2, exp_tree)
         self._add_dependency(MyObject, MyObject2, actual_tree)
         self._add_dependency(MyObject, MyExtraObject, actual_tree)
@@ -448,8 +449,8 @@ class TestObjectVersionChecker(test.TestCase):
     def test_test_relationships_class_added(self):
         # Make sure expected and actual relationships differ if a new
         # class is added to the relationship tree
-        exp_tree = {}
-        actual_tree = {}
+        exp_tree: dict[str, Any] = {}
+        actual_tree: dict[str, Any] = {}
         self._add_dependency(MyObject, MyObject2, exp_tree)
         self._add_dependency(MyObject, MyObject2, actual_tree)
         self._add_dependency(MyObject2, MyExtraObject, actual_tree)
@@ -710,7 +711,7 @@ class TestObjectVersionChecker(test.TestCase):
         self._add_class(self.obj_classes, MyExtraObject)
         MyObject.fields['subob'] = fields.ObjectField('MyExtraObject')
         MyExtraObject.VERSION = '1.0'
-        tree = {}
+        tree: dict[str, dict[str, str]] = {}
 
         self.ovc._get_dependencies(tree, MyObject)
 

@@ -13,6 +13,7 @@
 #    under the License.
 
 import datetime
+from typing import Any
 from unittest import mock
 import warnings
 
@@ -97,11 +98,11 @@ class TestFieldType(test.TestCase):
 class TestField(test.TestCase):
     def setUp(self):
         super().setUp()
-        self.field = fields.Field(FakeFieldType())
-        self.coerce_good_values = [('foo', '*foo*')]
-        self.coerce_bad_values = []
-        self.to_primitive_values = [('foo', '!foo!')]
-        self.from_primitive_values = [('!foo!', 'foo')]
+        self.field: Any = fields.Field(FakeFieldType())
+        self.coerce_good_values: list[tuple[Any, Any]] = [('foo', '*foo*')]
+        self.coerce_bad_values: list[Any] = []
+        self.to_primitive_values: list[tuple[Any, Any]] = [('foo', '!foo!')]
+        self.from_primitive_values: list[tuple[Any, Any]] = [('!foo!', 'foo')]
 
     def test_coerce_good_values(self):
         for in_val, out_val in self.coerce_good_values:
@@ -109,9 +110,8 @@ class TestField(test.TestCase):
 
     def test_coerce_bad_values(self):
         for in_val in self.coerce_bad_values:
-            # https://github.com/testing-cabal/testtools/pull/577
             self.assertRaises(
-                (TypeError, ValueError),  # type: ignore[arg-type]
+                (TypeError, ValueError),
                 self.field.coerce,
                 None,
                 'attr',

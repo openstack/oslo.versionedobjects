@@ -42,7 +42,7 @@ def _make_fields_assignment(*field_names_and_fullnames):
 
     Each argument should be a ``(field_name, field_type_fullname)`` tuple.
     """
-    items = []
+    items: list[tuple[nodes.Expression | None, nodes.Expression]] = []
     for field_name, field_type_fullname in field_names_and_fullnames:
         key = nodes.StrExpr(field_name)
         callee = nodes.NameExpr(field_type_fullname.split('.')[-1])
@@ -386,7 +386,7 @@ class TestAddOvoMembersToClass(test.TestCase):
             ('name', 'oslo_versionedobjects.fields.StringField'),
         )
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
-        processed = set()
+        processed: set[str] = set()
         self.plugin._add_ovo_members_to_class(
             ctx, assignment.rvalue, processed
         )
@@ -399,7 +399,7 @@ class TestAddOvoMembersToClass(test.TestCase):
         )
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
         # Pre-populate processed_fields as if a derived class defined 'id'
-        processed = {'id'}
+        processed: set[str] = {'id'}
         self.plugin._add_ovo_members_to_class(
             ctx, assignment.rvalue, processed
         )
@@ -416,7 +416,7 @@ class TestAddOvoMembersToClass(test.TestCase):
         lvalue = nodes.NameExpr('fields')
         assignment = nodes.AssignmentStmt([lvalue], dict_expr)
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
-        processed = set()
+        processed: set[str] = set()
         self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
         ctx.api.fail.assert_called_once()
 

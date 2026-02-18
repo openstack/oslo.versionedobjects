@@ -42,7 +42,7 @@ class IOTLightbulb(base.VersionedObject):
 # Now do some basic operations on a light bulb.
 bulb = IOTLightbulb(serial='abc-123', manufactured_on=datetime.now())
 print(f"The __str__() output of this new object: {bulb}")
-print(f"The 'serial' field of the object: {bulb.serial}")  # type: ignore[attr-defined]
+print(f"The 'serial' field of the object: {bulb.serial}")
 bulb_prim = bulb.obj_to_primitive()
 print(f"Primitive representation of this object: {bulb_prim}")
 
