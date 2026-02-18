@@ -399,7 +399,7 @@ class TestAddOvoMembersToClass(test.TestCase):
         )
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
         # Pre-populate processed_fields as if a derived class defined 'id'
-        processed: set[str] = {'id'}
+        processed = {'id'}
         self.plugin._add_ovo_members_to_class(
             ctx, assignment.rvalue, processed
         )
@@ -416,7 +416,7 @@ class TestAddOvoMembersToClass(test.TestCase):
         lvalue = nodes.NameExpr('fields')
         assignment = nodes.AssignmentStmt([lvalue], dict_expr)
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
-        processed: set[str] = set()
+        processed = set()
         self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
         ctx.api.fail.assert_called_once()
 

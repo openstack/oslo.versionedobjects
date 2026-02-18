@@ -13,7 +13,7 @@
 #    under the License.
 
 import abc
-from collections import abc as collections_abc
+from collections.abc import Iterable, Mapping
 import datetime
 import re
 import uuid
@@ -703,7 +703,7 @@ class CoercedList(CoercedCollectionMixin, list):
     def insert(self, i, x):
         super().insert(i, self._coerce_item(i, x))
 
-    def __iadd__(self, y):
+    def __iadd__(self, y):  # type: ignore[misc]
         coerced_items = [
             self._coerce_item(len(self) + index, item)
             for index, item in enumerate(y)
@@ -787,10 +787,10 @@ class CoercedSet(CoercedCollectionMixin, set):
             self._coerce_iterable(values)
         )
 
-    def __ior__(self, y):
+    def __ior__(self, y):  # type: ignore[misc]
         return super().__ior__(self._coerce_iterable(y))
 
-    def __ixor__(self, y):
+    def __ixor__(self, y):  # type: ignore[misc]
         return super().__ixor__(self._coerce_iterable(y))
 
 
@@ -810,8 +810,8 @@ class CompoundFieldType(FieldType):
 class List(CompoundFieldType):
     def coerce(self, obj, attr, value):
 
-        if not isinstance(value, collections_abc.Iterable) or isinstance(
-            value, (str, collections_abc.Mapping)
+        if not isinstance(value, Iterable) or isinstance(
+            value, (str, Mapping)
         ):
             raise ValueError(
                 _('A list is required in field %(attr)s, not a %(type)s')
@@ -1077,7 +1077,7 @@ class Object(FieldType):
 
 
 class AutoTypedField(Field):
-    AUTO_TYPE = None
+    AUTO_TYPE: FieldType | None = None
 
     def __init__(self, **kwargs):
         super().__init__(self.AUTO_TYPE, **kwargs)
@@ -1190,7 +1190,7 @@ class StateMachine(EnumField):
     # This is dict of states, that have dicts of states an object is
     # allowed to transition to
 
-    ALLOWED_TRANSITIONS = {}
+    ALLOWED_TRANSITIONS: dict[str, set[str]] = {}
 
     def _my_name(self, obj):
         for name, field in obj.fields.items():

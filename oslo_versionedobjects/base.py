@@ -16,7 +16,7 @@
 
 import abc
 import collections
-from collections import abc as collections_abc
+from collections.abc import Mapping, Sequence
 import copy
 import functools
 import logging
@@ -353,8 +353,8 @@ class VersionedObject:
     # fields = { 'foo': obj_fields.IntegerField(),
     #            'bar': obj_fields.StringField(),
     #          }
-    fields = {}
-    obj_extra_fields = []
+    fields: Mapping[str, obj_fields.Field] = {}
+    obj_extra_fields: Sequence[str] = []
 
     # Table of sub-object versioning information
     #
@@ -380,7 +380,7 @@ class VersionedObject:
     # - If we are asked to backlevel our object to version 1.1, we
     #   will remove both subobject1 and subobject2 from the primitive,
     #   since they were not added until version 1.2.
-    obj_relationships = {}
+    obj_relationships: dict[str, list[tuple[str, str]]] = {}
 
     def __init__(self, context=None, **kwargs):
         self._changed_fields = set()
@@ -889,7 +889,7 @@ class VersionedObjectDictCompat:
             setattr(self, key, value)
 
 
-class ObjectListBase(collections_abc.Sequence):
+class ObjectListBase(Sequence):
     """Mixin class for lists of objects.
 
     This mixin class can be added as a base class for an object that
@@ -905,7 +905,7 @@ class ObjectListBase(collections_abc.Sequence):
     # This is a dictionary of my_version:child_version mappings so that
     # we can support backleveling our contents based on the version
     # requested of the list object.
-    child_versions = {}
+    child_versions: Mapping[str, str] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
