@@ -38,6 +38,16 @@ packages = [
     "oslo_versionedobjects"
 ]
 
-[tool.bandit]
-exclude_dirs = ["tests"]
-skips = ['B303']
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "preserve"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E4", "E5", "E7", "E9", "F", "G", "LOG", "S", "UP"]
+external = ["H"]
+
+[tool.ruff.lint.per-file-ignores]
+"oslo_versionedobjects/tests/*" = ["S"]

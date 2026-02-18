@@ -46,7 +46,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'oslo.versionedobjects'
 copyright = '2014, OpenStack Foundation'
-source_tree = 'https://opendev.org/openstack/%s' % project
+source_tree = f'https://opendev.org/openstack/{project}'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -57,8 +57,10 @@ add_module_names = True
 
 # Shortened external links.
 extlinks = {
-    'example': (source_tree +
-                '/%s/examples/%%s.py' % project.replace(".", "_"), None),
+    'example': (
+        source_tree + '/{}/examples/%s.py'.format(project.replace(".", "_")),
+        None,
+    ),
 }
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -75,14 +77,17 @@ html_theme = 'openstackdocs'
 
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
+htmlhelp_basename = f'{project}doc'
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index',
-     '%s.tex' % project,
-     '%s Documentation' % project,
-     'OpenStack Foundation', 'manual'),
+    (
+        'index',
+        f'{project}.tex',
+        f'{project} Documentation',
+        'OpenStack Foundation',
+        'manual',
+    ),
 ]

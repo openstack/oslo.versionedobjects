@@ -40,8 +40,9 @@ from oslo_versionedobjects import fields
 LOG = logging.getLogger(__name__)
 
 
-def compare_obj(test, obj, db_obj, subs=None, allow_missing=None,
-                comparators=None):
+def compare_obj(
+    test, obj, db_obj, subs=None, allow_missing=None, comparators=None
+):
     """Compare a VersionedObject and a dict-like database object.
 
     This automatically converts TZ-aware datetimes and iterates over
@@ -74,16 +75,18 @@ def compare_obj(test, obj, db_obj, subs=None, allow_missing=None,
             continue
         # If it's set on the object and not on the db_obj, they aren't equal
         elif obj.obj_attr_is_set(key) and db_key not in db_obj:
-            raise AssertionError(("%s (db_key: %s) is set on the object, but "
-                                  "not on the db_obj, so the objects are not "
-                                  "equal")
-                                 % (key, db_key))
+            raise AssertionError(
+                f"{key} (db_key: {db_key}) is set on the object, but "
+                "not on the db_obj, so the objects are not "
+                "equal"
+            )
         # If it's set on the db_obj and not the object, they aren't equal
         elif not obj.obj_attr_is_set(key) and db_key in db_obj:
-            raise AssertionError(("%s (db_key: %s) is set on the db_obj, but "
-                                  "not on the object, so the objects are not "
-                                  "equal")
-                                 % (key, db_key))
+            raise AssertionError(
+                f"{key} (db_key: {db_key}) is set on the db_obj, but "
+                "not on the object, so the objects are not "
+                "equal"
+            )
 
         # All of the checks above have safeguarded us, so we know we will
         # get an obj_val and db_val without issue
@@ -108,13 +111,13 @@ class OsloOrderedDict(OrderedDict):
     @recursive_repr()
     def __repr__(self):
         if not self:
-            return '%s()' % self.__class__.__bases__[0].__name__
+            return f'{self.__class__.__bases__[0].__name__}()'
         # NOTE(jamespage):
         # Python >= 3.12 uses a dict instead of a list which changes the
         # repr of the versioned object and its associated hash value
         # Switch back to using list an use super class name.
-        return '{}({!r})'.format(
-            self.__class__.__bases__[0].__name__, list(self.items())
+        return (
+            f'{self.__class__.__bases__[0].__name__}({list(self.items())!r})'
         )
 
 
@@ -128,67 +131,89 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         for name, field in new_obj.fields.items():
             if not new_obj.obj_attr_is_set(name):
                 continue
-            if (not orig_obj.obj_attr_is_set(name) or
-                    getattr(orig_obj, name) != getattr(new_obj, name)):
-                updates[name] = field.to_primitive(new_obj, name,
-                                                   getattr(new_obj, name))
+            if not orig_obj.obj_attr_is_set(name) or getattr(
+                orig_obj, name
+            ) != getattr(new_obj, name):
+                updates[name] = field.to_primitive(
+                    new_obj, name, getattr(new_obj, name)
+                )
         return updates
 
     def _canonicalize_args(self, context, args, kwargs):
         args = tuple(
-            [self._ser.deserialize_entity(
-                context, self._ser.serialize_entity(context, arg))
-             for arg in args])
+            [
+                self._ser.deserialize_entity(
+                    context, self._ser.serialize_entity(context, arg)
+                )
+                for arg in args
+            ]
+        )
         kwargs = {
             argname: self._ser.deserialize_entity(
-                context, self._ser.serialize_entity(context, arg))
-            for argname, arg in kwargs.items()}
+                context, self._ser.serialize_entity(context, arg)
+            )
+            for argname, arg in kwargs.items()
+        }
         return args, kwargs
 
     def object_action(self, context, objinst, objmethod, args, kwargs):
         objinst = self._ser.deserialize_entity(
-            context, self._ser.serialize_entity(
-                context, objinst))
+            context, self._ser.serialize_entity(context, objinst)
+        )
         objmethod = str(objmethod)
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         original = objinst.obj_clone()
-        with mock.patch('oslo_versionedobjects.base.VersionedObject.'
-                        'indirection_api', new=None):
+        with mock.patch(
+            'oslo_versionedobjects.base.VersionedObject.indirection_api',
+            new=None,
+        ):
             result = getattr(objinst, objmethod)(*args, **kwargs)
         updates = self._get_changes(original, objinst)
         updates['obj_what_changed'] = objinst.obj_what_changed()
         return updates, result
 
-    def object_class_action(self, context, objname, objmethod, objver,
-                            args, kwargs):
+    def object_class_action(
+        self, context, objname, objmethod, objver, args, kwargs
+    ):
         objname = str(objname)
         objmethod = str(objmethod)
         objver = str(objver)
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         cls = base.VersionedObject.obj_class_from_name(objname, objver)
-        with mock.patch('oslo_versionedobjects.base.VersionedObject.'
-                        'indirection_api', new=None):
+        with mock.patch(
+            'oslo_versionedobjects.base.VersionedObject.indirection_api',
+            new=None,
+        ):
             result = getattr(cls, objmethod)(context, *args, **kwargs)
-        return (base.VersionedObject.obj_from_primitive(
-            result.obj_to_primitive(target_version=objver),
-            context=context)
-            if isinstance(result, base.VersionedObject) else result)
+        return (
+            base.VersionedObject.obj_from_primitive(
+                result.obj_to_primitive(target_version=objver), context=context
+            )
+            if isinstance(result, base.VersionedObject)
+            else result
+        )
 
-    def object_class_action_versions(self, context, objname, objmethod,
-                                     object_versions, args, kwargs):
+    def object_class_action_versions(
+        self, context, objname, objmethod, object_versions, args, kwargs
+    ):
         objname = str(objname)
         objmethod = str(objmethod)
         object_versions = {str(o): str(v) for o, v in object_versions.items()}
         args, kwargs = self._canonicalize_args(context, args, kwargs)
         objver = object_versions[objname]
         cls = base.VersionedObject.obj_class_from_name(objname, objver)
-        with mock.patch('oslo_versionedobjects.base.VersionedObject.'
-                        'indirection_api', new=None):
+        with mock.patch(
+            'oslo_versionedobjects.base.VersionedObject.indirection_api',
+            new=None,
+        ):
             result = getattr(cls, objmethod)(context, *args, **kwargs)
-        return (base.VersionedObject.obj_from_primitive(
-            result.obj_to_primitive(target_version=objver),
-            context=context)
-            if isinstance(result, base.VersionedObject) else result)
+        return (
+            base.VersionedObject.obj_from_primitive(
+                result.obj_to_primitive(target_version=objver), context=context
+            )
+            if isinstance(result, base.VersionedObject)
+            else result
+        )
 
     def object_backport(self, context, objinst, target_version):
         raise Exception('not supported')
@@ -200,9 +225,12 @@ class IndirectionFixture(fixtures.Fixture):
 
     def setUp(self):
         super().setUp()
-        self.useFixture(fixtures.MonkeyPatch(
-            'oslo_versionedobjects.base.VersionedObject.indirection_api',
-            self.indirection_api))
+        self.useFixture(
+            fixtures.MonkeyPatch(
+                'oslo_versionedobjects.base.VersionedObject.indirection_api',
+                self.indirection_api,
+            )
+        )
 
 
 class ObjectHashMismatch(Exception):
@@ -211,12 +239,14 @@ class ObjectHashMismatch(Exception):
         self.actual = actual
 
     def __str__(self):
-        return 'Hashes have changed for %s' % (
-            ','.join(set(self.expected.keys() + self.actual.keys())))
+        return 'Hashes have changed for {}'.format(
+            ','.join(set(self.expected.keys() + self.actual.keys()))
+        )
 
 
 CompatArgSpec = namedtuple(
-    'ArgSpec', ('args', 'varargs', 'keywords', 'defaults'))
+    'ArgSpec', ('args', 'varargs', 'keywords', 'defaults')
+)
 
 
 def get_method_spec(method):
@@ -230,14 +260,16 @@ def get_method_spec(method):
     newer getfullargspec() representation.
     """
     fullspec = inspect.getfullargspec(method)
-    if any([fullspec.kwonlyargs, fullspec.kwonlydefaults,
-            fullspec.annotations]):
+    if any(
+        [fullspec.kwonlyargs, fullspec.kwonlydefaults, fullspec.annotations]
+    ):
         # Method uses newer-than-getargspec() features, so return the
         # newer full spec
         return fullspec
     else:
-        return CompatArgSpec(fullspec.args, fullspec.varargs,
-                             fullspec.varkw, fullspec.defaults)
+        return CompatArgSpec(
+            fullspec.args, fullspec.varargs, fullspec.varkw, fullspec.defaults
+        )
 
 
 class ObjectVersionChecker:
@@ -248,10 +280,12 @@ class ObjectVersionChecker:
         """Follow a chain of remotable things down to the original function."""
         if isinstance(thing, classmethod):
             return self._find_remotable_method(cls, thing.__get__(None, cls))
-        elif (inspect.ismethod(thing) or
-              inspect.isfunction(thing)) and hasattr(thing, 'remotable'):
-            return self._find_remotable_method(cls, thing.original_fn,
-                                               parent_was_remotable=True)
+        elif (
+            inspect.ismethod(thing) or inspect.isfunction(thing)
+        ) and hasattr(thing, 'remotable'):
+            return self._find_remotable_method(
+                cls, thing.original_fn, parent_was_remotable=True
+            )
         elif parent_was_remotable:
             # We must be the first non-remotable thing underneath a stack of
             # remotable things (i.e. the actual implementation method)
@@ -267,8 +301,11 @@ class ObjectVersionChecker:
         methods = []
         for name in dir(obj_class):
             thing = getattr(obj_class, name)
-            if inspect.ismethod(thing) or inspect.isfunction(thing) \
-               or isinstance(thing, classmethod):
+            if (
+                inspect.ismethod(thing)
+                or inspect.isfunction(thing)
+                or isinstance(thing, classmethod)
+            ):
                 method = self._find_remotable_method(obj_class, thing)
                 if method:
                     methods.append((name, get_method_spec(method)))
@@ -279,18 +316,23 @@ class ObjectVersionChecker:
         # but many other things may require a version bump (method behavior
         # and return value changes, for example).
         if hasattr(obj_class, 'child_versions'):
-            relevant_data = (obj_fields, methods,
-                             OsloOrderedDict(
-                                 sorted(obj_class.child_versions.items())))
+            relevant_data = (
+                obj_fields,
+                methods,
+                OsloOrderedDict(sorted(obj_class.child_versions.items())),
+            )
         else:
             relevant_data = (obj_fields, methods)
 
         if extra_data_func:
             relevant_data += extra_data_func(obj_class)
 
-        fingerprint = '{}-{}'.format(obj_class.VERSION, hashlib.md5(
-            bytes(repr(relevant_data).encode()),
-            usedforsecurity=False).hexdigest())
+        fingerprint = '{}-{}'.format(
+            obj_class.VERSION,
+            hashlib.md5(
+                bytes(repr(relevant_data).encode()), usedforsecurity=False
+            ).hexdigest(),
+        )
         return fingerprint
 
     def get_hashes(self, extra_data_func=None):
@@ -305,7 +347,8 @@ class ObjectVersionChecker:
         fingerprints = {}
         for obj_name in sorted(self.obj_classes):
             fingerprints[obj_name] = self._get_fingerprint(
-                obj_name, extra_data_func=extra_data_func)
+                obj_name, extra_data_func=extra_data_func
+            )
         return fingerprints
 
     def test_hashes(self, expected_hashes, extra_data_func=None):
@@ -355,22 +398,27 @@ class ObjectVersionChecker:
 
         return expected, actual
 
-    def _test_object_compatibility(self, obj_class, manifest=None,
-                                   init_args=None, init_kwargs=None):
+    def _test_object_compatibility(
+        self, obj_class, manifest=None, init_args=None, init_kwargs=None
+    ):
         init_args = init_args or []
         init_kwargs = init_kwargs or {}
         version = vutils.convert_version_to_tuple(obj_class.VERSION)
         kwargs = {'version_manifest': manifest} if manifest else {}
         for n in range(version[1] + 1):
-            test_version = '%d.%d' % (version[0], n)
+            test_version = f'{version[0]}.{n}'
             # Run the test with OS_DEBUG=True to see this.
-            LOG.debug('testing obj: %s version: %s',
-                      obj_class.obj_name(), test_version)
+            LOG.debug(
+                'testing obj: %s version: %s',
+                obj_class.obj_name(),
+                test_version,
+            )
             kwargs['target_version'] = test_version
             obj_class(*init_args, **init_kwargs).obj_to_primitive(**kwargs)
 
-    def test_compatibility_routines(self, use_manifest=False, init_args=None,
-                                    init_kwargs=None):
+    def test_compatibility_routines(
+        self, use_manifest=False, init_args=None, init_kwargs=None
+    ):
         """Test obj_make_compatible() on all object classes.
 
         :param use_manifest: a boolean that determines if the version
@@ -402,9 +450,12 @@ class ObjectVersionChecker:
             for obj_class in obj_classes:
                 args_for_init = init_args.get(obj_class, [])
                 kwargs_for_init = init_kwargs.get(obj_class, {})
-                self._test_object_compatibility(obj_class, manifest=manifest,
-                                                init_args=args_for_init,
-                                                init_kwargs=kwargs_for_init)
+                self._test_object_compatibility(
+                    obj_class,
+                    manifest=manifest,
+                    init_args=args_for_init,
+                    init_kwargs=kwargs_for_init,
+                )
 
     def _test_relationships_in_order(self, obj_class):
         for field, versions in obj_class.obj_relationships.items():
@@ -413,13 +464,15 @@ class ObjectVersionChecker:
             for my_version, child_version in versions:
                 _my_version = vutils.convert_version_to_tuple(my_version)
                 _ch_version = vutils.convert_version_to_tuple(child_version)
-                if not (last_my_version < _my_version and
-                        last_child_version <= _ch_version):
-                    raise AssertionError(('Object %s relationship %s->%s for '
-                                          'field %s is out of order') % (
-                                              obj_class.obj_name(),
-                                              my_version, child_version,
-                                              field))
+                if not (
+                    last_my_version < _my_version
+                    and last_child_version <= _ch_version
+                ):
+                    raise AssertionError(
+                        f'Object {obj_class.obj_name()} relationship '
+                        f'{my_version}->{child_version} for field {field} '
+                        f'is out of order'
+                    )
                 last_my_version = _my_version
                 last_child_version = _ch_version
 
@@ -447,7 +500,8 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
     def setUp(self):
         super().setUp()
         self._base_test_obj_backup = copy.deepcopy(
-            base.VersionedObjectRegistry._registry._obj_classes)
+            base.VersionedObjectRegistry._registry._obj_classes
+        )
         self.addCleanup(self._restore_obj_registry)
 
     @staticmethod
@@ -455,8 +509,9 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
         base.VersionedObjectRegistry.register(cls_name)
 
     def _restore_obj_registry(self):
-        base.VersionedObjectRegistry._registry._obj_classes = \
+        base.VersionedObjectRegistry._registry._obj_classes = (
             self._base_test_obj_backup
+        )
 
 
 class StableObjectJsonFixture(fixtures.Fixture):
@@ -471,6 +526,7 @@ class StableObjectJsonFixture(fixtures.Fixture):
     sort the list of changed fields (which came from a set) before
     returning it to the caller.
     """
+
     def __init__(self):
         self._original_otp = base.VersionedObject.obj_to_primitive
 
@@ -484,6 +540,9 @@ class StableObjectJsonFixture(fixtures.Fixture):
                 result[changes_key].sort()
             return result
 
-        self.useFixture(fixtures.MonkeyPatch(
-            'oslo_versionedobjects.base.VersionedObject.obj_to_primitive',
-            _doit))
+        self.useFixture(
+            fixtures.MonkeyPatch(
+                'oslo_versionedobjects.base.VersionedObject.obj_to_primitive',
+                _doit,
+            )
+        )

@@ -26,5 +26,5 @@ def isotime(at):
     st = at.strftime(_ISO8601_TIME_FORMAT)
     tz = at.tzinfo.tzname(None) if at.tzinfo else 'UTC'
     # Need to handle either iso8601 or python UTC format
-    st += ('Z' if tz in ['UTC', 'UTC+00:00'] else tz)
+    st += 'Z' if tz in ['UTC', 'UTC+00:00'] else tz
     return st

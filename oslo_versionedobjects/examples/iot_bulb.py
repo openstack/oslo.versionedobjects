@@ -41,19 +41,20 @@ class IOTLightbulb(base.VersionedObject):
 
 # Now do some basic operations on a light bulb.
 bulb = IOTLightbulb(serial='abc-123', manufactured_on=datetime.now())
-print("The __str__() output of this new object: %s" % bulb)
-print("The 'serial' field of the object: %s" % bulb.serial)
+print(f"The __str__() output of this new object: {bulb}")
+print(f"The 'serial' field of the object: {bulb.serial}")
 bulb_prim = bulb.obj_to_primitive()
-print("Primitive representation of this object: %s" % bulb_prim)
+print(f"Primitive representation of this object: {bulb_prim}")
 
 # Now convert the primitive back to an object (isn't it easy!)
 bulb = IOTLightbulb.obj_from_primitive(bulb_prim)
 
 bulb.obj_reset_changes()
-print("The __str__() output of this new (reconstructed)"
-      " object: %s" % bulb)
+print(f"The __str__() output of this new (reconstructed) object: {bulb}")
 
 # Mutating a field and showing what changed.
 bulb.serial = 'abc-124'
-print("After serial number change, the set of fields that"
-      " have been mutated is: %s" % bulb.obj_what_changed())
+print(
+    "After serial number change, the set of fields that"
+    f" have been mutated is: {bulb.obj_what_changed()}"
+)

@@ -56,8 +56,7 @@ class MyExtraObject(base.VersionedObject):
 class TestObjectComparators(test.TestCase):
     @base.VersionedObjectRegistry.register_if(False)
     class MyComparedObject(base.VersionedObject):
-        fields = {'foo': fields.IntegerField(),
-                  'bar': fields.IntegerField()}
+        fields = {'foo': fields.IntegerField(), 'bar': fields.IntegerField()}
 
     @base.VersionedObjectRegistry.register_if(False)
     class MyComparedObjectWithTZ(base.VersionedObject):
@@ -86,8 +85,11 @@ class TestObjectComparators(test.TestCase):
 
         fixture.compare_obj(mock_test, my_obj, my_db_obj)
 
-        self.assertFalse(mock_test.assertEqual.called, "assertEqual should "
-                         "not have been called, there is nothing to compare.")
+        self.assertFalse(
+            mock_test.assertEqual.called,
+            "assertEqual should "
+            "not have been called, there is nothing to compare.",
+        )
 
     def test_compare_obj_with_unset_in_obj(self):
         # If the db dict has something set, but the object doesn't, that's !=
@@ -96,8 +98,9 @@ class TestObjectComparators(test.TestCase):
         my_obj = self.MyComparedObject(foo=1)
         my_db_obj = {'foo': 1, 'bar': 2}
 
-        self.assertRaises(AssertionError, fixture.compare_obj, mock_test,
-                          my_obj, my_db_obj)
+        self.assertRaises(
+            AssertionError, fixture.compare_obj, mock_test, my_obj, my_db_obj
+        )
 
     def test_compare_obj_with_unset_in_db_dict(self):
         # If the object has something set, but the db dict doesn't, that's !=
@@ -106,8 +109,9 @@ class TestObjectComparators(test.TestCase):
         my_obj = self.MyComparedObject(foo=1, bar=2)
         my_db_obj = {'foo': 1}
 
-        self.assertRaises(AssertionError, fixture.compare_obj, mock_test,
-                          my_obj, my_db_obj)
+        self.assertRaises(
+            AssertionError, fixture.compare_obj, mock_test, my_obj, my_db_obj
+        )
 
     def test_compare_obj_with_unset_in_obj_ignored(self):
         # If the db dict has something set, but the object doesn't, but we
@@ -136,8 +140,7 @@ class TestObjectComparators(test.TestCase):
         my_db_obj = {'foo': 1, 'bar': 1}
         ignore = ['bar']
 
-        fixture.compare_obj(mock_test, my_obj, my_db_obj,
-                            allow_missing=ignore)
+        fixture.compare_obj(mock_test, my_obj, my_db_obj, allow_missing=ignore)
 
         expected_calls = [(1, 1), (1, 2)]
         actual_calls = [c[0] for c in mock_test.assertEqual.call_args_list]
@@ -165,8 +168,9 @@ class TestObjectComparators(test.TestCase):
         my_db_obj = {'foo': 1, 'bar': 2}
         ignores = ['bar']
 
-        fixture.compare_obj(mock_test, my_obj, my_db_obj,
-                            allow_missing=ignores)
+        fixture.compare_obj(
+            mock_test, my_obj, my_db_obj, allow_missing=ignores
+        )
 
         mock_test.assertEqual.assert_called_once_with(1, 1)
 
@@ -178,8 +182,9 @@ class TestObjectComparators(test.TestCase):
         my_obj = self.MyComparedObject(foo=1, bar=2)
         my_db_obj = {'foo': 1, 'bar': 2}
 
-        fixture.compare_obj(mock_test, my_obj, my_db_obj,
-                            comparators=comp_dict)
+        fixture.compare_obj(
+            mock_test, my_obj, my_db_obj, comparators=comp_dict
+        )
 
         comparator.assert_called_once_with(1, 1)
         mock_test.assertEqual.assert_called_once_with(2, 2)
@@ -194,23 +199,23 @@ class TestObjectComparators(test.TestCase):
 
         fixture.compare_obj(mock_test, my_obj, my_db_obj)
 
-        mock_test.assertEqual.assert_called_once_with(replaced_dt,
-                                                      replaced_dt)
+        mock_test.assertEqual.assert_called_once_with(replaced_dt, replaced_dt)
 
 
 class FakeResource(base.VersionedObject):
     # Version 1.0: Initial version
     VERSION = '1.0'
 
-    fields = {
-        'identifier': fields.Field(fields.Integer(), default=123)
-    }
+    fields = {'identifier': fields.Field(fields.Integer(), default=123)}
 
 
 class TestObjectVersionChecker(test.TestCase):
     def setUp(self):
         super().setUp()
-        objects = [MyObject, MyObject2, ]
+        objects = [
+            MyObject,
+            MyObject2,
+        ]
         self.obj_classes = {obj.__name__: [obj] for obj in objects}
         self.ovc = fixture.ObjectVersionChecker(obj_classes=self.obj_classes)
 
@@ -222,9 +227,13 @@ class TestObjectVersionChecker(test.TestCase):
             actual = self.ovc.get_hashes()
 
         expected = self._generate_hashes(self.obj_classes, fp)
-        self.assertEqual(expected, actual, "ObjectVersionChecker is not "
-                         "getting the fingerprints of all registered "
-                         "objects.")
+        self.assertEqual(
+            expected,
+            actual,
+            "ObjectVersionChecker is not "
+            "getting the fingerprints of all registered "
+            "objects.",
+        )
 
     def test_get_hashes_with_extra_data(self):
         # Make sure get_hashes uses the extra_data_func
@@ -235,20 +244,31 @@ class TestObjectVersionChecker(test.TestCase):
             actual = self.ovc.get_hashes(extra_data_func=mock_func)
 
         expected = self._generate_hashes(self.obj_classes, fp)
-        expected_calls = [((name,), {'extra_data_func': mock_func})
-                          for name in self.obj_classes.keys()]
+        expected_calls = [
+            ((name,), {'extra_data_func': mock_func})
+            for name in self.obj_classes.keys()
+        ]
 
-        self.assertEqual(expected, actual, "ObjectVersionChecker is not "
-                         "getting the fingerprints of all registered "
-                         "objects.")
+        self.assertEqual(
+            expected,
+            actual,
+            "ObjectVersionChecker is not "
+            "getting the fingerprints of all registered "
+            "objects.",
+        )
 
-        self.assertEqual(len(expected_calls), len(mock_gf.call_args_list),
-                         "get_hashes() did not call get the fingerprints of "
-                         "all objects in the registry.")
+        self.assertEqual(
+            len(expected_calls),
+            len(mock_gf.call_args_list),
+            "get_hashes() did not call get the fingerprints of "
+            "all objects in the registry.",
+        )
         for call in expected_calls:
-            self.assertIn(call, mock_gf.call_args_list,
-                          "get_hashes() did not call _get_fingerprint()"
-                          "correctly.")
+            self.assertIn(
+                call,
+                mock_gf.call_args_list,
+                "get_hashes() did not call _get_fingerprint()correctly.",
+            )
 
     def test_test_hashes_none_changed(self):
         # Make sure test_hashes() generates an empty dictionary when
@@ -263,12 +283,20 @@ class TestObjectVersionChecker(test.TestCase):
 
         expected_expected = expected_actual = {}
 
-        self.assertEqual(expected_expected, actual_expected, "There are no "
-                         "objects changed, so the 'expected' return value "
-                         "should contain no objects.")
-        self.assertEqual(expected_actual, actual_actual, "There are no "
-                         "objects changed, so the 'actual' return value "
-                         "should contain no objects.")
+        self.assertEqual(
+            expected_expected,
+            actual_expected,
+            "There are no "
+            "objects changed, so the 'expected' return value "
+            "should contain no objects.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_actual,
+            "There are no "
+            "objects changed, so the 'actual' return value "
+            "should contain no objects.",
+        )
 
     def test_test_hashes_class_not_added(self):
         # Make sure the expected and actual values differ when a class
@@ -287,13 +315,21 @@ class TestObjectVersionChecker(test.TestCase):
         expected_expected = {MyExtraObject.__name__: None}
         expected_actual = {MyExtraObject.__name__: fp}
 
-        self.assertEqual(expected_expected, actual_exp, "Expected hashes "
-                         "should not contain the fingerprint of the class "
-                         "that has not been added to the expected hash "
-                         "dictionary.")
-        self.assertEqual(expected_actual, actual_act, "The actual hash "
-                         "should contain the class that was added to the "
-                         "registry.")
+        self.assertEqual(
+            expected_expected,
+            actual_exp,
+            "Expected hashes "
+            "should not contain the fingerprint of the class "
+            "that has not been added to the expected hash "
+            "dictionary.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_act,
+            "The actual hash "
+            "should contain the class that was added to the "
+            "registry.",
+        )
 
     def test_test_hashes_new_fp_incorrect(self):
         # Make sure the expected and actual values differ when a fingerprint
@@ -312,12 +348,20 @@ class TestObjectVersionChecker(test.TestCase):
         expected_expected = {MyObject.__name__: fp1}
         expected_actual = {MyObject.__name__: fp2}
 
-        self.assertEqual(expected_expected, actual_exp, "Expected hashes "
-                         "should contain the updated object with the old "
-                         "hash.")
-        self.assertEqual(expected_actual, actual_act, "Actual hashes "
-                         "should contain the updated object with the new "
-                         "hash.")
+        self.assertEqual(
+            expected_expected,
+            actual_exp,
+            "Expected hashes "
+            "should contain the updated object with the old "
+            "hash.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_act,
+            "Actual hashes "
+            "should contain the updated object with the new "
+            "hash.",
+        )
 
     def test_test_hashes_passes_extra_func(self):
         # Make sure that test_hashes passes the extra_func to get_hashes
@@ -327,7 +371,8 @@ class TestObjectVersionChecker(test.TestCase):
             self.ovc.test_hashes({}, extra_data_func=mock_extra_func)
 
             mock_get_hashes.assert_called_once_with(
-                extra_data_func=mock_extra_func)
+                extra_data_func=mock_extra_func
+            )
 
     def test_get_dependency_tree(self):
         # Make sure get_dependency_tree() gets the dependencies of all
@@ -337,14 +382,20 @@ class TestObjectVersionChecker(test.TestCase):
 
         expected_calls = [(({}, MyObject),), (({}, MyObject2),)]
 
-        self.assertEqual(2, len(mock_gd.call_args_list),
-                         "get_dependency_tree() tried to get the dependencies"
-                         " too many times.")
+        self.assertEqual(
+            2,
+            len(mock_gd.call_args_list),
+            "get_dependency_tree() tried to get the dependencies"
+            " too many times.",
+        )
 
         for call in expected_calls:
-            self.assertIn(call, mock_gd.call_args_list,
-                          "get_dependency_tree() did not get the dependencies "
-                          "of the objects correctly.")
+            self.assertIn(
+                call,
+                mock_gd.call_args_list,
+                "get_dependency_tree() did not get the dependencies "
+                "of the objects correctly.",
+            )
 
     def test_test_relationships_none_changed(self):
         # Make sure test_relationships() generates an empty dictionary when
@@ -359,12 +410,20 @@ class TestObjectVersionChecker(test.TestCase):
 
         expected_expected = expected_actual = {}
 
-        self.assertEqual(expected_expected, actual_exp, "There are no "
-                         "objects changed, so the 'expected' return value "
-                         "should contain no objects.")
-        self.assertEqual(expected_actual, actual_act, "There are no "
-                         "objects changed, so the 'actual' return value "
-                         "should contain no objects.")
+        self.assertEqual(
+            expected_expected,
+            actual_exp,
+            "There are no "
+            "objects changed, so the 'expected' return value "
+            "should contain no objects.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_act,
+            "There are no "
+            "objects changed, so the 'actual' return value "
+            "should contain no objects.",
+        )
 
     def test_test_relationships_rel_added(self):
         # Make sure expected and actual relationships differ if a
@@ -380,15 +439,24 @@ class TestObjectVersionChecker(test.TestCase):
             actual_exp, actual_act = self.ovc.test_relationships(exp_tree)
 
         expected_expected = {'MyObject': {'MyObject2': '1.0'}}
-        expected_actual = {'MyObject': {'MyObject2': '1.0',
-                                        'MyExtraObject': '1.0'}}
+        expected_actual = {
+            'MyObject': {'MyObject2': '1.0', 'MyExtraObject': '1.0'}
+        }
 
-        self.assertEqual(expected_expected, actual_exp, "The expected "
-                         "relationship tree is not being built from changes "
-                         "correctly.")
-        self.assertEqual(expected_actual, actual_act, "The actual "
-                         "relationship tree is not being built from changes "
-                         "correctly.")
+        self.assertEqual(
+            expected_expected,
+            actual_exp,
+            "The expected "
+            "relationship tree is not being built from changes "
+            "correctly.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_act,
+            "The actual "
+            "relationship tree is not being built from changes "
+            "correctly.",
+        )
 
     def test_test_relationships_class_added(self):
         # Make sure expected and actual relationships differ if a new
@@ -406,12 +474,20 @@ class TestObjectVersionChecker(test.TestCase):
         expected_expected = {'MyObject2': None}
         expected_actual = {'MyObject2': {'MyExtraObject': '1.0'}}
 
-        self.assertEqual(expected_expected, actual_exp, "The expected "
-                         "relationship tree is not being built from changes "
-                         "correctly.")
-        self.assertEqual(expected_actual, actual_act, "The actual "
-                         "relationship tree is not being built from changes "
-                         "correctly.")
+        self.assertEqual(
+            expected_expected,
+            actual_exp,
+            "The expected "
+            "relationship tree is not being built from changes "
+            "correctly.",
+        )
+        self.assertEqual(
+            expected_actual,
+            actual_act,
+            "The actual "
+            "relationship tree is not being built from changes "
+            "correctly.",
+        )
 
     def test_test_compatibility_routines(self):
         # Make sure test_compatibility_routines() checks the object
@@ -421,8 +497,9 @@ class TestObjectVersionChecker(test.TestCase):
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
             self.ovc.test_compatibility_routines()
 
-        toc.assert_called_once_with(MyObject, manifest=None, init_args=[],
-                                    init_kwargs={})
+        toc.assert_called_once_with(
+            MyObject, manifest=None, init_args=[], init_kwargs={}
+        )
 
     def test_test_compatibility_routines_with_manifest(self):
         # Make sure test_compatibility_routines() uses the version manifest
@@ -430,14 +507,16 @@ class TestObjectVersionChecker(test.TestCase):
         man = {'who': 'cares'}
 
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
-            with mock.patch('oslo_versionedobjects.base'
-                            '.obj_tree_get_versions') as otgv:
+            with mock.patch(
+                'oslo_versionedobjects.base.obj_tree_get_versions'
+            ) as otgv:
                 otgv.return_value = man
                 self.ovc.test_compatibility_routines(use_manifest=True)
 
         otgv.assert_called_once_with(MyObject.__name__)
-        toc.assert_called_once_with(MyObject, manifest=man, init_args=[],
-                                    init_kwargs={})
+        toc.assert_called_once_with(
+            MyObject, manifest=man, init_args=[], init_kwargs={}
+        )
 
     def test_test_compatibility_routines_with_args_kwargs(self):
         # Make sure test_compatibility_routines() uses init args/kwargs
@@ -446,56 +525,66 @@ class TestObjectVersionChecker(test.TestCase):
         init_kwargs = {MyObject: {'foo': 'bar'}}
 
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
-            self.ovc.test_compatibility_routines(init_args=init_args,
-                                                 init_kwargs=init_kwargs)
+            self.ovc.test_compatibility_routines(
+                init_args=init_args, init_kwargs=init_kwargs
+            )
 
-        toc.assert_called_once_with(MyObject, manifest=None, init_args=[1],
-                                    init_kwargs={'foo': 'bar'})
+        toc.assert_called_once_with(
+            MyObject, manifest=None, init_args=[1], init_kwargs={'foo': 'bar'}
+        )
 
     def test_test_relationships_in_order(self):
         # Make sure test_relationships_in_order() tests the relationships
         # of all objects in the registry
-        with mock.patch.object(self.ovc,
-                               '_test_relationships_in_order') as mock_tr:
+        with mock.patch.object(
+            self.ovc, '_test_relationships_in_order'
+        ) as mock_tr:
             self.ovc.test_relationships_in_order()
 
         expected_calls = [((MyObject,),), ((MyObject2,),)]
 
-        self.assertEqual(2, len(mock_tr.call_args_list),
-                         "test_relationships_in_order() tested too many "
-                         "relationships.")
+        self.assertEqual(
+            2,
+            len(mock_tr.call_args_list),
+            "test_relationships_in_order() tested too many relationships.",
+        )
         for call in expected_calls:
-            self.assertIn(call, mock_tr.call_args_list,
-                          "test_relationships_in_order() did not test the "
-                          "relationships of the individual objects "
-                          "correctly.")
+            self.assertIn(
+                call,
+                mock_tr.call_args_list,
+                "test_relationships_in_order() did not test the "
+                "relationships of the individual objects "
+                "correctly.",
+            )
 
     def test_test_relationships_in_order_positive(self):
         # Make sure a correct relationship ordering doesn't blow up
-        rels = {'bellsprout': [('1.0', '1.0'), ('1.1', '1.2'),
-                               ('1.3', '1.3')]}
+        rels = {'bellsprout': [('1.0', '1.0'), ('1.1', '1.2'), ('1.3', '1.3')]}
         MyObject.obj_relationships = rels
 
         self.ovc._test_relationships_in_order(MyObject)
 
     def test_test_relationships_in_order_negative(self):
         # Make sure an out-of-order relationship does blow up
-        rels = {'rattata': [('1.0', '1.0'), ('1.1', '1.2'),
-                            ('1.3', '1.1')]}
+        rels = {'rattata': [('1.0', '1.0'), ('1.1', '1.2'), ('1.3', '1.1')]}
         MyObject.obj_relationships = rels
 
-        self.assertRaises(AssertionError,
-                          self.ovc._test_relationships_in_order, MyObject)
+        self.assertRaises(
+            AssertionError, self.ovc._test_relationships_in_order, MyObject
+        )
 
     def test_find_remotable_method(self):
         # Make sure we can find a remotable method on an object
-        method = self.ovc._find_remotable_method(MyObject,
-                                                 MyObject.remotable_method)
+        method = self.ovc._find_remotable_method(
+            MyObject, MyObject.remotable_method
+        )
 
-        self.assertEqual(MyObject.remotable_method.original_fn,
-                         method,
-                         "_find_remotable_method() did not find the remotable"
-                         " method of MyObject.")
+        self.assertEqual(
+            MyObject.remotable_method.original_fn,
+            method,
+            "_find_remotable_method() did not find the remotable"
+            " method of MyObject.",
+        )
 
     def test_find_remotable_method_classmethod(self):
         # Make sure we can find a remotable classmethod on an object
@@ -503,24 +592,31 @@ class TestObjectVersionChecker(test.TestCase):
         method = self.ovc._find_remotable_method(MyObject, rcm)
 
         expected = rcm.__get__(None, MyObject).original_fn
-        self.assertEqual(expected, method, "_find_remotable_method() did not "
-                         "find the remotable classmethod.")
+        self.assertEqual(
+            expected,
+            method,
+            "_find_remotable_method() did not find the remotable classmethod.",
+        )
 
     def test_find_remotable_method_non_remotable_method(self):
         # Make sure nothing is found when we have only a non-remotable method
         nrm = MyObject.non_remotable_method
         method = self.ovc._find_remotable_method(MyObject, nrm)
 
-        self.assertIsNone(method, "_find_remotable_method() found a method "
-                          "that isn't remotable.")
+        self.assertIsNone(
+            method,
+            "_find_remotable_method() found a method that isn't remotable.",
+        )
 
     def test_find_remotable_method_non_remotable_classmethod(self):
         # Make sure we don't find a non-remotable classmethod
         nrcm = MyObject.non_remotable_classmethod
         method = self.ovc._find_remotable_method(MyObject, nrcm)
 
-        self.assertIsNone(method, "_find_remotable_method() found a method "
-                          "that isn't remotable.")
+        self.assertIsNone(
+            method,
+            "_find_remotable_method() found a method that isn't remotable.",
+        )
 
     def test_get_fingerprint(self):
         # Make sure _get_fingerprint() generates a consistent fingerprint
@@ -532,20 +628,25 @@ class TestObjectVersionChecker(test.TestCase):
             fp = self.ovc._get_fingerprint(MyObject.__name__)
 
         exp_fields = sorted(list(MyObject.fields.items()))
-        exp_methods = sorted([('remotable_method', argspec),
-                              ('remotable_classmethod', argspec)])
+        exp_methods = sorted(
+            [('remotable_method', argspec), ('remotable_classmethod', argspec)]
+        )
         expected_relevant_data = (exp_fields, exp_methods)
         # NOTE(hberaud) the following hashlib usage will emit a bandit
         # warning. It can be solved by passing `usedforsecurity=False` to
         # the md5 function, however, this parameter was introduced with py39
         # so passing it will break py38 unittest. I'd suggest to ignore this
         # bandit rule while py38 is in our supported runtimes.
-        expected_hash = hashlib.md5(bytes(repr(
-            expected_relevant_data).encode())).hexdigest()  # nosec
+        expected_hash = hashlib.md5(
+            bytes(repr(expected_relevant_data).encode())
+        ).hexdigest()  # nosec
         expected_fp = f'{MyObject.VERSION}-{expected_hash}'
 
-        self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
-                                          "generate a correct fingerprint.")
+        self.assertEqual(
+            expected_fp,
+            fp,
+            "_get_fingerprint() did not generate a correct fingerprint.",
+        )
 
     def test_get_fingerprint_with_child_versions(self):
         # Make sure _get_fingerprint() generates a consistent fingerprint
@@ -560,8 +661,9 @@ class TestObjectVersionChecker(test.TestCase):
             fp = self.ovc._get_fingerprint(MyObject.__name__)
 
         exp_fields = sorted(list(MyObject.fields.items()))
-        exp_methods = sorted([('remotable_method', argspec),
-                              ('remotable_classmethod', argspec)])
+        exp_methods = sorted(
+            [('remotable_method', argspec), ('remotable_classmethod', argspec)]
+        )
         exp_child_versions = fixture.OsloOrderedDict(
             sorted(child_versions.items())
         )
@@ -572,12 +674,16 @@ class TestObjectVersionChecker(test.TestCase):
         # the md5 function, however, this parameter was introduced with py39
         # so passing it will break py38 unittest. I'd suggest to ignore this
         # bandit rule while py38 is in our supported runtimes.
-        expected_hash = hashlib.md5(bytes(repr(
-            exp_relevant_data).encode())).hexdigest()  # nosec
+        expected_hash = hashlib.md5(
+            bytes(repr(exp_relevant_data).encode())
+        ).hexdigest()  # nosec
         expected_fp = f'{MyObject.VERSION}-{expected_hash}'
 
-        self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
-                                          "generate a correct fingerprint.")
+        self.assertEqual(
+            expected_fp,
+            fp,
+            "_get_fingerprint() did not generate a correct fingerprint.",
+        )
 
     def test_get_fingerprint_with_extra_data(self):
         # Make sure _get_fingerprint() uses extra_data_func when it is
@@ -594,8 +700,9 @@ class TestObjectVersionChecker(test.TestCase):
 
         with mock.patch.object(fixture, 'get_method_spec') as mock_gas:
             mock_gas.return_value = argspec
-            fp = self.ovc._get_fingerprint(ExtraDataObj.__name__,
-                                           extra_data_func=get_data)
+            fp = self.ovc._get_fingerprint(
+                ExtraDataObj.__name__, extra_data_func=get_data
+            )
 
         exp_fields = []
         exp_methods = []
@@ -607,20 +714,25 @@ class TestObjectVersionChecker(test.TestCase):
         # the md5 function, however, this parameter was introduced with py39
         # so passing it will break py38 unittest. I'd suggest to ignore this
         # bandit rule while py38 is in our supported runtimes.
-        expected_hash = hashlib.md5(bytes(repr(
-            exp_relevant_data).encode())).hexdigest()  # nosec
+        expected_hash = hashlib.md5(
+            bytes(repr(exp_relevant_data).encode())
+        ).hexdigest()  # nosec
         expected_fp = f'{ExtraDataObj.VERSION}-{expected_hash}'
 
-        self.assertEqual(expected_fp, fp, "_get_fingerprint() did not "
-                                          "generate a correct fingerprint.")
+        self.assertEqual(
+            expected_fp,
+            fp,
+            "_get_fingerprint() did not generate a correct fingerprint.",
+        )
 
     def test_get_fingerprint_with_defaulted_set(self):
         class ClassWithDefaultedSetField(base.VersionedObject):
             VERSION = 1.0
             fields = {
                 'empty_default': fields.SetOfIntegersField(default=set()),
-                'non_empty_default': fields.SetOfIntegersField(default={1, 2})
+                'non_empty_default': fields.SetOfIntegersField(default={1, 2}),
             }
+
         self._add_class(self.obj_classes, ClassWithDefaultedSetField)
 
         # it is expected that this hash is stable across python versions
@@ -640,8 +752,11 @@ class TestObjectVersionChecker(test.TestCase):
 
         expected_tree = {'MyObject': {'MyExtraObject': '1.0'}}
 
-        self.assertEqual(expected_tree, tree, "_get_dependencies() did "
-                         "not generate a correct dependency tree.")
+        self.assertEqual(
+            expected_tree,
+            tree,
+            "_get_dependencies() did not generate a correct dependency tree.",
+        )
 
     def test_test_object_compatibility(self):
         # Make sure _test_object_compatibility() tests obj_to_primitive()
@@ -652,12 +767,17 @@ class TestObjectVersionChecker(test.TestCase):
 
         self.ovc._test_object_compatibility(MyObject)
 
-        expected_calls = [((), {'target_version': '1.0'}),
-                          ((), {'target_version': '1.1'})]
+        expected_calls = [
+            ((), {'target_version': '1.0'}),
+            ((), {'target_version': '1.1'}),
+        ]
 
-        self.assertEqual(expected_calls, to_prim.call_args_list,
-                         "_test_object_compatibility() did not test "
-                         "obj_to_primitive() on the correct target versions")
+        self.assertEqual(
+            expected_calls,
+            to_prim.call_args_list,
+            "_test_object_compatibility() did not test "
+            "obj_to_primitive() on the correct target versions",
+        )
 
     def test_test_object_compatibility_args_kwargs(self):
         # Make sure _test_object_compatibility() tests obj_to_primitive()
@@ -668,22 +788,32 @@ class TestObjectVersionChecker(test.TestCase):
         args = [1]
         kwargs = {'foo': 'bar'}
 
-        with mock.patch.object(MyObject, '__init__',
-                               return_value=None) as mock_init:
-            self.ovc._test_object_compatibility(MyObject, init_args=args,
-                                                init_kwargs=kwargs)
+        with mock.patch.object(
+            MyObject, '__init__', return_value=None
+        ) as mock_init:
+            self.ovc._test_object_compatibility(
+                MyObject, init_args=args, init_kwargs=kwargs
+            )
 
         expected_init = ((1,), {'foo': 'bar'})
         expected_init_calls = [expected_init, expected_init]
-        self.assertEqual(expected_init_calls, mock_init.call_args_list,
-                         "_test_object_compatibility() did not call "
-                         "__init__() properly on the object")
+        self.assertEqual(
+            expected_init_calls,
+            mock_init.call_args_list,
+            "_test_object_compatibility() did not call "
+            "__init__() properly on the object",
+        )
 
-        expected_to_prim = [((), {'target_version': '1.0'}),
-                            ((), {'target_version': '1.1'})]
-        self.assertEqual(expected_to_prim, to_prim.call_args_list,
-                         "_test_object_compatibility() did not test "
-                         "obj_to_primitive() on the correct target versions")
+        expected_to_prim = [
+            ((), {'target_version': '1.0'}),
+            ((), {'target_version': '1.1'}),
+        ]
+        self.assertEqual(
+            expected_to_prim,
+            to_prim.call_args_list,
+            "_test_object_compatibility() did not test "
+            "obj_to_primitive() on the correct target versions",
+        )
 
     def _add_class(self, obj_classes, cls):
         obj_classes[cls.__name__] = [cls]
@@ -702,18 +832,20 @@ class TestObjectVersionChecker(test.TestCase):
 
 
 class TestVersionedObjectRegistryFixture(test.TestCase):
-
-    primitive = {'versioned_object.name': 'FakeResource',
-                 'versioned_object.namespace': 'versionedobjects',
-                 'versioned_object.version': '1.0',
-                 'versioned_object.data': {'identifier': 123}}
+    primitive = {
+        'versioned_object.name': 'FakeResource',
+        'versioned_object.namespace': 'versionedobjects',
+        'versioned_object.version': '1.0',
+        'versioned_object.data': {'identifier': 123},
+    }
 
     def test_object_registered_temporarily(self):
         # Test object that has not been registered
         self.assertRaises(
             exception.UnsupportedObjectError,
             FakeResource.obj_from_primitive,
-            self.primitive)
+            self.primitive,
+        )
 
         with fixture.VersionedObjectRegistryFixture() as obj_registry:
             # Register object locally
@@ -721,8 +853,7 @@ class TestVersionedObjectRegistryFixture(test.TestCase):
             obj_registry.register(FakeResource)
 
             # Test object has now been registered
-            obj = FakeResource.obj_from_primitive(
-                self.primitive)
+            obj = FakeResource.obj_from_primitive(self.primitive)
             self.assertEqual(obj.identifier, 123)
             self.assertEqual('1.0', obj.VERSION)
 
@@ -730,26 +861,27 @@ class TestVersionedObjectRegistryFixture(test.TestCase):
         self.assertRaises(
             exception.UnsupportedObjectError,
             FakeResource.obj_from_primitive,
-            self.primitive)
+            self.primitive,
+        )
 
 
 class TestStableObjectJsonFixture(test.TestCase):
     def test_changes_sort(self):
         @base.VersionedObjectRegistry.register_if(False)
         class TestObject(base.VersionedObject):
-            fields = {'z': fields.StringField(),
-                      'a': fields.StringField()}
+            fields = {'z': fields.StringField(), 'a': fields.StringField()}
 
             def obj_what_changed(self):
                 return ['z', 'a']
 
         obj = TestObject(a='foo', z='bar')
-        self.assertEqual(['z', 'a'],
-                         obj.obj_to_primitive()['versioned_object.changes'])
+        self.assertEqual(
+            ['z', 'a'], obj.obj_to_primitive()['versioned_object.changes']
+        )
         with fixture.StableObjectJsonFixture():
             self.assertEqual(
-                ['a', 'z'],
-                obj.obj_to_primitive()['versioned_object.changes'])
+                ['a', 'z'], obj.obj_to_primitive()['versioned_object.changes']
+            )
 
 
 class TestMethodSpec(test.TestCase):
@@ -770,15 +902,22 @@ class TestMethodSpec(test.TestCase):
         self._test_method3 = test_method3
 
     def test_method_spec_compat(self):
-        self.assertEqual(fixture.CompatArgSpec(args=['a', 'b', 'kw1'],
-                                               varargs=None,
-                                               keywords='kwargs',
-                                               defaults=(123,)),
-                         fixture.get_method_spec(self._test_method1))
-        self.assertEqual(fixture.CompatArgSpec(args=['a', 'b'],
-                                               varargs='args',
-                                               keywords=None,
-                                               defaults=None),
-                         fixture.get_method_spec(self._test_method2))
-        self.assertEqual(inspect.getfullargspec(self._test_method3),
-                         fixture.get_method_spec(self._test_method3))
+        self.assertEqual(
+            fixture.CompatArgSpec(
+                args=['a', 'b', 'kw1'],
+                varargs=None,
+                keywords='kwargs',
+                defaults=(123,),
+            ),
+            fixture.get_method_spec(self._test_method1),
+        )
+        self.assertEqual(
+            fixture.CompatArgSpec(
+                args=['a', 'b'], varargs='args', keywords=None, defaults=None
+            ),
+            fixture.get_method_spec(self._test_method2),
+        )
+        self.assertEqual(
+            inspect.getfullargspec(self._test_method3),
+            fixture.get_method_spec(self._test_method3),
+        )
