@@ -233,8 +233,7 @@ A common pattern is a ``FlexibleDictField`` that accepts both strings and dicts
 
 
    class FlexibleDict(ovo_fields.FieldType):
-       @staticmethod
-       def coerce(obj, attr, value):
+       def coerce(self, obj, attr, value):
            if isinstance(value, str):
                value = ast.literal_eval(value)
            return dict(value)

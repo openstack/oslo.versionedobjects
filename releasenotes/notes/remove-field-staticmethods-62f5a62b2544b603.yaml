@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The methods of the ``Field`` and ``FieldType`` classes and their various
+    subclasses are now consistently instance methods. Previously, they were
+    an inconsistent mix of static methods and instance methods.

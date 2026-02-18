@@ -113,16 +113,13 @@ class AbstractFieldType(metaclass=abc.ABCMeta):
 
 
 class FieldType(AbstractFieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         return value
 
-    @staticmethod
-    def from_primitive(obj, attr, value):
+    def from_primitive(self, obj, attr, value):
         return value
 
-    @staticmethod
-    def to_primitive(obj, attr, value):
+    def to_primitive(self, obj, attr, value):
         return value
 
     def describe(self):
@@ -246,8 +243,8 @@ class Field:
         """
         if value is None:
             return None
-        else:
-            return self._type.to_primitive(obj, attr, value)
+
+        return self._type.to_primitive(obj, attr, value)
 
     def describe(self):
         """Return a short string describing the type of this field."""
@@ -273,8 +270,7 @@ class Field:
 
 
 class String(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         # FIXME(danms): We should really try to avoid the need to do this
         accepted_types = (int, float, str, datetime.datetime)
         if isinstance(value, accepted_types):
@@ -285,8 +281,7 @@ class String(FieldType):
             % {'attr': attr, 'type': type(value).__name__}
         )
 
-    @staticmethod
-    def stringify(value):
+    def stringify(self, value):
         return f'\'{value}\''
 
     def get_schema(self):
@@ -304,8 +299,7 @@ class SensitiveString(String):
 
 
 class VersionPredicate(String):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         if not isinstance(value, str):
             raise ValueError(
                 _('Version %(val)s should be a string type, not %(real_type)s')
@@ -371,8 +365,7 @@ class UUID(StringPattern):
         r'{4}-?[a-fA-F0-9]{12}$'
     )
 
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         # FIXME(danms): We should actually verify the UUIDness here
         with warnings.catch_warnings():
             # Change the warning action only if no other filter exists
@@ -403,8 +396,7 @@ class MACAddress(StringPattern):
     PATTERN = r'^[0-9a-f]{2}(:[0-9a-f]{2}){5}$'
     _REGEX = re.compile(PATTERN)
 
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         if isinstance(value, str):
             lowered = value.lower().replace('-', ':')
             if MACAddress._REGEX.match(lowered):
@@ -416,8 +408,7 @@ class PCIAddress(StringPattern):
     PATTERN = r'^[0-9a-f]{4}:[0-9a-f]{2}:[0-1][0-9a-f].[0-7]$'
     _REGEX = re.compile(PATTERN)
 
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         if isinstance(value, str):
             newvalue = value.lower()
             if PCIAddress._REGEX.match(newvalue):
@@ -426,8 +417,7 @@ class PCIAddress(StringPattern):
 
 
 class Integer(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         return int(value)
 
     def get_schema(self):
@@ -435,8 +425,7 @@ class Integer(FieldType):
 
 
 class NonNegativeInteger(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         v = int(value)
         if v < 0:
             raise ValueError(_('Value must be >= 0 for field %s') % attr)
@@ -455,8 +444,7 @@ class Float(FieldType):
 
 
 class NonNegativeFloat(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         v = float(value)
         if v < 0:
             raise ValueError(_('Value must be >= 0 for field %s') % attr)
@@ -467,8 +455,7 @@ class NonNegativeFloat(FieldType):
 
 
 class Boolean(FieldType):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         return bool(value)
 
     def get_schema(self):
@@ -476,8 +463,7 @@ class Boolean(FieldType):
 
 
 class FlexibleBoolean(Boolean):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         return strutils.bool_from_string(value)
 
 
@@ -515,18 +501,15 @@ class DateTime(FieldType):
     def get_schema(self):
         return {'type': ['string'], 'format': 'date-time'}
 
-    @staticmethod
-    def to_primitive(obj, attr, value):
+    def to_primitive(self, obj, attr, value):
         return _utils.isotime(value)
 
-    @staticmethod
-    def stringify(value):
+    def stringify(self, value):
         return _utils.isotime(value)
 
 
 class IPAddress(StringPattern):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         try:
             return netaddr.IPAddress(value)
         except netaddr.AddrFormatError as e:
@@ -535,15 +518,13 @@ class IPAddress(StringPattern):
     def from_primitive(self, obj, attr, value):
         return self.coerce(obj, attr, value)
 
-    @staticmethod
-    def to_primitive(obj, attr, value):
+    def to_primitive(self, obj, attr, value):
         return str(value)
 
 
 class IPV4Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
+    def coerce(self, obj, attr, value):
+        result = super().coerce(obj, attr, value)
         if result.version != 4:
             raise ValueError(
                 _('Network "%(val)s" is not valid in field %(attr)s')
@@ -556,9 +537,8 @@ class IPV4Address(IPAddress):
 
 
 class IPV6Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
+    def coerce(self, obj, attr, value):
+        result = super().coerce(obj, attr, value)
         if result.version != 6:
             raise ValueError(
                 _('Network "%(val)s" is not valid in field %(attr)s')
@@ -571,9 +551,8 @@ class IPV6Address(IPAddress):
 
 
 class IPV4AndV6Address(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
-        result = IPAddress.coerce(obj, attr, value)
+    def coerce(self, obj, attr, value):
+        result = super().coerce(obj, attr, value)
         if result.version != 4 and result.version != 6:
             raise ValueError(
                 _('Network "%(val)s" is not valid in field %(attr)s')
@@ -588,8 +567,7 @@ class IPV4AndV6Address(IPAddress):
 
 
 class IPNetwork(IPAddress):
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         try:
             return netaddr.IPNetwork(value)
         except netaddr.AddrFormatError as e:
@@ -603,8 +581,7 @@ class IPV4Network(IPNetwork):
         r'0-9]|3[0-2]))$'
     )
 
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         try:
             return netaddr.IPNetwork(value, version=4)
         except netaddr.AddrFormatError as e:
@@ -616,8 +593,7 @@ class IPV6Network(IPNetwork):
         super().__init__(*args, **kwargs)
         self.PATTERN = self._create_pattern()
 
-    @staticmethod
-    def coerce(obj, attr, value):
+    def coerce(self, obj, attr, value):
         try:
             return netaddr.IPNetwork(value, version=6)
         except netaddr.AddrFormatError as e:
@@ -676,6 +652,14 @@ class IPV6Network(IPNetwork):
 
 class CompoundFieldType(FieldType):
     def __init__(self, element_type, **field_args):
+        if isinstance(element_type, type):
+            raise TypeError(
+                _(
+                    'Element type must be a FieldType instance, not a class. '
+                    'Use %(type)s() instead of %(type)s.'
+                )
+                % {'type': element_type.__name__}
+            )
         self._element_type = Field(element_type, **field_args)
 
 
@@ -872,12 +856,10 @@ class Object(FieldType):
             )
         return value
 
-    @staticmethod
-    def to_primitive(obj, attr, value):
+    def to_primitive(self, obj, attr, value):
         return value.obj_to_primitive()
 
-    @staticmethod
-    def from_primitive(obj, attr, value):
+    def from_primitive(self, obj, attr, value):
         # FIXME(danms): Avoid circular import from base.py
         from oslo_versionedobjects import base as obj_base
 
