@@ -385,14 +385,14 @@ class UUID(StringPattern):
                 # This is to ensure no breaking behaviour for current
                 # users
                 warnings.warn(
-                    "{} is an invalid UUID. Using UUIDFields "
-                    "with invalid UUIDs is no longer "
-                    "supported, and will be removed in a future "
-                    "release. Please update your "
-                    "code to input valid UUIDs or accept "
-                    "ValueErrors for invalid UUIDs. See "
-                    "https://docs.openstack.org/oslo.versionedobjects/latest/reference/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
-                    "for further details".format(repr(value).encode('utf8')),
+                    f"{value!r} is an invalid UUID. Using UUIDFields "
+                    f"with invalid UUIDs is no longer "
+                    f"supported, and will be removed in a future "
+                    f"release. Please update your "
+                    f"code to input valid UUIDs or accept "
+                    f"ValueErrors for invalid UUIDs. See "
+                    f"https://docs.openstack.org/oslo.versionedobjects/latest/reference/fields.html#oslo_versionedobjects.fields.UUIDField "  # noqa
+                    f"for further details",
                     FutureWarning,
                 )
 
