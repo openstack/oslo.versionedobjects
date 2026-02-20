@@ -20,6 +20,7 @@
 
 """
 
+from collections.abc import Callable, Mapping
 from collections import namedtuple
 from collections import OrderedDict
 import copy
@@ -28,6 +29,7 @@ import hashlib
 import inspect
 import logging
 from reprlib import recursive_repr
+from typing import Any
 from unittest import mock
 
 import fixtures
@@ -37,12 +39,17 @@ from oslo_versionedobjects import base
 from oslo_versionedobjects import fields
 
 
-LOG = logging.getLogger(__name__)
+LOG: logging.Logger = logging.getLogger(__name__)
 
 
 def compare_obj(
-    test, obj, db_obj, subs=None, allow_missing=None, comparators=None
-):
+    test: Any,
+    obj: base.VersionedObject,
+    db_obj: Mapping[str, Any],
+    subs: Mapping[str, str] | None = None,
+    allow_missing: list[str] | None = None,
+    comparators: Mapping[str, Callable[[Any, Any], None]] | None = None,
+) -> None:
     """Compare a VersionedObject and a dict-like database object.
 
     This automatically converts TZ-aware datetimes and iterates over
@@ -105,11 +112,11 @@ def compare_obj(
             test.assertEqual(db_val, obj_val)
 
 
-class OsloOrderedDict(OrderedDict):
+class OsloOrderedDict(OrderedDict[str, str]):
     """Oslo version of OrderedDict for Python consistency."""
 
     @recursive_repr()
-    def __repr__(self):
+    def __repr__(self) -> str:
         if not self:
             return f'{self.__class__.__bases__[0].__name__}()'
         # NOTE(jamespage):
@@ -122,12 +129,16 @@ class OsloOrderedDict(OrderedDict):
 
 
 class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
-    def __init__(self, serializer=None):
+    def __init__(
+        self, serializer: base.VersionedObjectSerializer | None = None
+    ) -> None:
         super().__init__()
         self._ser = serializer or base.VersionedObjectSerializer()
 
-    def _get_changes(self, orig_obj, new_obj):
-        updates = dict()
+    def _get_changes(
+        self, orig_obj: base.VersionedObject, new_obj: base.VersionedObject
+    ) -> dict[str, Any]:
+        updates: dict[str, Any] = {}
         for name, field in new_obj.fields.items():
             if not new_obj.obj_attr_is_set(name):
                 continue
@@ -139,7 +150,9 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
                 )
         return updates
 
-    def _canonicalize_args(self, context, args, kwargs):
+    def _canonicalize_args(
+        self, context: Any, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         args = tuple(
             [
                 self._ser.deserialize_entity(
@@ -156,7 +169,14 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         }
         return args, kwargs
 
-    def object_action(self, context, objinst, objmethod, args, kwargs):
+    def object_action(
+        self,
+        context: Any,
+        objinst: base.VersionedObject,
+        objmethod: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> tuple[dict[str, Any], Any]:
         objinst = self._ser.deserialize_entity(
             context, self._ser.serialize_entity(context, objinst)
         )
@@ -173,8 +193,14 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         return updates, result
 
     def object_class_action(
-        self, context, objname, objmethod, objver, args, kwargs
-    ):
+        self,
+        context: Any,
+        objname: str,
+        objmethod: str,
+        objver: str,
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> base.VersionedObject | Any:
         objname = str(objname)
         objmethod = str(objmethod)
         objver = str(objver)
@@ -194,8 +220,14 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
         )
 
     def object_class_action_versions(
-        self, context, objname, objmethod, object_versions, args, kwargs
-    ):
+        self,
+        context: Any,
+        objname: str,
+        objmethod: str,
+        object_versions: dict[str, str],
+        args: tuple[Any, ...],
+        kwargs: dict[str, Any],
+    ) -> base.VersionedObject | Any:
         objname = str(objname)
         objmethod = str(objmethod)
         object_versions = {str(o): str(v) for o, v in object_versions.items()}
@@ -215,15 +247,23 @@ class FakeIndirectionAPI(base.VersionedObjectIndirectionAPI):
             else result
         )
 
-    def object_backport(self, context, objinst, target_version):
+    def object_backport(
+        self,
+        context: Any,
+        objinst: base.VersionedObject,
+        target_version: str,
+    ) -> base.VersionedObject:
         raise Exception('not supported')
 
 
 class IndirectionFixture(fixtures.Fixture):
-    def __init__(self, indirection_api=None):
+    def __init__(
+        self,
+        indirection_api: base.VersionedObjectIndirectionAPI | None = None,
+    ) -> None:
         self.indirection_api = indirection_api or FakeIndirectionAPI()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.useFixture(
             fixtures.MonkeyPatch(
@@ -234,13 +274,15 @@ class IndirectionFixture(fixtures.Fixture):
 
 
 class ObjectHashMismatch(Exception):
-    def __init__(self, expected, actual):
+    def __init__(
+        self, expected: dict[str, str | None], actual: dict[str, str | None]
+    ) -> None:
         self.expected = expected
         self.actual = actual
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'Hashes have changed for {}'.format(
-            ','.join(set(self.expected.keys() + self.actual.keys()))
+            ','.join(set(self.expected.keys() | self.actual.keys()))
         )
 
 
@@ -248,7 +290,9 @@ ArgSpec = namedtuple('ArgSpec', ('args', 'varargs', 'keywords', 'defaults'))
 CompatArgSpec = ArgSpec
 
 
-def get_method_spec(method):
+def get_method_spec(
+    method: Callable[..., Any],
+) -> inspect.FullArgSpec | CompatArgSpec:
     """Get a stable and compatible method spec.
 
     Newer features in Python3 (kw-only arguments and annotations) are
@@ -272,10 +316,24 @@ def get_method_spec(method):
 
 
 class ObjectVersionChecker:
-    def __init__(self, obj_classes=base.VersionedObjectRegistry.obj_classes()):
-        self.obj_classes = obj_classes
+    def __init__(
+        self,
+        obj_classes: (
+            dict[str, list[type[base.VersionedObject]]] | None
+        ) = None,
+    ) -> None:
+        self.obj_classes = (
+            obj_classes
+            if obj_classes is not None
+            else base.VersionedObjectRegistry.obj_classes()
+        )
 
-    def _find_remotable_method(self, cls, thing, parent_was_remotable=False):
+    def _find_remotable_method(
+        self,
+        cls: type[base.VersionedObject],
+        thing: Any,
+        parent_was_remotable: bool = False,
+    ) -> Callable[..., Any] | None:
         """Follow a chain of remotable things down to the original function."""
         if isinstance(thing, classmethod):
             return self._find_remotable_method(cls, thing.__get__(None, cls))
@@ -283,17 +341,23 @@ class ObjectVersionChecker:
             inspect.ismethod(thing) or inspect.isfunction(thing)
         ) and hasattr(thing, 'remotable'):
             return self._find_remotable_method(
-                cls, thing.original_fn, parent_was_remotable=True
+                cls, getattr(thing, 'original_fn'), parent_was_remotable=True
             )
         elif parent_was_remotable:
             # We must be the first non-remotable thing underneath a stack of
             # remotable things (i.e. the actual implementation method)
-            return thing
+            return thing  # type: ignore[no-any-return]
         else:
             # This means the top-level thing never hit a remotable layer
             return None
 
-    def _get_fingerprint(self, obj_name, extra_data_func=None):
+    def _get_fingerprint(
+        self,
+        obj_name: str,
+        extra_data_func: (
+            Callable[[type[base.VersionedObject]], tuple[Any, ...]] | None
+        ) = None,
+    ) -> str:
         obj_class = self.obj_classes[obj_name][0]
         obj_fields = list(obj_class.fields.items())
         obj_fields.sort()
@@ -315,7 +379,7 @@ class ObjectVersionChecker:
         # but many other things may require a version bump (method behavior
         # and return value changes, for example).
         if hasattr(obj_class, 'child_versions'):
-            relevant_data = (
+            relevant_data: tuple[Any, ...] = (
                 obj_fields,
                 methods,
                 OsloOrderedDict(sorted(obj_class.child_versions.items())),
@@ -334,7 +398,12 @@ class ObjectVersionChecker:
         )
         return fingerprint
 
-    def get_hashes(self, extra_data_func=None):
+    def get_hashes(
+        self,
+        extra_data_func: (
+            Callable[[type[base.VersionedObject]], tuple[Any, ...]] | None
+        ) = None,
+    ) -> dict[str, str]:
         """Return a dict of computed object hashes.
 
         :param extra_data_func: a function that is given the object class
@@ -343,28 +412,38 @@ class ObjectVersionChecker:
                                 a tuple containing the extra data bits.
         """
 
-        fingerprints = {}
+        fingerprints: dict[str, str] = {}
         for obj_name in sorted(self.obj_classes):
             fingerprints[obj_name] = self._get_fingerprint(
                 obj_name, extra_data_func=extra_data_func
             )
         return fingerprints
 
-    def test_hashes(self, expected_hashes, extra_data_func=None):
+    def test_hashes(
+        self,
+        expected_hashes: dict[str, str],
+        extra_data_func: (
+            Callable[[type[base.VersionedObject]], tuple[Any, ...]] | None
+        ) = None,
+    ) -> tuple[dict[str, str | None], dict[str, str | None]]:
         fingerprints = self.get_hashes(extra_data_func=extra_data_func)
 
         stored = set(expected_hashes.items())
         computed = set(fingerprints.items())
         changed = stored.symmetric_difference(computed)
-        expected = {}
-        actual = {}
+        expected: dict[str, str | None] = {}
+        actual: dict[str, str | None] = {}
         for name, hash in changed:
             expected[name] = expected_hashes.get(name)
             actual[name] = fingerprints.get(name)
 
         return expected, actual
 
-    def _get_dependencies(self, tree, obj_class):
+    def _get_dependencies(
+        self,
+        tree: dict[str, dict[str, str]],
+        obj_class: type[base.VersionedObject],
+    ) -> None:
         obj_name = obj_class.obj_name()
         if obj_name in tree:
             return
@@ -377,20 +456,24 @@ class ObjectVersionChecker:
                 tree.setdefault(obj_name, {})
                 tree[obj_name][sub_obj_name] = sub_obj_class.VERSION
 
-    def get_dependency_tree(self):
-        tree = {}
+    def get_dependency_tree(self) -> dict[str, dict[str, str]]:
+        tree: dict[str, dict[str, str]] = {}
         for obj_name in self.obj_classes.keys():
             self._get_dependencies(tree, self.obj_classes[obj_name][0])
         return tree
 
-    def test_relationships(self, expected_tree):
+    def test_relationships(
+        self, expected_tree: dict[str, dict[str, str]]
+    ) -> tuple[
+        dict[str, dict[str, str] | None], dict[str, dict[str, str] | None]
+    ]:
         actual_tree = self.get_dependency_tree()
 
         stored = {(x, str(y)) for x, y in expected_tree.items()}
         computed = {(x, str(y)) for x, y in actual_tree.items()}
         changed = stored.symmetric_difference(computed)
-        expected = {}
-        actual = {}
+        expected: dict[str, dict[str, str] | None] = {}
+        actual: dict[str, dict[str, str] | None] = {}
         for name, deps in changed:
             expected[name] = expected_tree.get(name)
             actual[name] = actual_tree.get(name)
@@ -398,12 +481,18 @@ class ObjectVersionChecker:
         return expected, actual
 
     def _test_object_compatibility(
-        self, obj_class, manifest=None, init_args=None, init_kwargs=None
-    ):
+        self,
+        obj_class: type[base.VersionedObject],
+        manifest: dict[str, str] | None = None,
+        init_args: list[Any] | None = None,
+        init_kwargs: dict[str, Any] | None = None,
+    ) -> None:
         init_args = init_args or []
         init_kwargs = init_kwargs or {}
         version = vutils.convert_version_to_tuple(obj_class.VERSION)
-        kwargs = {'version_manifest': manifest} if manifest else {}
+        kwargs: dict[str, Any] = (
+            {'version_manifest': manifest} if manifest else {}
+        )
         for n in range(version[1] + 1):
             test_version = f'{version[0]}.{n}'
             # Run the test with OS_DEBUG=True to see this.
@@ -416,8 +505,13 @@ class ObjectVersionChecker:
             obj_class(*init_args, **init_kwargs).obj_to_primitive(**kwargs)
 
     def test_compatibility_routines(
-        self, use_manifest=False, init_args=None, init_kwargs=None
-    ):
+        self,
+        use_manifest: bool = False,
+        init_args: dict[type[base.VersionedObject], list[Any]] | None = None,
+        init_kwargs: (
+            dict[type[base.VersionedObject], dict[str, Any]] | None
+        ) = None,
+    ) -> None:
         """Test obj_make_compatible() on all object classes.
 
         :param use_manifest: a boolean that determines if the version
@@ -456,10 +550,12 @@ class ObjectVersionChecker:
                     init_kwargs=kwargs_for_init,
                 )
 
-    def _test_relationships_in_order(self, obj_class):
+    def _test_relationships_in_order(
+        self, obj_class: type[base.VersionedObject]
+    ) -> None:
         for field, versions in obj_class.obj_relationships.items():
-            last_my_version = (0, 0)
-            last_child_version = (0, 0)
+            last_my_version: tuple[int, ...] = (0, 0)
+            last_child_version: tuple[int, ...] = (0, 0)
             for my_version, child_version in versions:
                 _my_version = vutils.convert_version_to_tuple(my_version)
                 _ch_version = vutils.convert_version_to_tuple(child_version)
@@ -475,7 +571,7 @@ class ObjectVersionChecker:
                 last_my_version = _my_version
                 last_child_version = _ch_version
 
-    def test_relationships_in_order(self):
+    def test_relationships_in_order(self) -> None:
         # Iterate all object classes and verify that we can run
         # obj_make_compatible with every older version than current.
         # This doesn't actually test the data conversions, but it at least
@@ -496,19 +592,21 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
     will have calls which lookup registration.
     """
 
-    def setUp(self):
+    _base_test_obj_backup: dict[str, list[type[base.VersionedObject]]]
+
+    def setUp(self) -> None:
         super().setUp()
         self._base_test_obj_backup = copy.deepcopy(
-            base.VersionedObjectRegistry._registry._obj_classes
+            base.VersionedObjectRegistry._registry._obj_classes  # type: ignore[attr-defined]
         )
         self.addCleanup(self._restore_obj_registry)
 
     @staticmethod
-    def register(cls_name):
+    def register(cls_name: type[base.VersionedObject]) -> None:
         base.VersionedObjectRegistry.register(cls_name)
 
-    def _restore_obj_registry(self):
-        base.VersionedObjectRegistry._registry._obj_classes = (
+    def _restore_obj_registry(self) -> None:
+        base.VersionedObjectRegistry._registry._obj_classes = (  # type: ignore[attr-defined]
             self._base_test_obj_backup
         )
 
@@ -526,13 +624,15 @@ class StableObjectJsonFixture(fixtures.Fixture):
     returning it to the caller.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._original_otp = base.VersionedObject.obj_to_primitive
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-        def _doit(obj, *args, **kwargs):
+        def _doit(
+            obj: base.VersionedObject, *args: Any, **kwargs: Any
+        ) -> dict[str, Any]:
             result = self._original_otp(obj, *args, **kwargs)
             changes_key = obj._obj_primitive_key('changes')
             if changes_key in result:
