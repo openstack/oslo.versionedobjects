@@ -22,18 +22,20 @@ SHOULD include dedicated exception logging.
 
 """
 
+from collections.abc import Callable
 import functools
 import inspect
 import logging
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from oslo_config import cfg
 from oslo_utils import excutils
 
 from oslo_versionedobjects._i18n import _
 
-LOG = logging.getLogger(__name__)
+LOG: logging.Logger = logging.getLogger(__name__)
 
-exc_log_opts = [
+exc_log_opts: list[cfg.Opt] = [
     cfg.BoolOpt(
         'fatal_exception_format_errors',
         default=False,
@@ -41,16 +43,27 @@ exc_log_opts = [
     ),
 ]
 
-CONF = cfg.CONF
+CONF: cfg.ConfigOpts = cfg.CONF
 CONF.register_opts(exc_log_opts, group='oslo_versionedobjects')
 
 
-def _cleanse_dict(original):
+def _cleanse_dict(original: dict[str, Any]) -> dict[str, Any]:
     """Strip all admin_password, new_pass, rescue_pass keys from a dict."""
     return {k: v for k, v in original.items() if "_pass" not in k}
 
 
-def wrap_exception(notifier=None, get_notifier=None):
+_F = TypeVar('_F', bound=Callable[..., Any])
+
+P = ParamSpec('P')
+R = TypeVar('R')
+
+
+def wrap_exception(
+    notifier: Any = None, get_notifier: Callable[[], Any] | None = None
+) -> Callable[
+    [Callable[Concatenate[Any, P], R]],
+    Callable[Concatenate[Any, P], R | None],
+]:
     """Catch all exceptions in wrapped method
 
     This decorator wraps a method to catch any exceptions that may
@@ -58,8 +71,12 @@ def wrap_exception(notifier=None, get_notifier=None):
     system.
     """
 
-    def inner(f):
-        def wrapped(self, context, *args, **kw):
+    def inner(
+        f: Callable[Concatenate[Any, P], R],
+    ) -> Callable[Concatenate[Any, P], R | None]:
+        def wrapped(
+            self: Any, /, context: Any, *args: P.args, **kw: P.kwargs
+        ) -> R | None:
             # Don't store self or context in the payload, it now seems to
             # contain confidential information.
             try:
@@ -67,7 +84,7 @@ def wrap_exception(notifier=None, get_notifier=None):
             except Exception as e:
                 with excutils.save_and_reraise_exception():
                     if notifier or get_notifier:
-                        payload = dict(exception=e)
+                        payload: dict[str, Any] = dict(exception=e)
                         call_dict = inspect.getcallargs(
                             f, self, context, *args, **kw
                         )
@@ -79,11 +96,16 @@ def wrap_exception(notifier=None, get_notifier=None):
                         # propagated.
                         event_type = f.__name__
 
-                        (notifier or get_notifier()).error(
-                            context, event_type, payload
-                        )
+                        if notifier:
+                            actual_notifier = notifier
+                        else:
+                            # get_notifier must be set since we're in
+                            # the 'if notifier or get_notifier' block
+                            actual_notifier = get_notifier()  # type: ignore[misc]
+                        actual_notifier.error(context, event_type, payload)
+                return None
 
-        return functools.wraps(f)(wrapped)
+        return functools.wraps(f)(wrapped)  # type: ignore[return-value]
 
     return inner
 
@@ -94,13 +116,12 @@ class VersionedObjectsException(Exception):
     To correctly use this class, inherit from it and define
     a 'msg_fmt' property. That msg_fmt will get printf'd
     with the keyword arguments provided to the constructor.
-
     """
 
     msg_fmt = _("An unknown exception occurred.")
 
-    def __init__(self, message=None, **kwargs):
-        self.kwargs = kwargs
+    def __init__(self, message: str | None = None, **kwargs: Any) -> None:
+        self.kwargs: dict[str, Any] = kwargs
 
         if 'code' not in self.kwargs:
             try:
@@ -126,11 +147,11 @@ class VersionedObjectsException(Exception):
 
         super().__init__(message)
 
-    def format_message(self):
+    def format_message(self) -> str:
         # NOTE(mrodden): use the first argument to the python Exception object
         # which should be our full VersionedObjectsException message,
         # (see __init__)
-        return self.args[0]
+        return str(self.args[0])
 
 
 class ObjectActionError(VersionedObjectsException):
