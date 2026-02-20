@@ -17,14 +17,19 @@
 
 """Utilities and helper functions."""
 
+import datetime
+
 # ISO 8601 extended time format without microseconds
-_ISO8601_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S'
+_ISO8601_TIME_FORMAT: str = '%Y-%m-%dT%H:%M:%S'
 
 
-def isotime(at):
+def isotime(at: datetime.datetime) -> str:
     """Stringify time in ISO 8601 format."""
     st = at.strftime(_ISO8601_TIME_FORMAT)
-    tz = at.tzinfo.tzname(None) if at.tzinfo else 'UTC'
+    tz: str | None = at.tzinfo.tzname(None) if at.tzinfo else 'UTC'
     # Need to handle either iso8601 or python UTC format
-    st += 'Z' if tz in ['UTC', 'UTC+00:00'] else tz
+    if tz is None or tz in ['UTC', 'UTC+00:00']:
+        st += 'Z'
+    else:
+        st += tz
     return st
