@@ -16,7 +16,9 @@
 
 """Base classes for our unit tests."""
 
+from collections.abc import Callable
 import os
+from typing import Any, TypeVar
 from unittest import mock
 
 import fixtures
@@ -29,16 +31,20 @@ import testtools
 from oslo_versionedobjects.tests import obj_fixtures
 
 
-CONF = cfg.CONF
+CONF: cfg.ConfigOpts = cfg.CONF
+_F = TypeVar('_F', bound=Callable[..., Any])
+_C = TypeVar('_C', bound=type)
 
 
 class TestingException(Exception):
     pass
 
 
-def _patch_mock_to_raise_for_invalid_assert_calls():
-    def raise_for_invalid_assert_calls(wrapped):
-        def wrapper(_self, name):
+def _patch_mock_to_raise_for_invalid_assert_calls() -> None:
+    def raise_for_invalid_assert_calls(
+        wrapped: Callable[[mock.Mock, str], Any],
+    ) -> Callable[[mock.Mock, str], Any]:
+        def wrapper(_self: mock.Mock, name: str) -> Any:
             valid_asserts = [
                 'assert_called_with',
                 'assert_called_once_with',
@@ -55,7 +61,7 @@ def _patch_mock_to_raise_for_invalid_assert_calls():
 
         return wrapper
 
-    mock.Mock.__getattr__ = raise_for_invalid_assert_calls(
+    mock.Mock.__getattr__ = raise_for_invalid_assert_calls(  # type: ignore
         mock.Mock.__getattr__
     )
 
@@ -68,11 +74,11 @@ _patch_mock_to_raise_for_invalid_assert_calls()
 class TestCase(testtools.TestCase):
     """Test case base class for all unit tests."""
 
-    REQUIRES_LOCKING = False
+    REQUIRES_LOCKING: bool = False
 
-    TIMEOUT_SCALING_FACTOR = 1
+    TIMEOUT_SCALING_FACTOR: int = 1
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Run before each test method to initialize test environment."""
         super().setUp()
         self.useFixture(
@@ -116,7 +122,7 @@ class TestCase(testtools.TestCase):
         self.addCleanup(self._clear_attrs)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
 
-    def _clear_attrs(self):
+    def _clear_attrs(self) -> None:
         # Delete attributes that don't start with _ so they don't pin
         # memory around unnecessarily for the duration of the test
         # suite
