@@ -87,8 +87,8 @@ class TestObjectComparators(test.TestCase):
 
         self.assertFalse(
             mock_test.assertEqual.called,
-            "assertEqual should "
-            "not have been called, there is nothing to compare.",
+            "assertEqual should not have been called, there is nothing to "
+            "compare.",
         )
 
     def test_compare_obj_with_unset_in_obj(self):
@@ -230,9 +230,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected,
             actual,
-            "ObjectVersionChecker is not "
-            "getting the fingerprints of all registered "
-            "objects.",
+            "ObjectVersionChecker is not getting the fingerprints of all "
+            "registered objects.",
         )
 
     def test_get_hashes_with_extra_data(self):
@@ -252,9 +251,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected,
             actual,
-            "ObjectVersionChecker is not "
-            "getting the fingerprints of all registered "
-            "objects.",
+            "ObjectVersionChecker is not getting the fingerprints of all "
+            "registered objects.",
         )
 
         self.assertEqual(
@@ -286,15 +284,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_expected,
-            "There are no "
-            "objects changed, so the 'expected' return value "
+            "There are no objects changed, so the 'expected' return value "
             "should contain no objects.",
         )
         self.assertEqual(
             expected_actual,
             actual_actual,
-            "There are no "
-            "objects changed, so the 'actual' return value "
+            "There are no objects changed, so the 'actual' return value "
             "should contain no objects.",
         )
 
@@ -318,16 +314,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_exp,
-            "Expected hashes "
-            "should not contain the fingerprint of the class "
-            "that has not been added to the expected hash "
-            "dictionary.",
+            "Expected hashes should not contain the fingerprint of the class "
+            "that has not been added to the expected hash dictionary.",
         )
         self.assertEqual(
             expected_actual,
             actual_act,
-            "The actual hash "
-            "should contain the class that was added to the "
+            "The actual hash should contain the class that was added to the "
             "registry.",
         )
 
@@ -351,15 +344,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_exp,
-            "Expected hashes "
-            "should contain the updated object with the old "
+            "Expected hashes should contain the updated object with the old "
             "hash.",
         )
         self.assertEqual(
             expected_actual,
             actual_act,
-            "Actual hashes "
-            "should contain the updated object with the new "
+            "Actual hashes should contain the updated object with the new "
             "hash.",
         )
 
@@ -385,16 +376,16 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             2,
             len(mock_gd.call_args_list),
-            "get_dependency_tree() tried to get the dependencies"
-            " too many times.",
+            "get_dependency_tree() tried to get the dependencies too many "
+            "times.",
         )
 
         for call in expected_calls:
             self.assertIn(
                 call,
                 mock_gd.call_args_list,
-                "get_dependency_tree() did not get the dependencies "
-                "of the objects correctly.",
+                "get_dependency_tree() did not get the dependencies of the "
+                "objects correctly.",
             )
 
     def test_test_relationships_none_changed(self):
@@ -413,15 +404,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_exp,
-            "There are no "
-            "objects changed, so the 'expected' return value "
+            "There are no objects changed, so the 'expected' return value "
             "should contain no objects.",
         )
         self.assertEqual(
             expected_actual,
             actual_act,
-            "There are no "
-            "objects changed, so the 'actual' return value "
+            "There are no objects changed, so the 'actual' return value "
             "should contain no objects.",
         )
 
@@ -446,15 +435,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_exp,
-            "The expected "
-            "relationship tree is not being built from changes "
+            "The expected relationship tree is not being built from changes "
             "correctly.",
         )
         self.assertEqual(
             expected_actual,
             actual_act,
-            "The actual "
-            "relationship tree is not being built from changes "
+            "The actual relationship tree is not being built from changes "
             "correctly.",
         )
 
@@ -477,15 +464,13 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_expected,
             actual_exp,
-            "The expected "
-            "relationship tree is not being built from changes "
+            "The expected relationship tree is not being built from changes "
             "correctly.",
         )
         self.assertEqual(
             expected_actual,
             actual_act,
-            "The actual "
-            "relationship tree is not being built from changes "
+            "The actual relationship tree is not being built from changes "
             "correctly.",
         )
 
@@ -582,8 +567,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             MyObject.remotable_method.original_fn,
             method,
-            "_find_remotable_method() did not find the remotable"
-            " method of MyObject.",
+            "_find_remotable_method() did not find the remotable "
+            "method of MyObject.",
         )
 
     def test_find_remotable_method_classmethod(self):
@@ -775,8 +760,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_calls,
             to_prim.call_args_list,
-            "_test_object_compatibility() did not test "
-            "obj_to_primitive() on the correct target versions",
+            "_test_object_compatibility() did not test obj_to_primitive() on "
+            "the correct target versions",
         )
 
     def test_test_object_compatibility_args_kwargs(self):
@@ -800,8 +785,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_init_calls,
             mock_init.call_args_list,
-            "_test_object_compatibility() did not call "
-            "__init__() properly on the object",
+            "_test_object_compatibility() did not call __init__() properly "
+            "on the object",
         )
 
         expected_to_prim = [
@@ -811,8 +796,8 @@ class TestObjectVersionChecker(test.TestCase):
         self.assertEqual(
             expected_to_prim,
             to_prim.call_args_list,
-            "_test_object_compatibility() did not test "
-            "obj_to_primitive() on the correct target versions",
+            "_test_object_compatibility() did not test obj_to_primitive() "
+            "on the correct target versions",
         )
 
     def _add_class(self, obj_classes, cls):
