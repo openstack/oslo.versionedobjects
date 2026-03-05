@@ -161,12 +161,52 @@ class VersionedObjectRegistry:
         return registry._obj_classes
 
 
-# These are decorators that mark an object's method as remotable.
+# Decorator that marks an object's method as remotable.
 # If the metaclass is configured to forward object methods to an
-# indirection service, these will result in making an RPC call
+# indirection service, this will result in making an RPC call
 # instead of directly calling the implementation in the object. Instead,
 # the object implementation on the remote end will perform the
 # requested action and the result will be returned here.
+#
+# Note that for instance methods, if context is not present, the object
+# is "orphaned" and remotable methods cannot be called.
+def remotable(fn):
+    """Decorator for remotable object methods."""
+
+    @functools.wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        ctxt = self._context
+        if ctxt is None:
+            raise exception.OrphanedObjectError(
+                method=fn.__name__, objtype=self.obj_name()
+            )
+        if self.indirection_api:
+            updates, result = self.indirection_api.object_action(
+                ctxt, self, fn.__name__, args, kwargs
+            )
+            for key, value in updates.items():
+                if key in self.fields:
+                    field = self.fields[key]
+                    # NOTE(ndipanov): Since VersionedObjectSerializer will have
+                    # deserialized any object fields into objects already,
+                    # we do not try to deserialize them again here.
+                    if isinstance(value, VersionedObject):
+                        setattr(self, key, value)
+                    else:
+                        setattr(
+                            self, key, field.from_primitive(self, key, value)
+                        )
+            self.obj_reset_changes()
+            self._changed_fields = set(updates.get('obj_what_changed', []))
+            return result
+        else:
+            return fn(self, *args, **kwargs)
+
+    wrapper.remotable = True
+    wrapper.original_fn = fn
+    return wrapper
+
+
 def remotable_classmethod(fn):
     """Decorator for remotable classmethods."""
 
@@ -203,48 +243,6 @@ def remotable_classmethod(fn):
     wrapper.remotable = True
     wrapper.original_fn = fn
     return classmethod(wrapper)
-
-
-# See comment above for remotable_classmethod()
-#
-# Note that this will use either the provided context, or the one
-# stashed in the object. If neither are present, the object is
-# "orphaned" and remotable methods cannot be called.
-def remotable(fn):
-    """Decorator for remotable object methods."""
-
-    @functools.wraps(fn)
-    def wrapper(self, *args, **kwargs):
-        ctxt = self._context
-        if ctxt is None:
-            raise exception.OrphanedObjectError(
-                method=fn.__name__, objtype=self.obj_name()
-            )
-        if self.indirection_api:
-            updates, result = self.indirection_api.object_action(
-                ctxt, self, fn.__name__, args, kwargs
-            )
-            for key, value in updates.items():
-                if key in self.fields:
-                    field = self.fields[key]
-                    # NOTE(ndipanov): Since VersionedObjectSerializer will have
-                    # deserialized any object fields into objects already,
-                    # we do not try to deserialize them again here.
-                    if isinstance(value, VersionedObject):
-                        setattr(self, key, value)
-                    else:
-                        setattr(
-                            self, key, field.from_primitive(self, key, value)
-                        )
-            self.obj_reset_changes()
-            self._changed_fields = set(updates.get('obj_what_changed', []))
-            return result
-        else:
-            return fn(self, *args, **kwargs)
-
-    wrapper.remotable = True
-    wrapper.original_fn = fn
-    return wrapper
 
 
 class VersionedObject:
