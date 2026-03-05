@@ -32,10 +32,17 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
     declaration in the class body to gather the o.vo fields. Then maps the
     type of the field to python types and insert such typed field definition
     to the class definition.
+
+    The plugin also handles inherited fields (e.g. from TimestampedObject
+    mixins) by caching each class's fields dict while its body is still
+    intact, then using that cache when processing subclasses.
     """
 
     def __init__(self, options: _options.Options) -> None:
         super().__init__(options)
+        # Cache of class fullname -> fields DictExpr, populated by
+        # _cache_fields while each class body is still accessible.
+        self._fields_cache: dict[str, nodes.DictExpr] = {}
 
     def get_class_decorator_hook(
         self, fullname: str
@@ -55,27 +62,47 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         )
         if any(base_class in fullname for base_class in base_classes.split()):
             return self.generate_ovo_field_defs
+        # Cache field dicts for all classes while their bodies are intact.
+        # This is needed to support MRO traversal for mixin parent classes
+        # (e.g. TimestampedObject) whose bodies are empty by the time we
+        # process subclasses.
+        if fullname == "builtins.object":
+            return self._cache_fields
         return None
 
-    def _get_fields_dict_expr(
-        self, ctx: _plugin.ClassDefContext
-    ) -> nodes.DictExpr | None:
-        # defs is the Block of the class definition
-        fields_assignments = [
-            statement
-            for statement in ctx.cls.defs.body
-            if isinstance(statement, nodes.AssignmentStmt)
-            and
-            # could be multiple lvalues and each can assign to 'fields'
-            isinstance(statement.lvalues[0], nodes.NameExpr)
-            and statement.lvalues[0].name == "fields"
-        ]
+    def _cache_fields(self, ctx: _plugin.ClassDefContext) -> None:
+        """Cache the fields dict from this class's body while it is intact."""
+        for statement in ctx.cls.defs.body:
+            if (
+                isinstance(statement, nodes.AssignmentStmt)
+                and isinstance(statement.lvalues[0], nodes.NameExpr)
+                and statement.lvalues[0].name == "fields"
+                and isinstance(statement.rvalue, nodes.DictExpr)
+            ):
+                self._fields_cache[ctx.cls.info.fullname] = statement.rvalue
+                return
 
-        # what if there are more than that?
-        if len(fields_assignments) == 1:
-            fields_assignment = fields_assignments[0]
-            assert isinstance(fields_assignment.rvalue, nodes.DictExpr)
-            return fields_assignment.rvalue
+    def _get_fields_dict_from_type_info(
+        self, type_info: nodes.TypeInfo
+    ) -> nodes.DictExpr | None:
+        """Get the 'fields' dict expression for a class in the MRO.
+
+        Checks the cache first (populated by _cache_fields), then falls back
+        to reading from the class body (which is only non-empty for the class
+        currently being processed).
+        """
+        if type_info.fullname in self._fields_cache:
+            return self._fields_cache[type_info.fullname]
+
+        # Fallback: read directly from the body (works for the current class)
+        for statement in type_info.defn.defs.body:
+            if (
+                isinstance(statement, nodes.AssignmentStmt)
+                and isinstance(statement.lvalues[0], nodes.NameExpr)
+                and statement.lvalues[0].name == "fields"
+                and isinstance(statement.rvalue, nodes.DictExpr)
+            ):
+                return statement.rvalue
 
         return None
 
@@ -134,11 +161,14 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         return types.AnyType(types.TypeOfAny.implementation_artifact)
 
     def _add_ovo_members_to_class(
-        self, ctx: _plugin.ClassDefContext, fields_def: nodes.DictExpr
+        self,
+        ctx: _plugin.ClassDefContext,
+        fields_def: nodes.DictExpr,
+        processed_fields: set[str],
     ) -> None:
 
         for k, v in fields_def.items:
-            # This means we does not support the case when the name of the
+            # This means we do not support the case when the name of the
             # field is calculated e.g.:
             # fields = {'first' + 'name': fields.StringField()}
             if not isinstance(k, nodes.StrExpr):
@@ -151,40 +181,49 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
 
             field_name = k.value
 
-            # TODO(gibi): make these proper errors
-            assert isinstance(v, nodes.CallExpr)
-            assert isinstance(v.callee, (nodes.MemberExpr, nodes.NameExpr))
-            assert v.callee.fullname is not None
-            args = {
-                arg_name: arg
-                for arg, arg_name in zip(v.args, v.arg_names)
-                if arg_name is not None  # skip positional args
-            }
+            # Skip fields already defined by a more derived class in the MRO
+            if field_name in processed_fields:
+                continue
+            processed_fields.add(field_name)
 
-            field_type_name = v.callee.fullname
+            if (
+                not isinstance(v, nodes.CallExpr)
+                or not isinstance(v.callee, (nodes.MemberExpr, nodes.NameExpr))
+                or v.callee.fullname is None
+            ):
+                self.log(
+                    f"Skipping field {field_name}: unexpected AST structure"
+                )
+                field_type: types.Type = types.AnyType(
+                    types.TypeOfAny.implementation_artifact
+                )
+            else:
+                args = {
+                    arg_name: arg
+                    for arg, arg_name in zip(v.args, v.arg_names)
+                    if arg_name is not None  # skip positional args
+                }
 
-            field_type = self._get_python_type_from_ovo_field_type(
-                ctx, field_type_name, args
-            )
+                field_type = self._get_python_type_from_ovo_field_type(
+                    ctx, v.callee.fullname, args
+                )
 
-            # insert a typed field definition to the current class
             self._add_member_to_class(field_name, field_type, ctx.cls.info)
 
     def generate_ovo_field_defs(self, ctx: _plugin.ClassDefContext) -> None:
-        # check if there is a fields dict assignment in the class body
-        fields_dict_expr = self._get_fields_dict_expr(ctx)
-        if not fields_dict_expr:
-            # No 'fields' definition in body
-            return
+        # Process fields from this class and all inherited classes via MRO,
+        # so that inherited fields (e.g. from TimestampedObject) are included.
+        processed_fields: set[str] = set()
 
-        if not isinstance(fields_dict_expr, nodes.DictExpr):
-            ctx.api.fail(
-                "oslo versioned object `fields` definition should be a dict",
-                fields_dict_expr,
+        for type_info in ctx.cls.info.mro:
+            fields_dict_expr = self._get_fields_dict_from_type_info(type_info)
+            if fields_dict_expr is None:
+                continue
+
+            # add a typed field def per `fields` dict k-v pair
+            self._add_ovo_members_to_class(
+                ctx, fields_dict_expr, processed_fields
             )
-
-        # add a typed field def per `fields` dict k-v pair.
-        self._add_ovo_members_to_class(ctx, fields_dict_expr)
 
     def log(self, msg: str) -> None:
         if self.options.verbosity > 0:
