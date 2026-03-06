@@ -1753,12 +1753,11 @@ class TestObject(_LocalTest, _TestObject):
         self.assertEqual(1, obj.foo)
 
     def test_set_defaults_not_overwrite(self):
-        # NOTE(danms): deleted defaults to False, so verify that it does
+        # NOTE(danms): foo defaults to 1, so verify that it does
         # not get reset by obj_set_defaults()
-        obj = MyObj(deleted=True)
+        obj = MyObj(foo=2)
         obj.obj_set_defaults()
-        self.assertEqual(1, obj.foo)
-        self.assertTrue(obj.deleted)
+        self.assertEqual(2, obj.foo)
 
 
 class TestRemoteObject(_RemoteTest, _TestObject):
