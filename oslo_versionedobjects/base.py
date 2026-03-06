@@ -30,7 +30,6 @@ from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
 
-
 LOG = logging.getLogger('object')
 
 
@@ -386,12 +385,9 @@ class VersionedObject:
     def obj_class_from_name(cls, objname, objver):
         """Returns a class from the registry based on a name and version."""
         if objname not in VersionedObjectRegistry.obj_classes():
-            (
-                LOG.error(
-                    'Unable to instantiate unregistered object type '
-                    '%(objtype)s'
-                ),
-                dict(objtype=objname),
+            LOG.error(
+                'Unable to instantiate unregistered object type %(objtype)s',
+                {'objtype': objname},
             )
             raise exception.UnsupportedObjectError(objtype=objname)
 
