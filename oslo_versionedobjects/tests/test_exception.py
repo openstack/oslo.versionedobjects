@@ -40,12 +40,19 @@ class ExceptionTestCase(test.TestCase):
         notifier.reset_mock()
 
         # wrap_exception() must reraise the exception
-        self.assertRaises(ValueError,  # nosec
-                          test.raise_exc, context, exc, admin_password="xxx")
+        self.assertRaises(
+            ValueError,  # nosec
+            test.raise_exc,
+            context,
+            exc,
+            admin_password="xxx",
+        )
 
         # wrap_exception() strips admin_password from args
-        payload = {'args': {'self': test, 'context': context, 'exc': exc},
-                   'exception': exc}
+        payload = {
+            'args': {'self': test, 'context': context, 'exc': exc},
+            'exception': exc,
+        }
         notifier.error.assert_called_once_with(context, 'raise_exc', payload)
 
     def test_vo_exception(self):
@@ -54,12 +61,15 @@ class ExceptionTestCase(test.TestCase):
         self.assertEqual({'code': 500}, exc.kwargs)
 
     def test_object_action_error(self):
-        exc = exception.ObjectActionError(action='ACTION', reason='REASON',
-                                          code=123)
-        self.assertEqual('Object action ACTION failed because: REASON',
-                         str(exc))
-        self.assertEqual({'code': 123, 'action': 'ACTION', 'reason': 'REASON'},
-                         exc.kwargs)
+        exc = exception.ObjectActionError(
+            action='ACTION', reason='REASON', code=123
+        )
+        self.assertEqual(
+            'Object action ACTION failed because: REASON', str(exc)
+        )
+        self.assertEqual(
+            {'code': 123, 'action': 'ACTION', 'reason': 'REASON'}, exc.kwargs
+        )
 
     def test_constructor_format_error(self):
         # Test error handling on formatting exception message in the

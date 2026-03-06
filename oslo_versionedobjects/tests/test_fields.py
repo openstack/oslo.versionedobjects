@@ -28,10 +28,10 @@ from oslo_versionedobjects import test
 
 class FakeFieldType(fields.FieldType):
     def coerce(self, obj, attr, value):
-        return '*%s*' % value
+        return f'*{value}*'
 
     def to_primitive(self, obj, attr, value):
-        return '!%s!' % value
+        return f'!{value}!'
 
     def from_primitive(self, obj, attr, value):
         return value[1:-1]
@@ -48,8 +48,7 @@ class FakeEnum(fields.Enum):
     ALL = (FROG, PLATYPUS, ALLIGATOR)
 
     def __init__(self, **kwargs):
-        super().__init__(valid_values=FakeEnum.ALL,
-                         **kwargs)
+        super().__init__(valid_values=FakeEnum.ALL, **kwargs)
 
 
 class FakeEnumAlt(fields.Enum):
@@ -60,8 +59,7 @@ class FakeEnumAlt(fields.Enum):
     ALL = {FROG, PLATYPUS, AARDVARK}
 
     def __init__(self, **kwargs):
-        super().__init__(valid_values=FakeEnumAlt.ALL,
-                         **kwargs)
+        super().__init__(valid_values=FakeEnumAlt.ALL, **kwargs)
 
 
 class FakeEnumField(fields.BaseEnumField):
@@ -69,20 +67,13 @@ class FakeEnumField(fields.BaseEnumField):
 
 
 class FakeStateMachineField(fields.StateMachine):
-
     ACTIVE = 'ACTIVE'
     PENDING = 'PENDING'
     ERROR = 'ERROR'
 
     ALLOWED_TRANSITIONS = {
-        ACTIVE: {
-            PENDING,
-            ERROR
-        },
-        PENDING: {
-            ACTIVE,
-            ERROR
-        },
+        ACTIVE: {PENDING, ERROR},
+        PENDING: {ACTIVE, ERROR},
         ERROR: {
             PENDING,
         },
@@ -118,21 +109,29 @@ class TestField(test.TestCase):
 
     def test_coerce_bad_values(self):
         for in_val in self.coerce_bad_values:
-            self.assertRaises((TypeError, ValueError),
-                              self.field.coerce, 'obj', 'attr', in_val)
+            self.assertRaises(
+                (TypeError, ValueError),
+                self.field.coerce,
+                'obj',
+                'attr',
+                in_val,
+            )
 
     def test_to_primitive(self):
         for in_val, prim_val in self.to_primitive_values:
-            self.assertEqual(prim_val, self.field.to_primitive('obj', 'attr',
-                                                               in_val))
+            self.assertEqual(
+                prim_val, self.field.to_primitive('obj', 'attr', in_val)
+            )
 
     def test_from_primitive(self):
         class ObjectLikeThing:
             _context = 'context'
 
         for prim_val, out_val in self.from_primitive_values:
-            self.assertEqual(out_val, self.field.from_primitive(
-                ObjectLikeThing, 'attr', prim_val))
+            self.assertEqual(
+                out_val,
+                self.field.from_primitive(ObjectLikeThing, 'attr', prim_val),
+            )
 
     def test_stringify(self):
         self.assertEqual('123', self.field.stringify(123))
@@ -141,13 +140,15 @@ class TestField(test.TestCase):
 class TestSchema(test.TestCase):
     def setUp(self):
         super().setUp()
-        self.field = fields.Field(FakeFieldType(), nullable=True,
-                                  default='', read_only=False)
+        self.field = fields.Field(
+            FakeFieldType(), nullable=True, default='', read_only=False
+        )
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['foo', 'null'], 'default': '',
-                          'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['foo', 'null'], 'default': '', 'readonly': False},
+            self.field.get_schema(),
+        )
 
 
 class TestString(TestField):
@@ -155,7 +156,11 @@ class TestString(TestField):
         super().setUp()
         self.field = fields.StringField()
         self.coerce_good_values = [
-            ('foo', 'foo'), (1, '1'), (1.0, '1.0'), (True, 'True')]
+            ('foo', 'foo'),
+            (1, '1'),
+            (1.0, '1.0'),
+            (True, 'True'),
+        ]
         self.coerce_bad_values = [None]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
@@ -167,8 +172,9 @@ class TestString(TestField):
         self.assertEqual({'type': ['string']}, self.field._type.get_schema())
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['string'], 'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['string'], 'readonly': False}, self.field.get_schema()
+        )
 
 
 class TestSensitiveString(TestString):
@@ -186,11 +192,13 @@ class TestVersionPredicate(TestString):
     def setUp(self):
         super().setUp()
         self.field = fields.VersionPredicateField()
-        self.coerce_good_values = [('>=1.0', '>=1.0'),
-                                   ('>1.0', '>1.0'),
-                                   ('==1.1', '==1.1'),
-                                   ('<=1.1.0', '<=1.1.0'),
-                                   ('<1.1.0', '<1.1.0')]
+        self.coerce_good_values = [
+            ('>=1.0', '>=1.0'),
+            ('>1.0', '>1.0'),
+            ('==1.1', '==1.1'),
+            ('<=1.1.0', '<=1.1.0'),
+            ('<1.1.0', '<1.1.0'),
+        ]
         self.coerce_bad_values = ['1', 'foo', 1.0, '1.0', '=1.0']
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
@@ -223,8 +231,9 @@ class TestMACAddress(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values
-                        if isinstance(x, str)]
+        invalid_vals = [
+            x for x in self.coerce_bad_values if isinstance(x, str)
+        ]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
@@ -256,8 +265,9 @@ class TestPCIAddress(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values
-                        if isinstance(x, str)]
+        invalid_vals = [
+            x for x in self.coerce_bad_values if isinstance(x, str)
+        ]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
@@ -267,29 +277,42 @@ class TestUUID(TestField):
         super().setUp()
         self.field = fields.UUIDField()
         self.coerce_good_values = [
-            ('da66a411-af0e-4829-9b67-475017ddd152',
-                'da66a411-af0e-4829-9b67-475017ddd152'),
-            ('da66a411af0e48299b67475017ddd152',
-                'da66a411af0e48299b67475017ddd152'),
-            ('DA66A411-AF0E-4829-9B67-475017DDD152',
-                'DA66A411-AF0E-4829-9B67-475017DDD152'),
-            ('DA66A411AF0E48299b67475017DDD152',
-                'DA66A411AF0E48299b67475017DDD152'),
+            (
+                'da66a411-af0e-4829-9b67-475017ddd152',
+                'da66a411-af0e-4829-9b67-475017ddd152',
+            ),
+            (
+                'da66a411af0e48299b67475017ddd152',
+                'da66a411af0e48299b67475017ddd152',
+            ),
+            (
+                'DA66A411-AF0E-4829-9B67-475017DDD152',
+                'DA66A411-AF0E-4829-9B67-475017DDD152',
+            ),
+            (
+                'DA66A411AF0E48299b67475017DDD152',
+                'DA66A411AF0E48299b67475017DDD152',
+            ),
             # These values are included to ensure there is not change in
             # behaviour - only when we can remove the old UUID behaviour can
             #  we add these to the "self.coerce_bad_values" list
-            ('da66a411-af0e-4829-9b67',
-                'da66a411-af0e-4829-9b67'),
-            ('da66a411-af0e-4829-9b67-475017ddd152548999',
-                'da66a411-af0e-4829-9b67-475017ddd152548999'),
-            ('da66a411-af0e-4829-9b67-475017ddz152',
-                'da66a411-af0e-4829-9b67-475017ddz152'),
+            ('da66a411-af0e-4829-9b67', 'da66a411-af0e-4829-9b67'),
+            (
+                'da66a411-af0e-4829-9b67-475017ddd152548999',
+                'da66a411-af0e-4829-9b67-475017ddd152548999',
+            ),
+            (
+                'da66a411-af0e-4829-9b67-475017ddz152',
+                'da66a411-af0e-4829-9b67-475017ddz152',
+            ),
             ('fake_uuid', 'fake_uuid'),
             ('fake_uāid', 'fake_uāid'),
-            (b'fake_u\xe1id'.decode('latin_1'),
-                b'fake_u\xe1id'.decode('latin_1')),
+            (
+                b'fake_u\xe1id'.decode('latin_1'),
+                b'fake_u\xe1id'.decode('latin_1'),
+            ),
             ('1', '1'),
-            (1, '1')
+            (1, '1'),
         ]
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
@@ -303,8 +326,9 @@ class TestUUID(TestField):
 
     def test_validation_warning_can_be_escalated_to_exception(self):
         warnings.filterwarnings(action='error')
-        self.assertRaises(FutureWarning, self.field.coerce, 'obj', 'attr',
-                          'not a uuid')
+        self.assertRaises(
+            FutureWarning, self.field.coerce, 'obj', 'attr', 'not a uuid'
+        )
 
     def test_get_schema(self):
         field = fields.UUIDField()
@@ -314,8 +338,9 @@ class TestUUID(TestField):
         pattern = schema['pattern']
         for _, valid_val in self.coerce_good_values[:4]:
             self.assertRegex(valid_val, pattern)
-        invalid_vals = [x for x in self.coerce_bad_values
-                        if isinstance(x, str)]
+        invalid_vals = [
+            x for x in self.coerce_bad_values if isinstance(x, str)
+        ]
         for invalid_val in invalid_vals:
             self.assertNotRegex(invalid_val, pattern)
 
@@ -324,9 +349,11 @@ class TestBaseEnum(TestField):
     def setUp(self):
         super().setUp()
         self.field = FakeEnumField()
-        self.coerce_good_values = [('frog', 'frog'),
-                                   ('platypus', 'platypus'),
-                                   ('alligator', 'alligator')]
+        self.coerce_good_values = [
+            ('frog', 'frog'),
+            ('platypus', 'platypus'),
+            ('alligator', 'alligator'),
+        ]
         self.coerce_bad_values = ['aardvark', 'wookie']
         self.to_primitive_values = self.coerce_good_values[0:1]
         self.from_primitive_values = self.coerce_good_values[0:1]
@@ -345,8 +372,7 @@ class TestBaseEnum(TestField):
         self.assertNotEqual(str(field1), str(field2))
 
     def test_valid_values(self):
-        self.assertEqual(self.field.valid_values,
-                         FakeEnum.ALL)
+        self.assertEqual(self.field.valid_values, FakeEnum.ALL)
 
     def test_valid_values_keeps_type(self):
         self.assertIsInstance(self.field.valid_values, tuple)
@@ -356,8 +382,7 @@ class TestBaseEnum(TestField):
 class TestEnum(TestField):
     def setUp(self):
         super().setUp()
-        self.field = fields.EnumField(
-            valid_values=['foo', 'bar', 1, True])
+        self.field = fields.EnumField(valid_values=['foo', 'bar', 1, True])
         self.coerce_good_values = [('foo', 'foo'), (1, '1'), (True, 'True')]
         self.coerce_bad_values = ['boo', 2, False]
         self.to_primitive_values = self.coerce_good_values[0:1]
@@ -370,12 +395,20 @@ class TestEnum(TestField):
         self.assertRaises(ValueError, self.field.stringify, '123')
 
     def test_fieldtype_get_schema(self):
-        self.assertEqual({'type': ['string'], 'enum': ["foo", "bar", 1, True]},
-                         self.field._type.get_schema())
+        self.assertEqual(
+            {'type': ['string'], 'enum': ["foo", "bar", 1, True]},
+            self.field._type.get_schema(),
+        )
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['string'], 'enum': ["foo", "bar", 1, True],
-                          'readonly': False}, self.field.get_schema())
+        self.assertEqual(
+            {
+                'type': ['string'],
+                'enum': ["foo", "bar", 1, True],
+                'readonly': False,
+            },
+            self.field.get_schema(),
+        )
 
     def test_fingerprint(self):
         # Notes(yjiang5): make sure changing valid_value will be detected
@@ -385,16 +418,19 @@ class TestEnum(TestField):
         self.assertNotEqual(str(field1), str(field2))
 
     def test_missing_valid_values(self):
-        self.assertRaises(exception.EnumRequiresValidValuesError,
-                          fields.EnumField, None)
+        self.assertRaises(
+            exception.EnumRequiresValidValuesError, fields.EnumField, None
+        )
 
     def test_empty_valid_values(self):
-        self.assertRaises(exception.EnumRequiresValidValuesError,
-                          fields.EnumField, [])
+        self.assertRaises(
+            exception.EnumRequiresValidValuesError, fields.EnumField, []
+        )
 
     def test_non_iterable_valid_values(self):
-        self.assertRaises(exception.EnumValidValuesInvalidError,
-                          fields.EnumField, True)
+        self.assertRaises(
+            exception.EnumValidValuesInvalidError, fields.EnumField, True
+        )
 
     def test_enum_subclass_check(self):
         def _test():
@@ -407,7 +443,6 @@ class TestEnum(TestField):
 
 
 class TestStateMachine(TestField):
-
     def test_good_transitions(self):
         @obj_base.VersionedObjectRegistry.register
         class AnObject(obj_base.VersionedObject):
@@ -440,10 +475,12 @@ class TestStateMachine(TestField):
             ex = None
 
         self.assertIsNotNone(ex, 'Invalid transition failed to raise error')
-        self.assertEqual('AnObject.status is not allowed to transition out '
-                         'of \'ERROR\' state to \'ACTIVE\' state, choose from '
-                         '[\'PENDING\']',
-                         str(ex))
+        self.assertEqual(
+            'AnObject.status is not allowed to transition out '
+            'of \'ERROR\' state to \'ACTIVE\' state, choose from '
+            '[\'PENDING\']',
+            str(ex),
+        )
 
     def test_bad_initial_value(self):
         @obj_base.VersionedObjectRegistry.register
@@ -484,8 +521,9 @@ class TestInteger(TestField):
         self.assertEqual({'type': ['integer']}, self.field._type.get_schema())
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['integer'], 'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['integer'], 'readonly': False}, self.field.get_schema()
+        )
 
 
 class TestNonNegativeInteger(TestField):
@@ -498,8 +536,10 @@ class TestNonNegativeInteger(TestField):
         self.from_primitive_values = self.coerce_good_values[0:1]
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['integer'], 'readonly': False,
-                          'minimum': 0}, self.field.get_schema())
+        self.assertEqual(
+            {'type': ['integer'], 'readonly': False, 'minimum': 0},
+            self.field.get_schema(),
+        )
 
 
 class TestFloat(TestField):
@@ -515,8 +555,9 @@ class TestFloat(TestField):
         self.assertEqual({'type': ['number']}, self.field._type.get_schema())
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['number'], 'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['number'], 'readonly': False}, self.field.get_schema()
+        )
 
 
 class TestNonNegativeFloat(TestField):
@@ -529,16 +570,24 @@ class TestNonNegativeFloat(TestField):
         self.from_primitive_values = self.coerce_good_values[0:1]
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['number'], 'readonly': False,
-                          'minimum': 0}, self.field.get_schema())
+        self.assertEqual(
+            {'type': ['number'], 'readonly': False, 'minimum': 0},
+            self.field.get_schema(),
+        )
 
 
 class TestBoolean(TestField):
     def setUp(self):
         super(TestField, self).setUp()
         self.field = fields.BooleanField()
-        self.coerce_good_values = [(True, True), (False, False), (1, True),
-                                   ('foo', True), (0, False), ('', False)]
+        self.coerce_good_values = [
+            (True, True),
+            (False, False),
+            (1, True),
+            ('foo', True),
+            (0, False),
+            ('', False),
+        ]
         self.coerce_bad_values = []
         self.to_primitive_values = self.coerce_good_values[0:2]
         self.from_primitive_values = self.coerce_good_values[0:2]
@@ -547,22 +596,33 @@ class TestBoolean(TestField):
         self.assertEqual({'type': ['boolean']}, self.field._type.get_schema())
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['boolean'], 'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['boolean'], 'readonly': False}, self.field.get_schema()
+        )
 
 
 class TestFlexibleBoolean(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.FlexibleBooleanField()
-        self.coerce_good_values = [(True, True), (False, False),
-                                   ("true", True), ("false", False),
-                                   ("t", True), ("f", False),
-                                   ("yes", True), ("no", False),
-                                   ("y", True), ("n", False),
-                                   ("on", True), ("off", False),
-                                   (1, True), (0, False),
-                                   ('frog', False), ('', False)]
+        self.coerce_good_values = [
+            (True, True),
+            (False, False),
+            ("true", True),
+            ("false", False),
+            ("t", True),
+            ("f", False),
+            ("yes", True),
+            ("no", False),
+            ("y", True),
+            ("n", False),
+            ("on", True),
+            ("off", False),
+            (1, True),
+            (0, False),
+            ('frog', False),
+            ('', False),
+        ]
         self.coerce_bad_values = []
         self.to_primitive_values = self.coerce_good_values[0:2]
         self.from_primitive_values = self.coerce_good_values[0:2]
@@ -573,8 +633,10 @@ class TestDateTime(TestField):
         super().setUp()
         self.dt = datetime.datetime(1955, 11, 5, tzinfo=datetime.timezone.utc)
         self.field = fields.DateTimeField()
-        self.coerce_good_values = [(self.dt, self.dt),
-                                   (_utils.isotime(self.dt), self.dt)]
+        self.coerce_good_values = [
+            (self.dt, self.dt),
+            (_utils.isotime(self.dt), self.dt),
+        ]
         self.coerce_bad_values = [1, 'foo']
         self.to_primitive_values = [(self.dt, _utils.isotime(self.dt))]
         self.from_primitive_values = [(_utils.isotime(self.dt), self.dt)]
@@ -583,13 +645,17 @@ class TestDateTime(TestField):
         self.assertEqual(
             '1955-11-05T18:00:00Z',
             self.field.stringify(
-                datetime.datetime(1955, 11, 5, 18, 0, 0,
-                                  tzinfo=datetime.timezone.utc)))
+                datetime.datetime(
+                    1955, 11, 5, 18, 0, 0, tzinfo=datetime.timezone.utc
+                )
+            ),
+        )
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['string'], 'format': 'date-time',
-                          'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['string'], 'format': 'date-time', 'readonly': False},
+            self.field.get_schema(),
+        )
 
 
 class TestDateTimeNoTzinfo(TestField):
@@ -597,8 +663,10 @@ class TestDateTimeNoTzinfo(TestField):
         super().setUp()
         self.dt = datetime.datetime(1955, 11, 5)
         self.field = fields.DateTimeField(tzinfo_aware=False)
-        self.coerce_good_values = [(self.dt, self.dt),
-                                   (_utils.isotime(self.dt), self.dt)]
+        self.coerce_good_values = [
+            (self.dt, self.dt),
+            (_utils.isotime(self.dt), self.dt),
+        ]
         self.coerce_bad_values = [1, 'foo']
         self.to_primitive_values = [(self.dt, _utils.isotime(self.dt))]
         self.from_primitive_values = [
@@ -611,16 +679,18 @@ class TestDateTimeNoTzinfo(TestField):
     def test_stringify(self):
         self.assertEqual(
             '1955-11-05T18:00:00Z',
-            self.field.stringify(
-                datetime.datetime(1955, 11, 5, 18, 0, 0)))
+            self.field.stringify(datetime.datetime(1955, 11, 5, 18, 0, 0)),
+        )
 
 
 class TestDict(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.Field(fields.Dict(FakeFieldType()))
-        self.coerce_good_values = [({'foo': 'bar'}, {'foo': '*bar*'}),
-                                   ({'foo': 1}, {'foo': '*1*'})]
+        self.coerce_good_values = [
+            ({'foo': 'bar'}, {'foo': '*bar*'}),
+            ({'foo': 1}, {'foo': '*1*'}),
+        ]
         self.coerce_bad_values = [{1: 'bar'}, 'foo']
         self.to_primitive_values = [({'foo': 'bar'}, {'foo': '!bar!'})]
         self.from_primitive_values = [({'foo': '!bar!'}, {'foo': 'bar'})]
@@ -629,19 +699,24 @@ class TestDict(TestField):
         self.assertEqual("{key=val}", self.field.stringify({'key': 'val'}))
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['object'],
-                          'additionalProperties': {'readonly': False,
-                                                   'type': ['foo']},
-                          'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {
+                'type': ['object'],
+                'additionalProperties': {'readonly': False, 'type': ['foo']},
+                'readonly': False,
+            },
+            self.field.get_schema(),
+        )
 
 
 class TestDictOfStrings(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.DictOfStringsField()
-        self.coerce_good_values = [({'foo': 'bar'}, {'foo': 'bar'}),
-                                   ({'foo': 1}, {'foo': '1'})]
+        self.coerce_good_values = [
+            ({'foo': 'bar'}, {'foo': 'bar'}),
+            ({'foo': 1}, {'foo': '1'}),
+        ]
         self.coerce_bad_values = [{1: 'bar'}, {'foo': None}, 'foo']
         self.to_primitive_values = [({'foo': 'bar'}, {'foo': 'bar'})]
         self.from_primitive_values = [({'foo': 'bar'}, {'foo': 'bar'})]
@@ -654,10 +729,16 @@ class TestDictOfIntegers(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.DictOfIntegersField()
-        self.coerce_good_values = [({'foo': '42'}, {'foo': 42}),
-                                   ({'foo': 4.2}, {'foo': 4})]
-        self.coerce_bad_values = [{1: 'bar'}, {'foo': 'boo'},
-                                  'foo', {'foo': None}]
+        self.coerce_good_values = [
+            ({'foo': '42'}, {'foo': 42}),
+            ({'foo': 4.2}, {'foo': 4}),
+        ]
+        self.coerce_bad_values = [
+            {1: 'bar'},
+            {'foo': 'boo'},
+            'foo',
+            {'foo': None},
+        ]
         self.to_primitive_values = [({'foo': 42}, {'foo': 42})]
         self.from_primitive_values = [({'foo': 42}, {'foo': 42})]
 
@@ -669,40 +750,53 @@ class TestDictOfStringsNone(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.DictOfNullableStringsField()
-        self.coerce_good_values = [({'foo': 'bar'}, {'foo': 'bar'}),
-                                   ({'foo': 1}, {'foo': '1'}),
-                                   ({'foo': None}, {'foo': None})]
+        self.coerce_good_values = [
+            ({'foo': 'bar'}, {'foo': 'bar'}),
+            ({'foo': 1}, {'foo': '1'}),
+            ({'foo': None}, {'foo': None}),
+        ]
         self.coerce_bad_values = [{1: 'bar'}, 'foo']
         self.to_primitive_values = [({'foo': 'bar'}, {'foo': 'bar'})]
         self.from_primitive_values = [({'foo': 'bar'}, {'foo': 'bar'})]
 
     def test_stringify(self):
-        self.assertEqual("{k2=None,key='val'}",
-                         self.field.stringify({'k2': None,
-                                               'key': 'val'}))
+        self.assertEqual(
+            "{k2=None,key='val'}",
+            self.field.stringify({'k2': None, 'key': 'val'}),
+        )
 
 
 class TestListOfDictOfNullableStringsField(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.ListOfDictOfNullableStringsField()
-        self.coerce_good_values = [([{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}],
-                                    [{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}]),
-                                   ([{'f': 1}, {'f1': 'b1'}],
-                                    [{'f': '1'}, {'f1': 'b1'}]),
-                                   ([{'foo': None}], [{'foo': None}])]
+        self.coerce_good_values = [
+            (
+                [{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}],
+                [{'f': 'b', 'f1': 'b1'}, {'f2': 'b2'}],
+            ),
+            ([{'f': 1}, {'f1': 'b1'}], [{'f': '1'}, {'f1': 'b1'}]),
+            ([{'foo': None}], [{'foo': None}]),
+        ]
         self.coerce_bad_values = [[{1: 'a'}], ['ham', 1], ['eggs']]
-        self.to_primitive_values = [([{'f': 'b'}, {'f1': 'b1'}, {'f2': None}],
-                                     [{'f': 'b'}, {'f1': 'b1'}, {'f2': None}])]
-        self.from_primitive_values = [([{'f': 'b'}, {'f1': 'b1'},
-                                        {'f2': None}],
-                                       [{'f': 'b'}, {'f1': 'b1'},
-                                        {'f2': None}])]
+        self.to_primitive_values = [
+            (
+                [{'f': 'b'}, {'f1': 'b1'}, {'f2': None}],
+                [{'f': 'b'}, {'f1': 'b1'}, {'f2': None}],
+            )
+        ]
+        self.from_primitive_values = [
+            (
+                [{'f': 'b'}, {'f1': 'b1'}, {'f2': None}],
+                [{'f': 'b'}, {'f1': 'b1'}, {'f2': None}],
+            )
+        ]
 
     def test_stringify(self):
-        self.assertEqual("[{f=None,f1='b1'},{f2='b2'}]",
-                         self.field.stringify(
-                             [{'f': None, 'f1': 'b1'}, {'f2': 'b2'}]))
+        self.assertEqual(
+            "[{f=None,f1='b1'},{f2='b2'}]",
+            self.field.stringify([{'f': None, 'f1': 'b1'}, {'f2': 'b2'}]),
+        )
 
 
 class TestList(TestField):
@@ -718,15 +812,20 @@ class TestList(TestField):
         self.assertEqual('[123]', self.field.stringify([123]))
 
     def test_fieldtype_get_schema(self):
-        self.assertEqual({'type': ['array'],
-                          'items': {'type': ['foo'], 'readonly': False}},
-                         self.field._type.get_schema())
+        self.assertEqual(
+            {'type': ['array'], 'items': {'type': ['foo'], 'readonly': False}},
+            self.field._type.get_schema(),
+        )
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['array'],
-                          'items': {'type': ['foo'], 'readonly': False},
-                          'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {
+                'type': ['array'],
+                'items': {'type': ['foo'], 'readonly': False},
+                'readonly': False,
+            },
+            self.field.get_schema(),
+        )
 
 
 class TestListOfStrings(TestField):
@@ -746,16 +845,20 @@ class TestDictOfListOfStrings(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.DictOfListOfStringsField()
-        self.coerce_good_values = [({'foo': ['1', '2']}, {'foo': ['1', '2']}),
-                                   ({'foo': [1]}, {'foo': ['1']})]
+        self.coerce_good_values = [
+            ({'foo': ['1', '2']}, {'foo': ['1', '2']}),
+            ({'foo': [1]}, {'foo': ['1']}),
+        ]
         self.coerce_bad_values = [{'foo': [None, None]}, 'foo']
         self.to_primitive_values = [({'foo': ['1', '2']}, {'foo': ['1', '2']})]
-        self.from_primitive_values = [({'foo': ['1', '2']},
-                                       {'foo': ['1', '2']})]
+        self.from_primitive_values = [
+            ({'foo': ['1', '2']}, {'foo': ['1', '2']})
+        ]
 
     def test_stringify(self):
-        self.assertEqual("{foo=['1','2']}",
-                         self.field.stringify({'foo': ['1', '2']}))
+        self.assertEqual(
+            "{foo=['1','2']}", self.field.stringify({'foo': ['1', '2']})
+        )
 
 
 class TestListOfEnum(TestField):
@@ -785,8 +888,7 @@ class TestSet(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.Field(fields.Set(FakeFieldType()))
-        self.coerce_good_values = [({'foo', 'bar'},
-                                    {'*foo*', '*bar*'})]
+        self.coerce_good_values = [({'foo', 'bar'}, {'*foo*', '*bar*'})]
         self.coerce_bad_values = [['foo'], {'foo': 'bar'}]
         self.to_primitive_values = [({'foo'}, tuple(['!foo!']))]
         self.from_primitive_values = [(tuple(['!foo!']), {'foo'})]
@@ -795,18 +897,22 @@ class TestSet(TestField):
         self.assertEqual('set([123])', self.field.stringify({123}))
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['array'], 'uniqueItems': True,
-                          'items': {'type': ['foo'], 'readonly': False},
-                          'readonly': False},
-                         self.field.get_schema())
+        self.assertEqual(
+            {
+                'type': ['array'],
+                'uniqueItems': True,
+                'items': {'type': ['foo'], 'readonly': False},
+                'readonly': False,
+            },
+            self.field.get_schema(),
+        )
 
 
 class TestSetOfIntegers(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.SetOfIntegersField()
-        self.coerce_good_values = [({'1', 2},
-                                    {1, 2})]
+        self.coerce_good_values = [({'1', 2}, {1, 2})]
         self.coerce_bad_values = [{'foo'}]
         self.to_primitive_values = [({1}, tuple([1]))]
         self.from_primitive_values = [(tuple([1]), {1})]
@@ -815,21 +921,26 @@ class TestSetOfIntegers(TestField):
         self.assertEqual('set([1,2])', self.field.stringify({1, 2}))
 
     def test_repr(self):
-        self.assertEqual("Set(default=<class 'oslo_versionedobjects.fields."
-                         "UnspecifiedDefault'>,nullable=False)",
-                         repr(self.field))
-        self.assertEqual("Set(default=set([]),nullable=False)",
-                         repr(fields.SetOfIntegersField(default=set())))
-        self.assertEqual("Set(default=set([1,a]),nullable=False)",
-                         repr(fields.SetOfIntegersField(default={1, 'a'})))
+        self.assertEqual(
+            "Set(default=<class 'oslo_versionedobjects.fields."
+            "UnspecifiedDefault'>,nullable=False)",
+            repr(self.field),
+        )
+        self.assertEqual(
+            "Set(default=set([]),nullable=False)",
+            repr(fields.SetOfIntegersField(default=set())),
+        )
+        self.assertEqual(
+            "Set(default=set([1,a]),nullable=False)",
+            repr(fields.SetOfIntegersField(default={1, 'a'})),
+        )
 
 
 class TestListOfSetsOfIntegers(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.ListOfSetsOfIntegersField()
-        self.coerce_good_values = [([{'1', 2}, {3, '4'}],
-                                    [{1, 2}, {3, 4}])]
+        self.coerce_good_values = [([{'1', 2}, {3, '4'}], [{1, 2}, {3, 4}])]
         self.coerce_bad_values = [[{'foo'}]]
         self.to_primitive_values = [([{1}], [tuple([1])])]
         self.from_primitive_values = [([tuple([1])], [{1}])]
@@ -842,8 +953,7 @@ class TestListOfIntegers(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.ListOfIntegersField()
-        self.coerce_good_values = [(['1', 2], [1, 2]),
-                                   ([1, 2], [1, 2])]
+        self.coerce_good_values = [(['1', 2], [1, 2]), ([1, 2], [1, 2])]
         self.coerce_bad_values = [['foo']]
         self.to_primitive_values = [([1], [1])]
         self.from_primitive_values = [([1], [1])]
@@ -858,16 +968,19 @@ class TestListOfUUIDField(TestField):
         self.field = fields.ListOfUUIDField()
         self.uuid1 = '6b2097ea-d0e3-44dd-b131-95472b3ea8fd'
         self.uuid2 = '478c193d-2533-4e71-ab2b-c7683f67d7f9'
-        self.coerce_good_values = [([self.uuid1, self.uuid2],
-                                    [self.uuid1, self.uuid2])]
+        self.coerce_good_values = [
+            ([self.uuid1, self.uuid2], [self.uuid1, self.uuid2])
+        ]
         # coerce_bad_values is intentionally ignored since the UUID field
         # allows non-UUID values for now. See TestUUIDField for examples.
         self.to_primitive_values = [([self.uuid1], [self.uuid1])]
         self.from_primitive_values = [([self.uuid1], [self.uuid1])]
 
     def test_stringify(self):
-        self.assertEqual(f'[{self.uuid1},{self.uuid2}]',
-                         self.field.stringify([self.uuid1, self.uuid2]))
+        self.assertEqual(
+            f'[{self.uuid1},{self.uuid2}]',
+            self.field.stringify([self.uuid1, self.uuid2]),
+        )
 
 
 class TestLocalMethods(test.TestCase):
@@ -896,8 +1009,9 @@ class TestLocalMethods(test.TestCase):
             mock_attr.return_value = '__class__'
             self.assertRaises(TypeError, AnObject, intfield=2)
             mock_attr.assert_called_once_with('intfield')
-            mock_log.assert_called_once_with(mock.ANY,
-                                             {'attr': 'AnObject.intfield'})
+            mock_log.assert_called_once_with(
+                mock.ANY, {'attr': 'AnObject.intfield'}
+            )
 
 
 class TestObject(TestField):
@@ -908,7 +1022,7 @@ class TestObject(TestField):
         class TestableObject(obj_base.VersionedObject):
             fields = {
                 'uuid': fields.StringField(),
-                }
+            }
 
             def __eq__(self, value):
                 # NOTE(danms): Be rather lax about this equality thing to
@@ -925,14 +1039,16 @@ class TestObject(TestField):
         self.coerce_good_values = [(test_inst, test_inst)]
         self.coerce_bad_values = [OtherTestableObject(), 1, 'foo']
         self.to_primitive_values = [(test_inst, test_inst.obj_to_primitive())]
-        self.from_primitive_values = [(test_inst.obj_to_primitive(),
-                                       test_inst),
-                                      (test_inst, test_inst)]
+        self.from_primitive_values = [
+            (test_inst.obj_to_primitive(), test_inst),
+            (test_inst, test_inst),
+        ]
 
     def test_stringify(self):
         obj = self._test_cls(uuid='fake-uuid')
-        self.assertEqual('TestableObject(fake-uuid)',
-                         self.field.stringify(obj))
+        self.assertEqual(
+            'TestableObject(fake-uuid)', self.field.stringify(obj)
+        )
 
     def test_from_primitive(self):
         @obj_base.VersionedObjectRegistry.register
@@ -949,7 +1065,7 @@ class TestObject(TestField):
         class TestFoo(TestFakeObject, obj_base.ComparableVersionedObject):
             fields = {
                 'name': fields.StringField(),
-                'bar': fields.ObjectField('TestBar', nullable=True)
+                'bar': fields.ObjectField('TestBar', nullable=True),
             }
 
         bar = TestBar(name='bar')
@@ -957,8 +1073,9 @@ class TestObject(TestField):
         from_primitive_values = [(foo.obj_to_primitive(), foo), (foo, foo)]
 
         for prim_val, out_val in from_primitive_values:
-            self.assertEqual(out_val, self.field.from_primitive(
-                foo, 'attr', prim_val))
+            self.assertEqual(
+                out_val, self.field.from_primitive(foo, 'attr', prim_val)
+            )
 
     def test_inheritance(self):
         # We need a whole lot of classes in a hierarchy to
@@ -1004,17 +1121,32 @@ class TestObject(TestField):
         dogs = fields.Object('TestDog', subclasses=True)
         crocs = fields.Object('TestCrocodile', subclasses=True)
 
-        self.assertEqual(["TestDog", "TestMammal", "TestPet",
-                          "TestAnimal", "VersionedObject"],
-                         fields.Object._get_all_obj_names(wolfy))
+        self.assertEqual(
+            [
+                "TestDog",
+                "TestMammal",
+                "TestPet",
+                "TestAnimal",
+                "VersionedObject",
+            ],
+            fields.Object._get_all_obj_names(wolfy),
+        )
 
-        self.assertEqual(["TestCrocodile", "TestReptile", "TestPet",
-                          "TestAnimal", "VersionedObject"],
-                         fields.Object._get_all_obj_names(ticktock))
+        self.assertEqual(
+            [
+                "TestCrocodile",
+                "TestReptile",
+                "TestPet",
+                "TestAnimal",
+                "VersionedObject",
+            ],
+            fields.Object._get_all_obj_names(ticktock),
+        )
 
-        self.assertEqual(["TestPig", "TestMammal",
-                          "TestAnimal", "VersionedObject"],
-                         fields.Object._get_all_obj_names(babe))
+        self.assertEqual(
+            ["TestPig", "TestMammal", "TestAnimal", "VersionedObject"],
+            fields.Object._get_all_obj_names(babe),
+        )
 
         # When stringifying we should see the subclass object name
         # not the base class object name
@@ -1059,142 +1191,168 @@ class TestObject(TestField):
 
     def test_coerce_bad_value_primitive_type(self):
         # Tests that the ValueError has the primitive type in it's message.
-        ex = self.assertRaises(ValueError, self.field.coerce,
-                               'obj', 'attr', [{}])
-        self.assertEqual('An object of type TestableObject is required '
-                         'in field attr, not a list', str(ex))
+        ex = self.assertRaises(
+            ValueError, self.field.coerce, 'obj', 'attr', [{}]
+        )
+        self.assertEqual(
+            'An object of type TestableObject is required '
+            'in field attr, not a list',
+            str(ex),
+        )
 
     def test_get_schema(self):
         self.assertEqual(
             {
                 'properties': {
-                    'versioned_object.changes':
-                        {'items': {'type': 'string'}, 'type': 'array'},
+                    'versioned_object.changes': {
+                        'items': {'type': 'string'},
+                        'type': 'array',
+                    },
                     'versioned_object.data': {
                         'description': 'fields of TestableObject',
-                        'properties':
-                            {'uuid': {'readonly': False, 'type': ['string']}},
+                        'properties': {
+                            'uuid': {'readonly': False, 'type': ['string']}
+                        },
                         'required': ['uuid'],
-                        'type': 'object'},
+                        'type': 'object',
+                    },
                     'versioned_object.name': {'type': 'string'},
                     'versioned_object.namespace': {'type': 'string'},
-                    'versioned_object.version': {'type': 'string'}
+                    'versioned_object.version': {'type': 'string'},
                 },
                 'readonly': False,
-                'required': ['versioned_object.namespace',
-                             'versioned_object.name',
-                             'versioned_object.version',
-                             'versioned_object.data'],
-                'type': ['object']
+                'required': [
+                    'versioned_object.namespace',
+                    'versioned_object.name',
+                    'versioned_object.version',
+                    'versioned_object.data',
+                ],
+                'type': ['object'],
             },
-            self.field.get_schema())
+            self.field.get_schema(),
+        )
 
 
 class TestIPAddress(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPAddressField()
-        self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
-                                   ('::1', netaddr.IPAddress('::1')),
-                                   (netaddr.IPAddress('::1'),
-                                    netaddr.IPAddress('::1'))]
+        self.coerce_good_values = [
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+            ('::1', netaddr.IPAddress('::1')),
+            (netaddr.IPAddress('::1'), netaddr.IPAddress('::1')),
+        ]
         self.coerce_bad_values = ['1-2', 'foo']
-        self.to_primitive_values = [(netaddr.IPAddress('1.2.3.4'), '1.2.3.4'),
-                                    (netaddr.IPAddress('::1'), '::1')]
-        self.from_primitive_values = [('1.2.3.4',
-                                       netaddr.IPAddress('1.2.3.4')),
-                                      ('::1',
-                                       netaddr.IPAddress('::1'))]
+        self.to_primitive_values = [
+            (netaddr.IPAddress('1.2.3.4'), '1.2.3.4'),
+            (netaddr.IPAddress('::1'), '::1'),
+        ]
+        self.from_primitive_values = [
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+            ('::1', netaddr.IPAddress('::1')),
+        ]
 
 
 class TestIPAddressV4(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPV4AddressField()
-        self.coerce_good_values = [('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
-                                   (netaddr.IPAddress('1.2.3.4'),
-                                    netaddr.IPAddress('1.2.3.4'))]
+        self.coerce_good_values = [
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+            (netaddr.IPAddress('1.2.3.4'), netaddr.IPAddress('1.2.3.4')),
+        ]
         self.coerce_bad_values = ['1-2', 'foo', '::1']
         self.to_primitive_values = [(netaddr.IPAddress('1.2.3.4'), '1.2.3.4')]
-        self.from_primitive_values = [('1.2.3.4',
-                                       netaddr.IPAddress('1.2.3.4'))]
+        self.from_primitive_values = [
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4'))
+        ]
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['string'], 'readonly': False,
-                          'format': 'ipv4'},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['string'], 'readonly': False, 'format': 'ipv4'},
+            self.field.get_schema(),
+        )
 
 
 class TestIPAddressV6(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPV6AddressField()
-        self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
-                                   (netaddr.IPAddress('::1'),
-                                    netaddr.IPAddress('::1'))]
+        self.coerce_good_values = [
+            ('::1', netaddr.IPAddress('::1')),
+            (netaddr.IPAddress('::1'), netaddr.IPAddress('::1')),
+        ]
         self.coerce_bad_values = ['1.2', 'foo', '1.2.3.4']
         self.to_primitive_values = [(netaddr.IPAddress('::1'), '::1')]
         self.from_primitive_values = [('::1', netaddr.IPAddress('::1'))]
 
     def test_get_schema(self):
-        self.assertEqual({'type': ['string'], 'readonly': False,
-                          'format': 'ipv6'},
-                         self.field.get_schema())
+        self.assertEqual(
+            {'type': ['string'], 'readonly': False, 'format': 'ipv6'},
+            self.field.get_schema(),
+        )
 
 
 class TestIPV4AndV6Address(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPV4AndV6Address()
-        self.coerce_good_values = [('::1', netaddr.IPAddress('::1')),
-                                   (netaddr.IPAddress('::1'),
-                                    netaddr.IPAddress('::1')),
-                                   ('1.2.3.4',
-                                    netaddr.IPAddress('1.2.3.4')),
-                                   (netaddr.IPAddress('1.2.3.4'),
-                                    netaddr.IPAddress('1.2.3.4'))]
+        self.coerce_good_values = [
+            ('::1', netaddr.IPAddress('::1')),
+            (netaddr.IPAddress('::1'), netaddr.IPAddress('::1')),
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+            (netaddr.IPAddress('1.2.3.4'), netaddr.IPAddress('1.2.3.4')),
+        ]
         self.coerce_bad_values = ['1-2', 'foo']
-        self.to_primitive_values = [(netaddr.IPAddress('::1'),
-                                     '::1'),
-                                    (netaddr.IPAddress('1.2.3.4'),
-                                     '1.2.3.4')]
-        self.from_primitive_values = [('::1',
-                                       netaddr.IPAddress('::1')),
-                                      ('1.2.3.4',
-                                       netaddr.IPAddress('1.2.3.4'))]
+        self.to_primitive_values = [
+            (netaddr.IPAddress('::1'), '::1'),
+            (netaddr.IPAddress('1.2.3.4'), '1.2.3.4'),
+        ]
+        self.from_primitive_values = [
+            ('::1', netaddr.IPAddress('::1')),
+            ('1.2.3.4', netaddr.IPAddress('1.2.3.4')),
+        ]
 
     def test_get_schema(self):
-        self.assertEqual({'oneOf': [{'format': 'ipv4', 'type': ['string']},
-                                    {'format': 'ipv6', 'type': ['string']}]},
-                         self.field.get_schema())
+        self.assertEqual(
+            {
+                'oneOf': [
+                    {'format': 'ipv4', 'type': ['string']},
+                    {'format': 'ipv6', 'type': ['string']},
+                ]
+            },
+            self.field.get_schema(),
+        )
 
 
 class TestIPNetwork(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPNetworkField()
-        self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
-                                   ('1.2.3.4/24',
-                                    netaddr.IPNetwork('1.2.3.4/24')),
-                                   (netaddr.IPNetwork('::1/32'),
-                                    netaddr.IPNetwork('::1/32'))]
+        self.coerce_good_values = [
+            ('::1/0', netaddr.IPNetwork('::1/0')),
+            ('1.2.3.4/24', netaddr.IPNetwork('1.2.3.4/24')),
+            (netaddr.IPNetwork('::1/32'), netaddr.IPNetwork('::1/32')),
+        ]
         self.coerce_bad_values = ['foo']
         self.to_primitive_values = [(netaddr.IPNetwork('::1/0'), '::1/0')]
-        self.from_primitive_values = [('::1/0',
-                                       netaddr.IPNetwork('::1/0'))]
+        self.from_primitive_values = [('::1/0', netaddr.IPNetwork('::1/0'))]
 
 
 class TestIPV4Network(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPV4NetworkField()
-        self.coerce_good_values = [('1.2.3.4/24',
-                                    netaddr.IPNetwork('1.2.3.4/24'))]
+        self.coerce_good_values = [
+            ('1.2.3.4/24', netaddr.IPNetwork('1.2.3.4/24'))
+        ]
         self.coerce_bad_values = ['foo', '::1/32']
-        self.to_primitive_values = [(netaddr.IPNetwork('1.2.3.4/24'),
-                                     '1.2.3.4/24')]
-        self.from_primitive_values = [('1.2.3.4/24',
-                                       netaddr.IPNetwork('1.2.3.4/24'))]
+        self.to_primitive_values = [
+            (netaddr.IPNetwork('1.2.3.4/24'), '1.2.3.4/24')
+        ]
+        self.from_primitive_values = [
+            ('1.2.3.4/24', netaddr.IPNetwork('1.2.3.4/24'))
+        ]
 
     def test_get_schema(self):
         schema = self.field.get_schema()
@@ -1212,13 +1370,13 @@ class TestIPV6Network(TestField):
     def setUp(self):
         super().setUp()
         self.field = fields.IPV6NetworkField()
-        self.coerce_good_values = [('::1/0', netaddr.IPNetwork('::1/0')),
-                                   (netaddr.IPNetwork('::1/32'),
-                                    netaddr.IPNetwork('::1/32'))]
+        self.coerce_good_values = [
+            ('::1/0', netaddr.IPNetwork('::1/0')),
+            (netaddr.IPNetwork('::1/32'), netaddr.IPNetwork('::1/32')),
+        ]
         self.coerce_bad_values = ['foo', '1.2.3.4/24']
         self.to_primitive_values = [(netaddr.IPNetwork('::1/0'), '::1/0')]
-        self.from_primitive_values = [('::1/0',
-                                       netaddr.IPNetwork('::1/0'))]
+        self.from_primitive_values = [('::1/0', netaddr.IPNetwork('::1/0'))]
 
     def test_get_schema(self):
         schema = self.field.get_schema()
@@ -1248,23 +1406,27 @@ class FakeCounter:
 
 
 class TestListTypes(test.TestCase):
-
     def test_regular_list(self):
         fields.List(fields.Integer).coerce(None, None, [1, 2])
 
     def test_non_iterable(self):
-        self.assertRaises(ValueError,
-                          fields.List(fields.Integer).coerce, None, None, 2)
+        self.assertRaises(
+            ValueError, fields.List(fields.Integer).coerce, None, None, 2
+        )
 
     def test_string_iterable(self):
-        self.assertRaises(ValueError,
-                          fields.List(fields.Integer).coerce, None, None,
-                          'hello')
+        self.assertRaises(
+            ValueError, fields.List(fields.Integer).coerce, None, None, 'hello'
+        )
 
     def test_mapping_iterable(self):
-        self.assertRaises(ValueError,
-                          fields.List(fields.Integer).coerce, None, None,
-                          {'a': 1, 'b': 2})
+        self.assertRaises(
+            ValueError,
+            fields.List(fields.Integer).coerce,
+            None,
+            None,
+            {'a': 1, 'b': 2},
+        )
 
     def test_iter_class(self):
         fields.List(fields.Integer).coerce(None, None, FakeCounter())

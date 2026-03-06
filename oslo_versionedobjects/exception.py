@@ -35,9 +35,11 @@ from oslo_versionedobjects._i18n import _
 LOG = logging.getLogger(__name__)
 
 exc_log_opts = [
-    cfg.BoolOpt('fatal_exception_format_errors',
-                default=False,
-                help='Make exception message format errors fatal'),
+    cfg.BoolOpt(
+        'fatal_exception_format_errors',
+        default=False,
+        help='Make exception message format errors fatal',
+    ),
 ]
 
 CONF = cfg.CONF
@@ -64,6 +66,7 @@ def wrap_exception(notifier=None, get_notifier=None):
     get thrown. It also optionally sends the exception to the notification
     system.
     """
+
     def inner(f):
         def wrapped(self, context, *args, **kw):
             # Don't store self or context in the payload, it now seems to
@@ -74,8 +77,9 @@ def wrap_exception(notifier=None, get_notifier=None):
                 with excutils.save_and_reraise_exception():
                     if notifier or get_notifier:
                         payload = dict(exception=e)
-                        call_dict = inspect.getcallargs(f, self, context,
-                                                        *args, **kw)
+                        call_dict = inspect.getcallargs(
+                            f, self, context, *args, **kw
+                        )
                         cleansed = _cleanse_dict(call_dict)
                         payload.update({'args': cleansed})
 
@@ -84,11 +88,12 @@ def wrap_exception(notifier=None, get_notifier=None):
                         # propagated.
                         event_type = f.__name__
 
-                        (notifier or get_notifier()).error(context,
-                                                           event_type,
-                                                           payload)
+                        (notifier or get_notifier()).error(
+                            context, event_type, payload
+                        )
 
         return functools.wraps(f)(wrapped)
+
     return inner
 
 
@@ -100,6 +105,7 @@ class VersionedObjectsException(Exception):
     with the keyword arguments provided to the constructor.
 
     """
+
     msg_fmt = _("An unknown exception occurred.")
     code = 500
     headers = {}
@@ -122,7 +128,7 @@ class VersionedObjectsException(Exception):
                 # log the issue and the kwargs
                 LOG.exception('Exception in string format operation')
                 for name, value in kwargs.items():
-                    LOG.error(f"{name}: {value}")    # noqa
+                    LOG.error(f"{name}: {value}")  # noqa
 
                 if CONF.oslo_versionedobjects.fatal_exception_format_errors:
                     raise
@@ -152,8 +158,10 @@ class OrphanedObjectError(VersionedObjectsException):
 
 
 class IncompatibleObjectVersion(VersionedObjectsException):
-    msg_fmt = _('Version %(objver)s of %(objname)s is not supported, '
-                'supported version is %(supported)s')
+    msg_fmt = _(
+        'Version %(objver)s of %(objname)s is not supported, '
+        'supported version is %(supported)s'
+    )
 
 
 class ReadOnlyFieldError(VersionedObjectsException):
@@ -189,5 +197,7 @@ class TargetBeforeSubobjectExistedException(VersionedObjectsException):
 
 
 class UnregisteredSubobject(VersionedObjectsException):
-    msg_fmt = _("%(child_objname)s is referenced by %(parent_objname)s but "
-                "is not registered")
+    msg_fmt = _(
+        "%(child_objname)s is referenced by %(parent_objname)s but "
+        "is not registered"
+    )

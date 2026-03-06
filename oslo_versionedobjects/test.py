@@ -21,21 +21,22 @@ Some black magic for inline callbacks.
 """
 
 import eventlet  # noqa
+
 eventlet.monkey_patch(os=False)  # noqa
 
-import functools   # noqa: E402
-import inspect   # noqa: E402
-import os   # noqa: E402
-from unittest import mock   # noqa: E402
+import functools  # noqa: E402
+import inspect  # noqa: E402
+import os  # noqa: E402
+from unittest import mock  # noqa: E402
 
-import fixtures   # noqa: E402
-from oslo_concurrency import lockutils   # noqa: E402
-from oslo_config import cfg   # noqa: E402
-from oslo_config import fixture as config_fixture   # noqa: E402
-from oslo_log.fixture import logging_error   # noqa: E402
-import testtools   # noqa: E402
+import fixtures  # noqa: E402
+from oslo_concurrency import lockutils  # noqa: E402
+from oslo_config import cfg  # noqa: E402
+from oslo_config import fixture as config_fixture  # noqa: E402
+from oslo_log.fixture import logging_error  # noqa: E402
+import testtools  # noqa: E402
 
-from oslo_versionedobjects.tests import obj_fixtures   # noqa: E402
+from oslo_versionedobjects.tests import obj_fixtures  # noqa: E402
 
 
 CONF = cfg.CONF
@@ -54,6 +55,7 @@ class skipIf:
         condition = self.condition
         reason = self.reason
         if inspect.isfunction(func_or_cls):
+
             @functools.wraps(func_or_cls)
             def wrapped(*args, **kwargs):
                 if condition:
@@ -73,8 +75,9 @@ class skipIf:
             func_or_cls.setUp = new_func
             return func_or_cls
         else:
-            raise TypeError('skipUnless can be used only with functions or '
-                            'classes')
+            raise TypeError(
+                'skipUnless can be used only with functions or classes'
+            )
 
 
 def _patch_mock_to_raise_for_invalid_assert_calls():
@@ -84,16 +87,21 @@ def _patch_mock_to_raise_for_invalid_assert_calls():
                 'assert_called_with',
                 'assert_called_once_with',
                 'assert_has_calls',
-                'assert_any_calls']
+                'assert_any_calls',
+            ]
 
             if name.startswith('assert') and name not in valid_asserts:
-                raise AttributeError('%s is not a valid mock assert method'
-                                     % name)
+                raise AttributeError(
+                    f'{name} is not a valid mock assert method'
+                )
 
             return wrapped(_self, name)
+
         return wrapper
+
     mock.Mock.__getattr__ = raise_for_invalid_assert_calls(
-        mock.Mock.__getattr__)
+        mock.Mock.__getattr__
+    )
 
 
 # NOTE(gibi): needs to be called only once at import time
@@ -103,6 +111,7 @@ _patch_mock_to_raise_for_invalid_assert_calls()
 
 class TestCase(testtools.TestCase):
     """Test case base class for all unit tests."""
+
     REQUIRES_LOCKING = False
 
     TIMEOUT_SCALING_FACTOR = 1
@@ -110,9 +119,12 @@ class TestCase(testtools.TestCase):
     def setUp(self):
         """Run before each test method to initialize test environment."""
         super().setUp()
-        self.useFixture(obj_fixtures.Timeout(
-            os.environ.get('OS_TEST_TIMEOUT', 0),
-            self.TIMEOUT_SCALING_FACTOR))
+        self.useFixture(
+            obj_fixtures.Timeout(
+                os.environ.get('OS_TEST_TIMEOUT', 0),
+                self.TIMEOUT_SCALING_FACTOR,
+            )
+        )
 
         self.useFixture(fixtures.NestedTempfile())
         self.useFixture(fixtures.TempHomeDir())
@@ -137,9 +149,9 @@ class TestCase(testtools.TestCase):
         if self.REQUIRES_LOCKING:
             lock_path = self.useFixture(fixtures.TempDir()).path
             self.fixture = self.useFixture(
-                config_fixture.Config(lockutils.CONF))
-            self.fixture.config(lock_path=lock_path,
-                                group='oslo_concurrency')
+                config_fixture.Config(lockutils.CONF)
+            )
+            self.fixture.config(lock_path=lock_path, group='oslo_concurrency')
 
         # NOTE(blk-u): WarningsFixture must be after the Database fixture
         # because sqlalchemy-migrate messes with the warnings filters.
@@ -158,7 +170,7 @@ class TestCase(testtools.TestCase):
     def assertPublicAPISignatures(self, baseinst, inst):
         def get_public_apis(inst):
             methods = {}
-            for (name, value) in inspect.getmembers(inst, inspect.ismethod):
+            for name, value in inspect.getmembers(inst, inspect.ismethod):
                 if name.startswith("_"):
                     continue
                 methods[name] = value
@@ -173,32 +185,31 @@ class TestCase(testtools.TestCase):
             if name not in basemethods:
                 extranames.append(name)
 
-        self.assertEqual([], extranames,
-                         "public APIs not listed in base class %s" %
-                         baseclass)
+        self.assertEqual(
+            [], extranames, f"public APIs not listed in base class {baseclass}"
+        )
 
         for name in sorted(implmethods.keys()):
             baseargs = inspect.getfullargspec(basemethods[name])
             implargs = inspect.getfullargspec(implmethods[name])
 
-            self.assertEqual(baseargs, implargs,
-                             "%s args don't match base class %s" %
-                             (name, baseclass))
+            self.assertEqual(
+                baseargs,
+                implargs,
+                f"{name} args don't match base class {baseclass}",
+            )
 
 
 class APICoverage:
-
     cover_api = None
 
     def test_api_methods(self):
         self.assertTrue(self.cover_api is not None)
-        api_methods = [x for x in dir(self.cover_api)
-                       if not x.startswith('_')]
-        test_methods = [x[5:] for x in dir(self)
-                        if x.startswith('test_')]
+        api_methods = [x for x in dir(self.cover_api) if not x.startswith('_')]
+        test_methods = [x[5:] for x in dir(self) if x.startswith('test_')]
         self.assertThat(
-            test_methods,
-            testtools.matchers.ContainsAll(api_methods))
+            test_methods, testtools.matchers.ContainsAll(api_methods)
+        )
 
 
 class BaseHookTestCase(TestCase):

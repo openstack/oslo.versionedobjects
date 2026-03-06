@@ -37,8 +37,9 @@ class TranslationFixture(fixtures.Fixture):
     def setUp(self):
         super().setUp()
         nulltrans = gettext.NullTranslations()
-        gettext_fixture = fixtures.MonkeyPatch('gettext.translation',
-                                               lambda *x, **y: nulltrans)
+        gettext_fixture = fixtures.MonkeyPatch(
+            'gettext.translation', lambda *x, **y: nulltrans
+        )
         self.gettext_patcher = self.useFixture(gettext_fixture)
 
 
@@ -49,6 +50,7 @@ class NullHandler(logging.Handler):
     log_fixture.get_logging_handle_error_fixture to detect formatting errors in
     debug level logs without saving the logs.
     """
+
     def handle(self, record):
         self.format(record)
 
@@ -102,7 +104,8 @@ class StandardLogging(fixtures.Fixture):
         # Collect logs
         fs = '%(asctime)s %(levelname)s [%(name)s] %(message)s'
         self.logger = self.useFixture(
-            fixtures.FakeLogger(format=fs, level=None))
+            fixtures.FakeLogger(format=fs, level=None)
+        )
         # TODO(sdague): why can't we send level through the fake
         # logger? Tests prove that it breaks, but it's worth getting
         # to the bottom of.
@@ -123,16 +126,19 @@ class OutputStreamCapture(fixtures.Fixture):
     runs instead. Useful to see what was happening during failed
     tests.
     """
+
     def setUp(self):
         super().setUp()
         if os.environ.get('OS_STDOUT_CAPTURE') in _TRUE_VALUES:
             self.out = self.useFixture(fixtures.StringStream('stdout'))
             self.useFixture(
-                fixtures.MonkeyPatch('sys.stdout', self.out.stream))
+                fixtures.MonkeyPatch('sys.stdout', self.out.stream)
+            )
         if os.environ.get('OS_STDERR_CAPTURE') in _TRUE_VALUES:
             self.err = self.useFixture(fixtures.StringStream('stderr'))
             self.useFixture(
-                fixtures.MonkeyPatch('sys.stderr', self.err.stream))
+                fixtures.MonkeyPatch('sys.stderr', self.err.stream)
+            )
 
     @property
     def stderr(self):
@@ -181,8 +187,10 @@ class WarningsFixture(fixtures.Fixture):
         # this gets kind of crazy given the way that upstream python libs use
         # this.
         warnings.simplefilter("once", DeprecationWarning)
-        warnings.filterwarnings('ignore',
-                                message='With-statements now directly support'
-                                        ' multiple context managers')
+        warnings.filterwarnings(
+            'ignore',
+            message='With-statements now directly support'
+            ' multiple context managers',
+        )
 
         self.addCleanup(warnings.resetwarnings)
