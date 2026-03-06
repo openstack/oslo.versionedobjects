@@ -712,7 +712,7 @@ class TestObjectVersionChecker(test.TestCase):
 
     def test_get_fingerprint_with_defaulted_set(self):
         class ClassWithDefaultedSetField(base.VersionedObject):
-            VERSION = 1.0
+            VERSION = '1.0'
             fields = {
                 'empty_default': fields.SetOfIntegersField(default=set()),
                 'non_empty_default': fields.SetOfIntegersField(default={1, 2}),
