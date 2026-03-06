@@ -1221,7 +1221,9 @@ class _TestObject:
         with mock.patch.object(timeutils, 'utcnow') as mock_utcnow:
             mock_utcnow.return_value = timestamp
             obj.timestamp = timeutils.utcnow()
-            self.assertRaises(TypeError, obj.obj_get_changes())
+            self.assertNotEqual(
+                {'timestamp': timestamp}, obj.obj_get_changes()
+            )
 
         obj.obj_reset_changes()
         self.assertEqual({}, obj.obj_get_changes())
