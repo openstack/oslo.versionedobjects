@@ -1,6 +1,6 @@
-=========
- Fixture
-=========
+=============================
+oslo_versionedobjects.fixture
+=============================
 
 .. automodule:: oslo_versionedobjects.fixture
    :members:
