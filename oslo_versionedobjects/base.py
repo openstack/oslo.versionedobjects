@@ -187,73 +187,73 @@ class VersionedObjectRegistry:
 def remotable(fn):
     """Decorator for remotable object methods."""
 
-    @functools.wraps(fn)
-    def wrapper(first, *args, **kwargs):
-        # Detect if this is a classmethod (first arg is a class) or
-        # instance method (first arg is an instance)
-        if isinstance(first, type):
-            # Classmethod: first is cls, context is args[0]
-            cls = first
-            context = args[0]
-            remaining_args = args[1:]
+    def _wrapper_classmethod(cls, *args, **kwargs):
+        context = args[0]
+        remaining_args = args[1:]
 
-            if cls.indirection_api:
-                version_manifest = obj_tree_get_versions(cls.obj_name())
-                try:
-                    result = cls.indirection_api.object_class_action_versions(
-                        context,
-                        cls.obj_name(),
-                        fn.__name__,
-                        version_manifest,
-                        remaining_args,
-                        kwargs,
-                    )
-                except NotImplementedError:
-                    result = cls.indirection_api.object_class_action(
-                        context,
-                        cls.obj_name(),
-                        fn.__name__,
-                        cls.VERSION,
-                        remaining_args,
-                        kwargs,
-                    )
-            else:
-                result = fn(cls, *args, **kwargs)
-                if isinstance(result, VersionedObject):
-                    result._context = context
+        if cls.indirection_api:
+            version_manifest = obj_tree_get_versions(cls.obj_name())
+            try:
+                result = cls.indirection_api.object_class_action_versions(
+                    context,
+                    cls.obj_name(),
+                    fn.__name__,
+                    version_manifest,
+                    remaining_args,
+                    kwargs,
+                )
+            except NotImplementedError:
+                result = cls.indirection_api.object_class_action(
+                    context,
+                    cls.obj_name(),
+                    fn.__name__,
+                    cls.VERSION,
+                    remaining_args,
+                    kwargs,
+                )
+        else:
+            result = fn(cls, *args, **kwargs)
+            if isinstance(result, VersionedObject):
+                result._context = context
+        return result
+
+    def _wrapper_instancemethod(self, *args, **kwargs):
+        ctxt = self._context
+        if ctxt is None:
+            raise exception.OrphanedObjectError(
+                method=fn.__name__, objtype=self.obj_name()
+            )
+
+        if self.indirection_api:
+            updates, result = self.indirection_api.object_action(
+                ctxt, self, fn.__name__, args, kwargs
+            )
+            for key, value in updates.items():
+                if key in self.fields:
+                    field = self.fields[key]
+                    # NOTE(ndipanov): Since VersionedObjectSerializer will
+                    # have deserialized any object fields into objects
+                    # already, we do not try to deserialize them again.
+                    if isinstance(value, VersionedObject):
+                        setattr(self, key, value)
+                    else:
+                        setattr(
+                            self,
+                            key,
+                            field.from_primitive(self, key, value),
+                        )
+            self.obj_reset_changes()
+            self._changed_fields = set(updates.get('obj_what_changed', []))
             return result
         else:
-            # Instance method: first is self, context comes from self._context
-            self = first
-            ctxt = self._context
-            if ctxt is None:
-                raise exception.OrphanedObjectError(
-                    method=fn.__name__, objtype=self.obj_name()
-                )
+            return fn(self, *args, **kwargs)
 
-            if self.indirection_api:
-                updates, result = self.indirection_api.object_action(
-                    ctxt, self, fn.__name__, args, kwargs
-                )
-                for key, value in updates.items():
-                    if key in self.fields:
-                        field = self.fields[key]
-                        # NOTE(ndipanov): Since VersionedObjectSerializer will
-                        # have deserialized any object fields into objects
-                        # already, we do not try to deserialize them again.
-                        if isinstance(value, VersionedObject):
-                            setattr(self, key, value)
-                        else:
-                            setattr(
-                                self,
-                                key,
-                                field.from_primitive(self, key, value),
-                            )
-                self.obj_reset_changes()
-                self._changed_fields = set(updates.get('obj_what_changed', []))
-                return result
-            else:
-                return fn(self, *args, **kwargs)
+    @functools.wraps(fn)
+    def wrapper(first, *args, **kwargs):
+        if isinstance(first, type):
+            return _wrapper_classmethod(first, *args, **kwargs)
+        else:
+            return _wrapper_instancemethod(first, *args, **kwargs)
 
     wrapper.remotable = True
     wrapper.original_fn = fn
