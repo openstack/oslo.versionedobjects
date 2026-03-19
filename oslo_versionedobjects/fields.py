@@ -651,6 +651,149 @@ class IPV6Network(IPNetwork):
         )
 
 
+class CoercedCollectionMixin:
+    def __init__(self, *args, **kwargs):
+        self._element_type = None
+        self._obj = None
+        self._field = None
+        super().__init__(*args, **kwargs)
+
+    def enable_coercing(self, element_type, obj, field):
+        self._element_type = element_type
+        self._obj = obj
+        self._field = field
+
+
+class CoercedList(CoercedCollectionMixin, list):
+    """List which coerces its elements
+
+    List implementation which overrides all element-adding methods and
+    coercing the element(s) being added to the required element type
+    """
+
+    def _coerce_item(self, index, item):
+        if hasattr(self, "_element_type") and self._element_type is not None:
+            att_name = f"{self._field}[{index}]"
+            return self._element_type.coerce(self._obj, att_name, item)
+
+        return item
+
+    def __setitem__(self, i, y):
+        if type(i) is slice:  # compatibility with py3 and [::] slices
+            start = i.start or 0
+            step = i.step or 1
+            coerced_items = [
+                self._coerce_item(start + index * step, item)
+                for index, item in enumerate(y)
+            ]
+            super().__setitem__(i, coerced_items)
+        else:
+            super().__setitem__(i, self._coerce_item(i, y))
+
+    def append(self, x):
+        super().append(self._coerce_item(len(self) + 1, x))
+
+    def extend(self, t):
+        coerced_items = [
+            self._coerce_item(len(self) + index, item)
+            for index, item in enumerate(t)
+        ]
+        super().extend(coerced_items)
+
+    def insert(self, i, x):
+        super().insert(i, self._coerce_item(i, x))
+
+    def __iadd__(self, y):
+        coerced_items = [
+            self._coerce_item(len(self) + index, item)
+            for index, item in enumerate(y)
+        ]
+        return super().__iadd__(coerced_items)
+
+    def __setslice__(self, i, j, y):
+        coerced_items = [
+            self._coerce_item(i + index, item) for index, item in enumerate(y)
+        ]
+        return super().__setslice__(i, j, coerced_items)
+
+
+class CoercedDict(CoercedCollectionMixin, dict):
+    """Dict which coerces its values
+
+    Dict implementation which overrides all element-adding methods and
+    coercing the element(s) being added to the required element type
+    """
+
+    def _coerce_dict(self, d):
+        res = {}
+        for key, element in d.items():
+            res[key] = self._coerce_item(key, element)
+        return res
+
+    def _coerce_item(self, key, item):
+        if not isinstance(key, str):
+            raise KeyTypeError(str, key)
+
+        if hasattr(self, "_element_type") and self._element_type is not None:
+            att_name = f"{self._field}[{key}]"
+            return self._element_type.coerce(self._obj, att_name, item)
+
+        return item
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, self._coerce_item(key, value))
+
+    def update(self, other=None, **kwargs):
+        if other is not None:
+            super().update(
+                self._coerce_dict(other), **self._coerce_dict(kwargs)
+            )
+        else:
+            super().update(**self._coerce_dict(kwargs))
+
+    def setdefault(self, key, default=None):
+        return super().setdefault(key, self._coerce_item(key, default))
+
+
+class CoercedSet(CoercedCollectionMixin, set):
+    """Set which coerces its values
+
+    Dict implementation which overrides all element-adding methods and
+    coercing the element(s) being added to the required element type
+    """
+
+    def _coerce_element(self, element):
+        if hasattr(self, "_element_type") and self._element_type is not None:
+            return self._element_type.coerce(
+                self._obj, f"{self._field}[{element}]", element
+            )
+
+        return element
+
+    def _coerce_iterable(self, values):
+        coerced = set()
+        for element in values:
+            coerced.add(self._coerce_element(element))
+        return coerced
+
+    def add(self, value):
+        return super().add(self._coerce_element(value))
+
+    def update(self, values):
+        return super().update(self._coerce_iterable(values))
+
+    def symmetric_difference_update(self, values):
+        return super().symmetric_difference_update(
+            self._coerce_iterable(values)
+        )
+
+    def __ior__(self, y):
+        return super().__ior__(self._coerce_iterable(y))
+
+    def __ixor__(self, y):
+        return super().__ixor__(self._coerce_iterable(y))
+
+
 class CompoundFieldType(FieldType):
     def __init__(self, element_type, **field_args):
         if isinstance(element_type, type):
@@ -1264,146 +1407,3 @@ class IPV4NetworkField(AutoTypedField):
 
 class IPV6NetworkField(AutoTypedField):
     AUTO_TYPE = IPV6Network()
-
-
-class CoercedCollectionMixin:
-    def __init__(self, *args, **kwargs):
-        self._element_type = None
-        self._obj = None
-        self._field = None
-        super().__init__(*args, **kwargs)
-
-    def enable_coercing(self, element_type, obj, field):
-        self._element_type = element_type
-        self._obj = obj
-        self._field = field
-
-
-class CoercedList(CoercedCollectionMixin, list):
-    """List which coerces its elements
-
-    List implementation which overrides all element-adding methods and
-    coercing the element(s) being added to the required element type
-    """
-
-    def _coerce_item(self, index, item):
-        if hasattr(self, "_element_type") and self._element_type is not None:
-            att_name = f"{self._field}[{index}]"
-            return self._element_type.coerce(self._obj, att_name, item)
-
-        return item
-
-    def __setitem__(self, i, y):
-        if type(i) is slice:  # compatibility with py3 and [::] slices
-            start = i.start or 0
-            step = i.step or 1
-            coerced_items = [
-                self._coerce_item(start + index * step, item)
-                for index, item in enumerate(y)
-            ]
-            super().__setitem__(i, coerced_items)
-        else:
-            super().__setitem__(i, self._coerce_item(i, y))
-
-    def append(self, x):
-        super().append(self._coerce_item(len(self) + 1, x))
-
-    def extend(self, t):
-        coerced_items = [
-            self._coerce_item(len(self) + index, item)
-            for index, item in enumerate(t)
-        ]
-        super().extend(coerced_items)
-
-    def insert(self, i, x):
-        super().insert(i, self._coerce_item(i, x))
-
-    def __iadd__(self, y):
-        coerced_items = [
-            self._coerce_item(len(self) + index, item)
-            for index, item in enumerate(y)
-        ]
-        return super().__iadd__(coerced_items)
-
-    def __setslice__(self, i, j, y):
-        coerced_items = [
-            self._coerce_item(i + index, item) for index, item in enumerate(y)
-        ]
-        return super().__setslice__(i, j, coerced_items)
-
-
-class CoercedDict(CoercedCollectionMixin, dict):
-    """Dict which coerces its values
-
-    Dict implementation which overrides all element-adding methods and
-    coercing the element(s) being added to the required element type
-    """
-
-    def _coerce_dict(self, d):
-        res = {}
-        for key, element in d.items():
-            res[key] = self._coerce_item(key, element)
-        return res
-
-    def _coerce_item(self, key, item):
-        if not isinstance(key, str):
-            raise KeyTypeError(str, key)
-
-        if hasattr(self, "_element_type") and self._element_type is not None:
-            att_name = f"{self._field}[{key}]"
-            return self._element_type.coerce(self._obj, att_name, item)
-
-        return item
-
-    def __setitem__(self, key, value):
-        super().__setitem__(key, self._coerce_item(key, value))
-
-    def update(self, other=None, **kwargs):
-        if other is not None:
-            super().update(
-                self._coerce_dict(other), **self._coerce_dict(kwargs)
-            )
-        else:
-            super().update(**self._coerce_dict(kwargs))
-
-    def setdefault(self, key, default=None):
-        return super().setdefault(key, self._coerce_item(key, default))
-
-
-class CoercedSet(CoercedCollectionMixin, set):
-    """Set which coerces its values
-
-    Dict implementation which overrides all element-adding methods and
-    coercing the element(s) being added to the required element type
-    """
-
-    def _coerce_element(self, element):
-        if hasattr(self, "_element_type") and self._element_type is not None:
-            return self._element_type.coerce(
-                self._obj, f"{self._field}[{element}]", element
-            )
-
-        return element
-
-    def _coerce_iterable(self, values):
-        coerced = set()
-        for element in values:
-            coerced.add(self._coerce_element(element))
-        return coerced
-
-    def add(self, value):
-        return super().add(self._coerce_element(value))
-
-    def update(self, values):
-        return super().update(self._coerce_iterable(values))
-
-    def symmetric_difference_update(self, values):
-        return super().symmetric_difference_update(
-            self._coerce_iterable(values)
-        )
-
-    def __ior__(self, y):
-        return super().__ior__(self._coerce_iterable(y))
-
-    def __ixor__(self, y):
-        return super().__ixor__(self._coerce_iterable(y))
