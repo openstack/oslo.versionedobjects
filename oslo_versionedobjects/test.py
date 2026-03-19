@@ -16,8 +16,6 @@
 
 """Base classes for our unit tests."""
 
-import functools
-import inspect
 import os
 from unittest import mock
 
@@ -36,40 +34,6 @@ CONF = cfg.CONF
 
 class TestingException(Exception):
     pass
-
-
-class skipIf:
-    def __init__(self, condition, reason):
-        self.condition = condition
-        self.reason = reason
-
-    def __call__(self, func_or_cls):
-        condition = self.condition
-        reason = self.reason
-        if inspect.isfunction(func_or_cls):
-
-            @functools.wraps(func_or_cls)
-            def wrapped(*args, **kwargs):
-                if condition:
-                    raise testtools.TestCase.skipException(reason)
-                return func_or_cls(*args, **kwargs)
-
-            return wrapped
-        elif inspect.isclass(func_or_cls):
-            orig_func = getattr(func_or_cls, 'setUp')
-
-            @functools.wraps(orig_func)
-            def new_func(self, *args, **kwargs):
-                if condition:
-                    raise testtools.TestCase.skipException(reason)
-                orig_func(self, *args, **kwargs)
-
-            func_or_cls.setUp = new_func
-            return func_or_cls
-        else:
-            raise TypeError(
-                'skipUnless can be used only with functions or classes'
-            )
 
 
 def _patch_mock_to_raise_for_invalid_assert_calls():
@@ -158,53 +122,3 @@ class TestCase(testtools.TestCase):
         # suite
         for key in [k for k in self.__dict__.keys() if k[0] != '_']:
             del self.__dict__[key]
-
-    def assertPublicAPISignatures(self, baseinst, inst):
-        def get_public_apis(inst):
-            methods = {}
-            for name, value in inspect.getmembers(inst, inspect.ismethod):
-                if name.startswith("_"):
-                    continue
-                methods[name] = value
-            return methods
-
-        baseclass = baseinst.__class__.__name__
-        basemethods = get_public_apis(baseinst)
-        implmethods = get_public_apis(inst)
-
-        extranames = []
-        for name in sorted(implmethods.keys()):
-            if name not in basemethods:
-                extranames.append(name)
-
-        self.assertEqual(
-            [], extranames, f"public APIs not listed in base class {baseclass}"
-        )
-
-        for name in sorted(implmethods.keys()):
-            baseargs = inspect.getfullargspec(basemethods[name])
-            implargs = inspect.getfullargspec(implmethods[name])
-
-            self.assertEqual(
-                baseargs,
-                implargs,
-                f"{name} args don't match base class {baseclass}",
-            )
-
-
-class APICoverage:
-    cover_api = None
-
-    def test_api_methods(self):
-        self.assertTrue(self.cover_api is not None)
-        api_methods = [x for x in dir(self.cover_api) if not x.startswith('_')]
-        test_methods = [x[5:] for x in dir(self) if x.startswith('test_')]
-        self.assertThat(
-            test_methods, testtools.matchers.ContainsAll(api_methods)
-        )
-
-
-class BaseHookTestCase(TestCase):
-    def assert_has_hook(self, expected_name, func):
-        self.assertTrue(hasattr(func, '__hook_name__'))
-        self.assertEqual(expected_name, func.__hook_name__)
