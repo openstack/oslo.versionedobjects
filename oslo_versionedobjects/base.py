@@ -168,39 +168,92 @@ class VersionedObjectRegistry:
 # the object implementation on the remote end will perform the
 # requested action and the result will be returned here.
 #
+# This decorator works for both instance methods and classmethods. When
+# used with an instance method, context is retrieved from self._context:
+#
+#     @remotable
+#     def foo(self):
+#         ...
+#
+# When used with a classmethod, context is passed as first argument after cls:
+#
+#       @classmethod
+#       @remotable
+#       def bar(cls, context):
+#           ...
+#
 # Note that for instance methods, if context is not present, the object
 # is "orphaned" and remotable methods cannot be called.
 def remotable(fn):
     """Decorator for remotable object methods."""
 
     @functools.wraps(fn)
-    def wrapper(self, *args, **kwargs):
-        ctxt = self._context
-        if ctxt is None:
-            raise exception.OrphanedObjectError(
-                method=fn.__name__, objtype=self.obj_name()
-            )
-        if self.indirection_api:
-            updates, result = self.indirection_api.object_action(
-                ctxt, self, fn.__name__, args, kwargs
-            )
-            for key, value in updates.items():
-                if key in self.fields:
-                    field = self.fields[key]
-                    # NOTE(ndipanov): Since VersionedObjectSerializer will have
-                    # deserialized any object fields into objects already,
-                    # we do not try to deserialize them again here.
-                    if isinstance(value, VersionedObject):
-                        setattr(self, key, value)
-                    else:
-                        setattr(
-                            self, key, field.from_primitive(self, key, value)
-                        )
-            self.obj_reset_changes()
-            self._changed_fields = set(updates.get('obj_what_changed', []))
+    def wrapper(first, *args, **kwargs):
+        # Detect if this is a classmethod (first arg is a class) or
+        # instance method (first arg is an instance)
+        if isinstance(first, type):
+            # Classmethod: first is cls, context is args[0]
+            cls = first
+            context = args[0]
+            remaining_args = args[1:]
+
+            if cls.indirection_api:
+                version_manifest = obj_tree_get_versions(cls.obj_name())
+                try:
+                    result = cls.indirection_api.object_class_action_versions(
+                        context,
+                        cls.obj_name(),
+                        fn.__name__,
+                        version_manifest,
+                        remaining_args,
+                        kwargs,
+                    )
+                except NotImplementedError:
+                    result = cls.indirection_api.object_class_action(
+                        context,
+                        cls.obj_name(),
+                        fn.__name__,
+                        cls.VERSION,
+                        remaining_args,
+                        kwargs,
+                    )
+            else:
+                result = fn(cls, *args, **kwargs)
+                if isinstance(result, VersionedObject):
+                    result._context = context
             return result
         else:
-            return fn(self, *args, **kwargs)
+            # Instance method: first is self, context comes from self._context
+            self = first
+            ctxt = self._context
+            if ctxt is None:
+                raise exception.OrphanedObjectError(
+                    method=fn.__name__, objtype=self.obj_name()
+                )
+
+            if self.indirection_api:
+                updates, result = self.indirection_api.object_action(
+                    ctxt, self, fn.__name__, args, kwargs
+                )
+                for key, value in updates.items():
+                    if key in self.fields:
+                        field = self.fields[key]
+                        # NOTE(ndipanov): Since VersionedObjectSerializer will
+                        # have deserialized any object fields into objects
+                        # already, we do not try to deserialize them again.
+                        if isinstance(value, VersionedObject):
+                            setattr(self, key, value)
+                        else:
+                            setattr(
+                                self,
+                                key,
+                                field.from_primitive(self, key, value),
+                            )
+                self.obj_reset_changes()
+                self._changed_fields = set(updates.get('obj_what_changed', []))
+                return result
+            else:
+                return fn(self, *args, **kwargs)
 
     wrapper.remotable = True
     wrapper.original_fn = fn
@@ -208,7 +261,21 @@ def remotable(fn):
 
 
 def remotable_classmethod(fn):
-    """Decorator for remotable classmethods."""
+    """Decorator for remotable classmethods.
+
+    .. deprecated::
+        Use ``@classmethod`` combined with ``@remotable`` instead::
+
+            @classmethod
+            @remotable
+            def my_method(cls, context): ...
+    """
+    warnings.warn(
+        "remotable_classmethod is deprecated, use @classmethod with "
+        "@remotable",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
     @functools.wraps(fn)
     def wrapper(cls, context, *args, **kwargs):

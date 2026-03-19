@@ -1,0 +1,18 @@
+---
+upgrade:
+  - |
+    The ``remoteable`` decorator can now be applied to class methods. For
+    example::
+
+        class MyObj(VersionedObject):
+            @classmethod
+            @remoteable
+            def query(cls, context):
+                ...
+
+    This replaces the ``remotable_classmethod`` decorator previously
+    required for this.
+deprecations:
+  - |
+    The ``remotable_classmethod`` decorator has been deprecated. You can now
+    use ``remoteable`` with ``classmethod`` instead.

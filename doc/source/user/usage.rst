@@ -130,12 +130,14 @@ A concrete object with database interaction looks like this:
            'extra': object_fields.FlexibleDictField(nullable=True),
        }
 
-       @ovo_base.remotable_classmethod
+       @classmethod
+       @ovo_base.remotable
        def get_by_uuid(cls, context, uuid):
            db_thing = dbapi.get_thing_by_uuid(uuid)
            return cls._from_db_object(context, cls(), db_thing)
 
-       @ovo_base.remotable_classmethod
+       @classmethod
+       @ovo_base.remotable
        def list(cls, context, limit=None, marker=None):
            db_things = dbapi.get_thing_list(limit=limit, marker=marker)
            return cls._from_db_object_list(context, db_things)
@@ -203,7 +205,8 @@ dictionary contains a single entry, ``objects``, which is a
            'objects': object_fields.ListOfObjectsField('Thing'),
        }
 
-       @ovo_base.remotable_classmethod
+       @classmethod
+       @ovo_base.remotable
        def get_all(cls, context):
            db_things = dbapi.get_thing_list()
            return ovo_base.obj_make_list(context, cls(context),
@@ -345,8 +348,7 @@ The :class:`oslo_versionedobjects.base.VersionedObjectIndirectionAPI` class
 provides a base class for implementing your own indirection API.
 
 A typical implementation delegates to the conductor service's RPC API, so that
-object methods decorated with ``@remotable`` or ``@remotable_classmethod`` are
-executed on the conductor:
+object methods decorated with ``@remotable`` are executed on the conductor:
 
 .. code:: python
 

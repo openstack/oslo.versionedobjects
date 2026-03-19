@@ -17,6 +17,7 @@ import datetime
 import jsonschema
 import logging
 from unittest import mock
+import warnings
 
 from oslo_context import context
 from oslo_serialization import jsonutils
@@ -76,7 +77,8 @@ class MyObj(base.VersionedObject, base.VersionedObjectDictCompat):
     def obj_load_attr(self, attrname):
         setattr(self, attrname, 'loaded!')
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def query(cls, context):
         obj = cls(context=context, foo=1, bar='bar')
         obj.obj_reset_changes()
@@ -141,7 +143,8 @@ class MyObj2(base.VersionedObject):
     def obj_name(cls):
         return 'MyObj'
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def query(cls, *args, **kwargs):
         pass
 
@@ -151,7 +154,8 @@ class MySensitiveObj(base.VersionedObject):
     VERSION = '1.0'
     fields = {'data': fields.SensitiveStringField(nullable=True)}
 
-    @base.remotable_classmethod
+    @classmethod
+    @base.remotable
     def query(cls, *args, **kwargs):
         pass
 
@@ -804,6 +808,23 @@ class TestFixture(_BaseTestCase):
     def test_test_relationships_in_order_bad_both_versions(self):
         self._test_test_relationships_in_order_bad(
             {'foo': [('1.5', '1.4'), ('1.3', '1.2')]}
+        )
+
+
+class TestRemotableClassmethodDeprecation(test.TestCase):
+    def test_remotable_classmethod_emits_deprecation_warning(self):
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.simplefilter("always")
+
+            @base.remotable_classmethod
+            def some_method(cls, context):
+                pass
+
+        self.assertEqual(1, len(caught_warnings))
+        self.assertIs(DeprecationWarning, caught_warnings[0].category)
+        self.assertIn(
+            "remotable_classmethod is deprecated",
+            str(caught_warnings[0].message),
         )
 
 
