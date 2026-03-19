@@ -1407,26 +1407,30 @@ class FakeCounter:
 
 class TestListTypes(test.TestCase):
     def test_regular_list(self):
-        fields.List(fields.Integer).coerce(None, None, [1, 2])
+        fields.List(fields.Integer()).coerce(None, None, [1, 2])
 
     def test_non_iterable(self):
         self.assertRaises(
-            ValueError, fields.List(fields.Integer).coerce, None, None, 2
+            ValueError, fields.List(fields.Integer()).coerce, None, None, 2
         )
 
     def test_string_iterable(self):
         self.assertRaises(
-            ValueError, fields.List(fields.Integer).coerce, None, None, 'hello'
+            ValueError,
+            fields.List(fields.Integer()).coerce,
+            None,
+            None,
+            'hello',
         )
 
     def test_mapping_iterable(self):
         self.assertRaises(
             ValueError,
-            fields.List(fields.Integer).coerce,
+            fields.List(fields.Integer()).coerce,
             None,
             None,
             {'a': 1, 'b': 2},
         )
 
     def test_iter_class(self):
-        fields.List(fields.Integer).coerce(None, None, FakeCounter())
+        fields.List(fields.Integer()).coerce(None, None, FakeCounter())
