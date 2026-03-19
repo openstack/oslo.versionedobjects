@@ -180,13 +180,14 @@ class Field:
     def _null(self, obj, attr):
         if self.nullable:
             return None
-        elif self._default != UnspecifiedDefault:
+
+        if self._default != UnspecifiedDefault:
             # NOTE(danms): We coerce the default value each time the field
             # is set to None as our contract states that we'll let the type
             # examine the object and attribute name at that time.
             return self._type.coerce(obj, attr, copy.deepcopy(self._default))
-        else:
-            raise ValueError(_("Field `%s' cannot be None") % attr)
+
+        raise ValueError(_("Field `%s' cannot be None") % attr)
 
     def coerce(self, obj, attr, value):
         """Coerce a value to a suitable type.
@@ -209,8 +210,8 @@ class Field:
         """
         if value is None:
             return self._null(obj, attr)
-        else:
-            return self._type.coerce(obj, attr, value)
+
+        return self._type.coerce(obj, attr, value)
 
     def from_primitive(self, obj, attr, value):
         """Deserialize a value from primitive form.
@@ -226,8 +227,8 @@ class Field:
         """
         if value is None:
             return None
-        else:
-            return self._type.from_primitive(obj, attr, value)
+
+        return self._type.from_primitive(obj, attr, value)
 
     def to_primitive(self, obj, attr, value):
         """Serialize a value to primitive form.
@@ -255,8 +256,8 @@ class Field:
     def stringify(self, value):
         if value is None:
             return 'None'
-        else:
-            return self._type.stringify(value)
+
+        return self._type.stringify(value)
 
     def get_schema(self):
         schema = self._type.get_schema()
@@ -352,11 +353,11 @@ class Enum(String):
 
 class StringPattern(FieldType):
     def get_schema(self):
-        if hasattr(self, "PATTERN"):
-            return {'type': ['string'], 'pattern': self.PATTERN}
-        else:
+        if not hasattr(self, "PATTERN"):
             msg = _("%s has no pattern") % self.__class__.__name__
             raise AttributeError(msg)
+
+        return {'type': ['string'], 'pattern': self.PATTERN}
 
 
 class UUID(StringPattern):
@@ -890,46 +891,46 @@ class Object(FieldType):
         from oslo_versionedobjects import base as obj_base
 
         obj_classes = obj_base.VersionedObjectRegistry.obj_classes()
-        if self._obj_name in obj_classes:
-            cls = obj_classes[self._obj_name][0]
-            namespace_key = cls._obj_primitive_key('namespace')
-            name_key = cls._obj_primitive_key('name')
-            version_key = cls._obj_primitive_key('version')
-            data_key = cls._obj_primitive_key('data')
-            changes_key = cls._obj_primitive_key('changes')
-            field_schemas = {
-                key: field.get_schema() for key, field in cls.fields.items()
-            }
-            required_fields = [
-                key
-                for key, field in sorted(cls.fields.items())
-                if not field.nullable
-            ]
-            schema = {
-                'type': ['object'],
-                'properties': {
-                    namespace_key: {'type': 'string'},
-                    name_key: {'type': 'string'},
-                    version_key: {'type': 'string'},
-                    changes_key: {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                    },
-                    data_key: {
-                        'type': 'object',
-                        'description': f'fields of {self._obj_name}',
-                        'properties': field_schemas,
-                    },
-                },
-                'required': [namespace_key, name_key, version_key, data_key],
-            }
-
-            if required_fields:
-                schema['properties'][data_key]['required'] = required_fields
-
-            return schema
-        else:
+        if self._obj_name not in obj_classes:
             raise exception.UnsupportedObjectError(objtype=self._obj_name)
+
+        cls = obj_classes[self._obj_name][0]
+        namespace_key = cls._obj_primitive_key('namespace')
+        name_key = cls._obj_primitive_key('name')
+        version_key = cls._obj_primitive_key('version')
+        data_key = cls._obj_primitive_key('data')
+        changes_key = cls._obj_primitive_key('changes')
+        field_schemas = {
+            key: field.get_schema() for key, field in cls.fields.items()
+        }
+        required_fields = [
+            key
+            for key, field in sorted(cls.fields.items())
+            if not field.nullable
+        ]
+        schema = {
+            'type': ['object'],
+            'properties': {
+                namespace_key: {'type': 'string'},
+                name_key: {'type': 'string'},
+                version_key: {'type': 'string'},
+                changes_key: {
+                    'type': 'array',
+                    'items': {'type': 'string'},
+                },
+                data_key: {
+                    'type': 'object',
+                    'description': f'fields of {self._obj_name}',
+                    'properties': field_schemas,
+                },
+            },
+            'required': [namespace_key, name_key, version_key, data_key],
+        }
+
+        if required_fields:
+            schema['properties'][data_key]['required'] = required_fields
+
+        return schema
 
 
 class AutoTypedField(Field):
@@ -1062,20 +1063,19 @@ class StateMachine(EnumField):
             "%(value)s state"
         )
 
-        if attr in obj:
-            current_value = getattr(obj, attr)
-        else:
+        if attr not in obj:
             return value
 
+        current_value = getattr(obj, attr)
         if current_value in self.ALLOWED_TRANSITIONS:
             if value in self.ALLOWED_TRANSITIONS[current_value]:
                 return value
-            else:
-                msg = _(
-                    "%(object)s.%(name)s is not allowed to transition out of "
-                    "'%(current_value)s' state to '%(value)s' state, choose "
-                    "from %(options)r"
-                )
+
+            msg = _(
+                "%(object)s.%(name)s is not allowed to transition out of "
+                "'%(current_value)s' state to '%(value)s' state, choose "
+                "from %(options)r"
+            )
         msg = msg % {
             'object': obj.obj_name(),
             'name': my_name,
@@ -1290,8 +1290,8 @@ class CoercedList(CoercedCollectionMixin, list):
         if hasattr(self, "_element_type") and self._element_type is not None:
             att_name = f"{self._field}[{index}]"
             return self._element_type.coerce(self._obj, att_name, item)
-        else:
-            return item
+
+        return item
 
     def __setitem__(self, i, y):
         if type(i) is slice:  # compatibility with py3 and [::] slices
@@ -1348,11 +1348,12 @@ class CoercedDict(CoercedCollectionMixin, dict):
     def _coerce_item(self, key, item):
         if not isinstance(key, str):
             raise KeyTypeError(str, key)
+
         if hasattr(self, "_element_type") and self._element_type is not None:
             att_name = f"{self._field}[{key}]"
             return self._element_type.coerce(self._obj, att_name, item)
-        else:
-            return item
+
+        return item
 
     def __setitem__(self, key, value):
         super().__setitem__(key, self._coerce_item(key, value))
@@ -1381,8 +1382,8 @@ class CoercedSet(CoercedCollectionMixin, set):
             return self._element_type.coerce(
                 self._obj, f"{self._field}[{element}]", element
             )
-        else:
-            return element
+
+        return element
 
     def _coerce_iterable(self, values):
         coerced = set()
