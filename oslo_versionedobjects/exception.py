@@ -28,7 +28,6 @@ import logging
 
 from oslo_config import cfg
 from oslo_utils import excutils
-import webob.exc
 
 from oslo_versionedobjects._i18n import _
 
@@ -44,14 +43,6 @@ exc_log_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(exc_log_opts, group='oslo_versionedobjects')
-
-
-class ConvertedException(webob.exc.WSGIHTTPException):
-    def __init__(self, code=0, title="", explanation=""):
-        self.code = code
-        self.title = title
-        self.explanation = explanation
-        super().__init__()
 
 
 def _cleanse_dict(original):
@@ -107,16 +98,13 @@ class VersionedObjectsException(Exception):
     """
 
     msg_fmt = _("An unknown exception occurred.")
-    code = 500
-    headers = {}
-    safe = False
 
     def __init__(self, message=None, **kwargs):
         self.kwargs = kwargs
 
         if 'code' not in self.kwargs:
             try:
-                self.kwargs['code'] = self.code
+                self.kwargs['code'] = 500
             except AttributeError:
                 pass
 
