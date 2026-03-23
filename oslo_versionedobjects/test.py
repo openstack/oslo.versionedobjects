@@ -14,29 +14,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Base classes for our unit tests.
+"""Base classes for our unit tests."""
 
-Some black magic for inline callbacks.
+import functools
+import inspect
+import os
+from unittest import mock
 
-"""
+import fixtures
+from oslo_concurrency import lockutils
+from oslo_config import cfg
+from oslo_config import fixture as config_fixture
+from oslo_log.fixture import logging_error
+import testtools
 
-import eventlet  # noqa
-
-eventlet.monkey_patch(os=False)  # noqa
-
-import functools  # noqa: E402
-import inspect  # noqa: E402
-import os  # noqa: E402
-from unittest import mock  # noqa: E402
-
-import fixtures  # noqa: E402
-from oslo_concurrency import lockutils  # noqa: E402
-from oslo_config import cfg  # noqa: E402
-from oslo_config import fixture as config_fixture  # noqa: E402
-from oslo_log.fixture import logging_error  # noqa: E402
-import testtools  # noqa: E402
-
-from oslo_versionedobjects.tests import obj_fixtures  # noqa: E402
+from oslo_versionedobjects.tests import obj_fixtures
 
 
 CONF = cfg.CONF
