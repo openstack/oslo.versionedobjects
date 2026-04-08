@@ -7,6 +7,7 @@ Using oslo.versionedobjects
 
    usage
    examples
+   typing
 
 .. history contains a lot of sections, toctree with maxdepth 1 is used.
 .. toctree::
