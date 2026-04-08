@@ -244,9 +244,8 @@ class ObjectHashMismatch(Exception):
         )
 
 
-CompatArgSpec = namedtuple(
-    'ArgSpec', ('args', 'varargs', 'keywords', 'defaults')
-)
+ArgSpec = namedtuple('ArgSpec', ('args', 'varargs', 'keywords', 'defaults'))
+CompatArgSpec = ArgSpec
 
 
 def get_method_spec(method):
@@ -267,7 +266,7 @@ def get_method_spec(method):
         # newer full spec
         return fullspec
     else:
-        return CompatArgSpec(
+        return ArgSpec(
             fullspec.args, fullspec.varargs, fullspec.varkw, fullspec.defaults
         )
 
