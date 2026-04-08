@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The following helpers from the ``oslo_versionedobjects.test`` module were
+    unused internally and did not appear to have any external used have been
+    removed:
+
+    * ``skipIf``
+    * ``TestCase.assertPublicAPISignatures``
+    * ``APICoverage``
+    * ``BaseHookTestCase``
