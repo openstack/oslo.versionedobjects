@@ -53,6 +53,11 @@ class MyExtraObject(base.VersionedObject):
     pass
 
 
+@base.VersionedObjectRegistry.register_if(False)
+class MyListObject(base.ObjectListBase, base.VersionedObject):
+    fields = {'objects': fields.ListOfObjectsField('MyObject')}
+
+
 class TestObjectComparators(test.TestCase):
     @base.VersionedObjectRegistry.register_if(False)
     class MyComparedObject(base.VersionedObject):
@@ -81,9 +86,8 @@ class TestObjectComparators(test.TestCase):
         mock_test = mock.Mock()
         mock_test.assertEqual = mock.Mock()
         my_obj = self.MyComparedObject()
-        my_db_obj = {}
 
-        fixture.compare_obj(mock_test, my_obj, my_db_obj)
+        fixture.compare_obj(mock_test, my_obj, {})
 
         self.assertFalse(
             mock_test.assertEqual.called,
@@ -279,16 +283,14 @@ class TestObjectVersionChecker(test.TestCase):
             # I'm so sorry, but they have to be named this way
             actual_expected, actual_actual = self.ovc.test_hashes(hashes)
 
-        expected_expected = expected_actual = {}
-
         self.assertEqual(
-            expected_expected,
+            {},
             actual_expected,
             "There are no objects changed, so the 'expected' return value "
             "should contain no objects.",
         )
         self.assertEqual(
-            expected_actual,
+            {},
             actual_actual,
             "There are no objects changed, so the 'actual' return value "
             "should contain no objects.",
@@ -399,16 +401,14 @@ class TestObjectVersionChecker(test.TestCase):
             mock_gdt.return_value = dep_tree
             actual_exp, actual_act = self.ovc.test_relationships(dep_tree)
 
-        expected_expected = expected_actual = {}
-
         self.assertEqual(
-            expected_expected,
+            {},
             actual_exp,
             "There are no objects changed, so the 'expected' return value "
             "should contain no objects.",
         )
         self.assertEqual(
-            expected_actual,
+            {},
             actual_act,
             "There are no objects changed, so the 'actual' return value "
             "should contain no objects.",
@@ -506,12 +506,11 @@ class TestObjectVersionChecker(test.TestCase):
     def test_test_compatibility_routines_with_args_kwargs(self):
         # Make sure test_compatibility_routines() uses init args/kwargs
         del self.ovc.obj_classes[MyObject2.__name__]
-        init_args = {MyObject: [1]}
-        init_kwargs = {MyObject: {'foo': 'bar'}}
 
         with mock.patch.object(self.ovc, '_test_object_compatibility') as toc:
             self.ovc.test_compatibility_routines(
-                init_args=init_args, init_kwargs=init_kwargs
+                init_args={MyObject: [1]},
+                init_kwargs={MyObject: {'foo': 'bar'}},
             )
 
         toc.assert_called_once_with(
@@ -565,7 +564,7 @@ class TestObjectVersionChecker(test.TestCase):
         )
 
         self.assertEqual(
-            MyObject.remotable_method.original_fn,
+            getattr(MyObject.remotable_method, 'original_fn'),
             method,
             "_find_remotable_method() did not find the remotable "
             "method of MyObject.",
@@ -632,8 +631,7 @@ class TestObjectVersionChecker(test.TestCase):
         # Make sure _get_fingerprint() generates a consistent fingerprint
         # when child_versions are present
         child_versions = {'1.0': '1.0', '1.1': '1.1'}
-        MyObject.VERSION = '1.1'
-        MyObject.child_versions = child_versions
+        MyObject.child_versions = child_versions  # type: ignore[attr-defined]
         argspec = 'onix'
 
         with mock.patch.object(fixture, 'get_method_spec') as mock_gas:
@@ -679,13 +677,9 @@ class TestObjectVersionChecker(test.TestCase):
                 ExtraDataObj.__name__, extra_data_func=get_data
             )
 
-        exp_fields = []
-        exp_methods = []
-        exp_extra_data = ExtraDataObj
-        exp_relevant_data = (exp_fields, exp_methods, exp_extra_data)
-
         expected_hash = hashlib.md5(
-            bytes(repr(exp_relevant_data).encode()), usedforsecurity=False
+            bytes(repr(([], [], ExtraDataObj)).encode()),
+            usedforsecurity=False,
         ).hexdigest()
         expected_fp = f'{ExtraDataObj.VERSION}-{expected_hash}'
 
@@ -733,7 +727,7 @@ class TestObjectVersionChecker(test.TestCase):
         # on each prior version to the current version
         to_prim = mock.MagicMock(spec=callable)
         MyObject.VERSION = '1.1'
-        MyObject.obj_to_primitive = to_prim
+        MyObject.obj_to_primitive = to_prim  # type: ignore[method-assign]
 
         self.ovc._test_object_compatibility(MyObject)
 
@@ -753,7 +747,7 @@ class TestObjectVersionChecker(test.TestCase):
         # Make sure _test_object_compatibility() tests obj_to_primitive()
         # with the correct args and kwargs to init
         to_prim = mock.MagicMock(spec=callable)
-        MyObject.obj_to_primitive = to_prim
+        MyObject.obj_to_primitive = to_prim  # type: ignore[method-assign]
         MyObject.VERSION = '1.1'
         args = [1]
         kwargs = {'foo': 'bar'}
