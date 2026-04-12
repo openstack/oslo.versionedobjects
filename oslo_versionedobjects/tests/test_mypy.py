@@ -386,7 +386,7 @@ class TestAddOvoMembersToClass(test.TestCase):
             ('name', 'oslo_versionedobjects.fields.StringField'),
         )
         ctx = self._make_ctx_with_any_api('MyObj', [assignment])
-        processed: set[str] = set()
+        processed = set()
         self.plugin._add_ovo_members_to_class(
             ctx, assignment.rvalue, processed
         )

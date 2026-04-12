@@ -26,7 +26,7 @@ from oslo_versionedobjects import fields
 from oslo_versionedobjects import test
 
 
-class FakeFieldType(fields.FieldType):
+class FakeFieldType(fields.FieldType[str]):
     def coerce(self, obj, attr, value):
         return f'*{value}*'
 
@@ -105,14 +105,15 @@ class TestField(test.TestCase):
 
     def test_coerce_good_values(self):
         for in_val, out_val in self.coerce_good_values:
-            self.assertEqual(out_val, self.field.coerce('obj', 'attr', in_val))
+            self.assertEqual(out_val, self.field.coerce(None, 'attr', in_val))
 
     def test_coerce_bad_values(self):
         for in_val in self.coerce_bad_values:
+            # https://github.com/testing-cabal/testtools/pull/577
             self.assertRaises(
-                (TypeError, ValueError),
+                (TypeError, ValueError),  # type: ignore[arg-type]
                 self.field.coerce,
-                'obj',
+                None,
                 'attr',
                 in_val,
             )
@@ -124,13 +125,15 @@ class TestField(test.TestCase):
             )
 
     def test_from_primitive(self):
-        class ObjectLikeThing:
-            _context = 'context'
+        class AnObject(obj_base.VersionedObject):
+            fields = {
+                'intfield': fields.IntegerField(),
+            }
 
         for prim_val, out_val in self.from_primitive_values:
+            obj = AnObject(intfield=5)
             self.assertEqual(
-                out_val,
-                self.field.from_primitive(ObjectLikeThing, 'attr', prim_val),
+                out_val, self.field.from_primitive(obj, 'attr', prim_val)
             )
 
     def test_stringify(self):
@@ -435,7 +438,8 @@ class TestEnum(TestField):
     def test_enum_subclass_check(self):
         def _test():
             class BrokenEnumField(fields.BaseEnumField):
-                AUTO_TYPE = int
+                # this is intentionally using the wrong type
+                AUTO_TYPE = int  # type: ignore[assignment]
 
             BrokenEnumField()
 
@@ -469,18 +473,15 @@ class TestStateMachine(TestField):
 
         try:
             obj.status = FakeStateMachineField.ACTIVE
-        except ValueError as e:
-            ex = e
+        except ValueError as ex:
+            self.assertEqual(
+                'AnObject.status is not allowed to transition out '
+                'of \'ERROR\' state to \'ACTIVE\' state, choose from '
+                '[\'PENDING\']',
+                str(ex),
+            )
         else:
-            ex = None
-
-        self.assertIsNotNone(ex, 'Invalid transition failed to raise error')
-        self.assertEqual(
-            'AnObject.status is not allowed to transition out '
-            'of \'ERROR\' state to \'ACTIVE\' state, choose from '
-            '[\'PENDING\']',
-            str(ex),
-        )
+            raise Exception('Invalid transition failed to raise error')
 
     def test_bad_initial_value(self):
         @obj_base.VersionedObjectRegistry.register
@@ -932,7 +933,7 @@ class TestSetOfIntegers(TestField):
         )
         self.assertEqual(
             "Set(default=set([1,a]),nullable=False)",
-            repr(fields.SetOfIntegersField(default={1, 'a'})),
+            repr(fields.SetOfIntegersField(default={1, 'a'})),  # type: ignore
         )
 
 
@@ -1407,11 +1408,11 @@ class FakeCounter:
 
 class TestListTypes(test.TestCase):
     def test_regular_list(self):
-        fields.List(fields.Integer()).coerce(None, None, [1, 2])
+        fields.List(fields.Integer()).coerce(None, '', [1, 2])
 
     def test_non_iterable(self):
         self.assertRaises(
-            ValueError, fields.List(fields.Integer()).coerce, None, None, 2
+            ValueError, fields.List(fields.Integer()).coerce, None, '', 2
         )
 
     def test_string_iterable(self):
@@ -1433,4 +1434,4 @@ class TestListTypes(test.TestCase):
         )
 
     def test_iter_class(self):
-        fields.List(fields.Integer()).coerce(None, None, FakeCounter())
+        fields.List(fields.Integer()).coerce(None, '', FakeCounter())
