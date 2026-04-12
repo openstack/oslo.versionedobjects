@@ -597,7 +597,7 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
     def setUp(self) -> None:
         super().setUp()
         self._base_test_obj_backup = copy.deepcopy(
-            base.VersionedObjectRegistry._registry._obj_classes  # type: ignore[attr-defined]
+            base.VersionedObjectRegistry._registry._obj_classes  # type: ignore[union-attr]
         )
         self.addCleanup(self._restore_obj_registry)
 
@@ -606,7 +606,7 @@ class VersionedObjectRegistryFixture(fixtures.Fixture):
         base.VersionedObjectRegistry.register(cls_name)
 
     def _restore_obj_registry(self) -> None:
-        base.VersionedObjectRegistry._registry._obj_classes = (  # type: ignore[attr-defined]
+        base.VersionedObjectRegistry._registry._obj_classes = (  # type: ignore[union-attr]
             self._base_test_obj_backup
         )
 
