@@ -22,9 +22,7 @@ from typing import Any, TypeVar
 from unittest import mock
 
 import fixtures
-from oslo_concurrency import lockutils
 from oslo_config import cfg
-from oslo_config import fixture as config_fixture
 from oslo_log.fixture import logging_error
 import testtools
 
@@ -74,8 +72,6 @@ _patch_mock_to_raise_for_invalid_assert_calls()
 class TestCase(testtools.TestCase):
     """Test case base class for all unit tests."""
 
-    REQUIRES_LOCKING: bool = False
-
     TIMEOUT_SCALING_FACTOR: int = 1
 
     def setUp(self) -> None:
@@ -92,31 +88,8 @@ class TestCase(testtools.TestCase):
         self.useFixture(fixtures.TempHomeDir())
         self.useFixture(obj_fixtures.TranslationFixture())
         self.useFixture(logging_error.get_logging_handle_error_fixture())
-
         self.useFixture(obj_fixtures.OutputStreamCapture())
-
         self.useFixture(obj_fixtures.StandardLogging())
-
-        # NOTE(sdague): because of the way we were using the lock
-        # wrapper we eneded up with a lot of tests that started
-        # relying on global external locking being set up for them. We
-        # consider all of these to be *bugs*. Tests should not require
-        # global external locking, or if they do, they should
-        # explicitly set it up themselves.
-        #
-        # The following REQUIRES_LOCKING class parameter is provided
-        # as a bridge to get us there. No new tests should be added
-        # that require it, and existing classes and tests should be
-        # fixed to not need it.
-        if self.REQUIRES_LOCKING:
-            lock_path = self.useFixture(fixtures.TempDir()).path
-            self.fixture = self.useFixture(
-                config_fixture.Config(lockutils.CONF)
-            )
-            self.fixture.config(lock_path=lock_path, group='oslo_concurrency')
-
-        # NOTE(blk-u): WarningsFixture must be after the Database fixture
-        # because sqlalchemy-migrate messes with the warnings filters.
         self.useFixture(obj_fixtures.WarningsFixture())
 
         self.addCleanup(self._clear_attrs)
