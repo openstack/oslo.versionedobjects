@@ -1576,8 +1576,20 @@ class ListOfStringsField(AutoTypedField[list[str]]):
     AUTO_TYPE = List(String())
 
 
+class SetOfStringsField(AutoTypedField[set[str]]):
+    AUTO_TYPE = Set(String())
+
+
+class ListOfListsOfStringsField(AutoTypedField[list[list[str]]]):
+    AUTO_TYPE = List(List(String()))
+
+
 class DictOfListOfStringsField(AutoTypedField[dict[str, list[str]]]):
     AUTO_TYPE = Dict(List(String()))
+
+
+class DictOfSetOfIntegersField(AutoTypedField[dict[str, set[int]]]):
+    AUTO_TYPE = Dict(Set(Integer()))
 
 
 class ListOfEnumField(AutoTypedField[list[str]]):
