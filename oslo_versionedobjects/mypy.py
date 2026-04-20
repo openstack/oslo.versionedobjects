@@ -137,7 +137,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         self,
         ctx: _plugin.ClassDefContext,
         ovo_field_type_name: str,
-        args: dict[str, nodes.Expression],
+        kwargs: dict[str, nodes.Expression],
     ) -> types.Type:
         # lookup_fully_qualified_or_none requires a dotted name (bare names
         # like a local callable would raise ValueError inside mypy)
@@ -163,7 +163,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             self.log(f"No MYPY_TYPE defined on {ovo_field_type_name}")
             return types.AnyType(types.TypeOfAny.implementation_artifact)
 
-        return self._apply_nullable(mypy_type_node.node.type, ctx, args)
+        return self._apply_nullable(mypy_type_node.node.type, ctx, kwargs)
 
     def _add_ovo_members_to_class(
         self,
@@ -203,14 +203,14 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
                     types.TypeOfAny.implementation_artifact
                 )
             else:
-                args = {
+                kwargs = {
                     arg_name: arg
                     for arg, arg_name in zip(v.args, v.arg_names)
                     if arg_name is not None  # skip positional args
                 }
 
                 field_type = self._get_python_type_from_ovo_field_type(
-                    ctx, v.callee.fullname, args
+                    ctx, v.callee.fullname, kwargs
                 )
 
             self._add_member_to_class(field_name, field_type, ctx.cls.info)
