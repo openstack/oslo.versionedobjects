@@ -238,9 +238,14 @@ def remotable(fn: Callable[..., R]) -> Callable[..., R]:
     """Decorator for remotable object methods."""
 
     def _wrapper_classmethod(cls: type[_VO], *args: Any, **kwargs: Any) -> R:
-        context = args[0]
-        remaining_args = args[1:]
-
+        if args:
+            context = args[0]
+            remaining_args = args[1:]
+            remaining_kwargs: dict[str, object] = kwargs
+        else:
+            remaining_args = ()
+            remaining_kwargs = kwargs.copy()
+            context = remaining_kwargs.pop('context')
         if cls.indirection_api:
             version_manifest = obj_tree_get_versions(cls.obj_name())
             try:
@@ -250,7 +255,7 @@ def remotable(fn: Callable[..., R]) -> Callable[..., R]:
                     fn.__name__,
                     version_manifest,
                     remaining_args,
-                    kwargs,
+                    remaining_kwargs,
                 )
             except NotImplementedError:
                 result = cls.indirection_api.object_class_action(
@@ -259,7 +264,7 @@ def remotable(fn: Callable[..., R]) -> Callable[..., R]:
                     fn.__name__,
                     cls.VERSION,
                     remaining_args,
-                    kwargs,
+                    remaining_kwargs,
                 )
             return cast(R, result)
 
@@ -339,9 +344,14 @@ def remotable_classmethod(
     )
 
     def wrapper(cls: type[_VO], /, *args: P.args, **kwargs: P.kwargs) -> R:
-        # The first positional argument is always the context
-        context = args[0]
-        remaining_args = args[1:]
+        if args:
+            context = args[0]
+            remaining_args = args[1:]
+            remaining_kwargs: dict[str, object] = kwargs
+        else:
+            remaining_args = ()
+            remaining_kwargs = kwargs.copy()
+            context = remaining_kwargs.pop('context')
         if cls.indirection_api:
             version_manifest = obj_tree_get_versions(cls.obj_name())
             try:
@@ -351,7 +361,7 @@ def remotable_classmethod(
                     fn.__name__,
                     version_manifest,
                     remaining_args,
-                    kwargs,
+                    remaining_kwargs,
                 )
             except NotImplementedError:
                 # FIXME(danms): Maybe start to warn here about deprecation?
@@ -361,7 +371,7 @@ def remotable_classmethod(
                     fn.__name__,
                     cls.VERSION,
                     remaining_args,
-                    kwargs,
+                    remaining_kwargs,
                 )
             return cast(R, result)
 
