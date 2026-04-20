@@ -2,6 +2,12 @@
     check:
       jobs:
         - oslo.versionedobjects-src-grenade-multinode
+        - oslo.versionedobjects-nova-tox-py313
+        - oslo.versionedobjects-ironic-tox-py313
+    gate:
+      jobs:
+        - oslo.versionedobjects-nova-tox-py313
+        - oslo.versionedobjects-ironic-tox-py313
     templates:
       - check-requirements
       - lib-forward-testing-python3
@@ -9,6 +15,39 @@
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
+
+- job:
+    name: oslo.versionedobjects-nova-tox-py313
+    parent: openstack-tox-py313
+    description: |
+      Run cross-project unit tests on nova.
+    vars:
+      zuul_work_dir: src/opendev.org/openstack/nova
+    required-projects:
+      - openstack/nova
+      - openstack/oslo.versionedobjects
+    irrelevant-files: &irrelevant-files
+      - ^\.gitignore$
+      - ^\.gitreview$
+      - ^.*\.rst$
+      - ^doc/.*$
+      - LICENSE
+      - ^releasenotes/.*$
+      - ^\.pre-commit-config\.yaml$
+      - ^oslo_versionedobjects/tests/.*$
+      - ^test-requirements\.txt$
+
+- job:
+    name: oslo.versionedobjects-ironic-tox-py313
+    parent: openstack-tox-py313
+    description: |
+      Run cross-project unit tests on ironic.
+    vars:
+      zuul_work_dir: src/opendev.org/openstack/ironic
+    required-projects:
+      - openstack/ironic
+      - openstack/oslo.versionedobjects
+    irrelevant-files: *irrelevant-files
 
 - job:
     name: oslo.versionedobjects-src-grenade-multinode
