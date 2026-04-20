@@ -123,40 +123,47 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             f"{member_type}"
         )
 
+    def _apply_nullable(
+        self,
+        field_type: types.Type,
+        ctx: _plugin.ClassDefContext,
+        kwargs: dict[str, nodes.Expression],
+    ) -> types.Type:
+        if "nullable" in kwargs and ctx.api.parse_bool(kwargs["nullable"]):
+            return types.UnionType([field_type, types.NoneType()])
+        return field_type
+
     def _get_python_type_from_ovo_field_type(
         self,
         ctx: _plugin.ClassDefContext,
         ovo_field_type_name: str,
         args: dict[str, nodes.Expression],
     ) -> types.Type:
+        # lookup_fully_qualified_or_none requires a dotted name (bare names
+        # like a local callable would raise ValueError inside mypy)
+        if '.' not in ovo_field_type_name:
+            self.log(f"Unqualified field type name: {ovo_field_type_name}")
+            return types.AnyType(types.TypeOfAny.implementation_artifact)
 
-        try:
-            field_symbol = ctx.api.lookup_fully_qualified_or_none(
-                ovo_field_type_name
-            )
-            assert field_symbol is not None
-            assert field_symbol.node is not None
-            assert isinstance(field_symbol.node, nodes.TypeInfo)
-            assert "MYPY_TYPE" in field_symbol.node.names
-            assert field_symbol.node.names["MYPY_TYPE"] is not None
-            assert isinstance(
-                field_symbol.node.names["MYPY_TYPE"].node, nodes.Var
-            )
-            assert field_symbol.node.names["MYPY_TYPE"].node.type is not None
+        field_symbol = ctx.api.lookup_fully_qualified_or_none(
+            ovo_field_type_name
+        )
+        if field_symbol is None or not isinstance(
+            field_symbol.node, nodes.TypeInfo
+        ):
+            self.log(f"Could not find field type {ovo_field_type_name}")
+            return types.AnyType(types.TypeOfAny.implementation_artifact)
 
-            type = field_symbol.node.names["MYPY_TYPE"].node.type
+        mypy_type_node = field_symbol.node.names.get("MYPY_TYPE")
+        if (
+            mypy_type_node is None
+            or not isinstance(mypy_type_node.node, nodes.Var)
+            or mypy_type_node.node.type is None
+        ):
+            self.log(f"No MYPY_TYPE defined on {ovo_field_type_name}")
+            return types.AnyType(types.TypeOfAny.implementation_artifact)
 
-            if "nullable" in args and ctx.api.parse_bool(args["nullable"]):
-                return types.UnionType([type, types.NoneType()])
-
-            return type
-        except Exception as e:
-            self.log(
-                f"looking up {ovo_field_type_name} got exception {str(e)}"
-            )
-
-        # defaults to Any if the stub is incomplete
-        return types.AnyType(types.TypeOfAny.implementation_artifact)
+        return self._apply_nullable(mypy_type_node.node.type, ctx, args)
 
     def _add_ovo_members_to_class(
         self,
