@@ -19,6 +19,21 @@ from mypy import plugin as _plugin
 from mypy import types
 
 
+def _fields_dict_from_body(
+    body: list[nodes.Statement],
+) -> nodes.DictExpr | None:
+    """Return the first ``fields = {...}`` DictExpr found in a class body."""
+    for statement in body:
+        if (
+            isinstance(statement, nodes.AssignmentStmt)
+            and isinstance(statement.lvalues[0], nodes.NameExpr)
+            and statement.lvalues[0].name == "fields"
+            and isinstance(statement.rvalue, nodes.DictExpr)
+        ):
+            return statement.rvalue
+    return None
+
+
 class OsloVersionedObjectPlugin(_plugin.Plugin):
     """A mypy plugin for Oslo VersionedObjects
 
@@ -72,15 +87,9 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
 
     def _cache_fields(self, ctx: _plugin.ClassDefContext) -> None:
         """Cache the fields dict from this class's body while it is intact."""
-        for statement in ctx.cls.defs.body:
-            if (
-                isinstance(statement, nodes.AssignmentStmt)
-                and isinstance(statement.lvalues[0], nodes.NameExpr)
-                and statement.lvalues[0].name == "fields"
-                and isinstance(statement.rvalue, nodes.DictExpr)
-            ):
-                self._fields_cache[ctx.cls.info.fullname] = statement.rvalue
-                return
+        fields = _fields_dict_from_body(ctx.cls.defs.body)
+        if fields is not None:
+            self._fields_cache[ctx.cls.info.fullname] = fields
 
     def _get_fields_dict_from_type_info(
         self, type_info: nodes.TypeInfo
@@ -93,18 +102,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         """
         if type_info.fullname in self._fields_cache:
             return self._fields_cache[type_info.fullname]
-
-        # Fallback: read directly from the body (works for the current class)
-        for statement in type_info.defn.defs.body:
-            if (
-                isinstance(statement, nodes.AssignmentStmt)
-                and isinstance(statement.lvalues[0], nodes.NameExpr)
-                and statement.lvalues[0].name == "fields"
-                and isinstance(statement.rvalue, nodes.DictExpr)
-            ):
-                return statement.rvalue
-
-        return None
+        return _fields_dict_from_body(type_info.defn.defs.body)
 
     def _add_member_to_class(
         self, member_name: str, member_type: types.Type, clazz: nodes.TypeInfo
