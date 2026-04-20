@@ -53,6 +53,29 @@ def _make_fields_assignment(*field_names_and_fullnames):
     return nodes.AssignmentStmt([lvalue], nodes.DictExpr(items))
 
 
+def _make_object_field_assignment(
+    field_name: str,
+    field_type_fullname: str,
+    objtype_name: str,
+) -> nodes.AssignmentStmt:
+    """Create an AST for ``fields = {field_name: ObjectField(objtype_name)}``.
+
+    The ``objtype_name`` is inserted as a positional argument, matching the
+    runtime signature of ``ObjectField`` and ``ListOfObjectsField``.
+    """
+    key = nodes.StrExpr(field_name)
+    callee = nodes.NameExpr(field_type_fullname.split('.')[-1])
+    callee.fullname = field_type_fullname
+    call = nodes.CallExpr(
+        callee,
+        [nodes.StrExpr(objtype_name)],
+        [nodes.ARG_POS],
+        [None],
+    )
+    lvalue = nodes.NameExpr('fields')
+    return nodes.AssignmentStmt([lvalue], nodes.DictExpr([(key, call)]))
+
+
 def _make_ctx(name, statements, module_name='mymodule'):
     """Create a mock ClassDefContext with the given class body statements."""
     type_info = _make_class_info(name, module_name)
@@ -327,6 +350,7 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.IntegerField',
+            [],
             {},
         )
         self.assertEqual(expected, result)
@@ -337,6 +361,7 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.UnknownField',
+            [],
             {},
         )
         self.assertIsInstance(result, types.AnyType)
@@ -348,6 +373,7 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.IntegerField',
+            [],
             {'nullable': nodes.NameExpr('True')},
         )
         self.assertIsInstance(result, types.UnionType)
@@ -362,6 +388,7 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.IntegerField',
+            [],
             {'nullable': nodes.NameExpr('False')},
         )
         self.assertNotIsInstance(result, types.UnionType)
@@ -419,6 +446,312 @@ class TestAddOvoMembersToClass(test.TestCase):
         processed: set[str] = set()
         self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
         ctx.api.fail.assert_called_once()
+
+
+class TestResolveOvoClassType(test.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.plugin = _make_plugin()
+
+    def _make_ctx_with_qualified_lookup(self, type_info):
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        if type_info is not None:
+            sym = nodes.SymbolTableNode(nodes.GDEF, type_info)
+            ctx.api.lookup_qualified.return_value = sym
+        else:
+            ctx.api.lookup_qualified.return_value = None
+        ctx.api.modules = {}
+        return ctx
+
+    def test_resolves_class_via_lookup_qualified(self):
+        target_type_info = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = self._make_ctx_with_qualified_lookup(target_type_info)
+        result = self.plugin._resolve_ovo_class_type(ctx, 'HostVIFInfo')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, types.Instance)
+        self.assertIs(result.type, target_type_info)
+
+    def test_falls_back_to_modules_when_lookup_qualified_fails(self):
+        target_type_info = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        ctx.api.lookup_qualified.return_value = None
+        sym = nodes.SymbolTableNode(nodes.GDEF, target_type_info)
+        module = mock.MagicMock()
+        module.names = {'HostVIFInfo': sym}
+        ctx.api.modules = {'mymodule': module}
+        result = self.plugin._resolve_ovo_class_type(ctx, 'HostVIFInfo')
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, types.Instance)
+
+    def test_returns_none_when_not_found(self):
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        ctx.api.lookup_qualified.return_value = None
+        ctx.api.modules = {}
+        result = self.plugin._resolve_ovo_class_type(ctx, 'NotAClass')
+        self.assertIsNone(result)
+
+    def test_ignores_non_typeinfo_symbols(self):
+        var = nodes.Var('HostVIFInfo')
+        sym = nodes.SymbolTableNode(nodes.GDEF, var)
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        ctx.api.lookup_qualified.return_value = sym
+        ctx.api.modules = {}
+        result = self.plugin._resolve_ovo_class_type(ctx, 'HostVIFInfo')
+        self.assertIsNone(result)
+
+
+class TestGetPythonTypeObjectFields(test.TestCase):
+    """Tests for ObjectField / ListOfObjectsField handling."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin = _make_plugin()
+
+    def _make_field_sym(self, field_fullname):
+        """Return a SymbolTableNode for a field class."""
+        cls_name = field_fullname.split('.')[-1]
+        module = '.'.join(field_fullname.split('.')[:-1])
+        type_info = _make_class_info(cls_name, module)
+        return nodes.SymbolTableNode(nodes.GDEF, type_info)
+
+    def _make_ctx_resolving(self, field_fullname, target_type_info):
+        """Return a ctx resolving the field class and target object class."""
+        field_sym = self._make_field_sym(field_fullname)
+        target_sym = nodes.SymbolTableNode(nodes.GDEF, target_type_info)
+
+        # Build a TypeInfo for builtins.list so Instance(list, [...]) works.
+        list_sym_table = nodes.SymbolTable()
+        list_block = nodes.Block([])
+        list_cls_def = nodes.ClassDef('list', list_block)
+        list_type_info = nodes.TypeInfo(
+            list_sym_table, list_cls_def, 'builtins'
+        )
+        list_type_info._fullname = 'builtins.list'
+        list_cls_def.info = list_type_info
+        list_sym = nodes.SymbolTableNode(nodes.GDEF, list_type_info)
+
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        ctx.api.lookup_qualified.return_value = target_sym
+        ctx.api.modules = {}
+        ctx.api.parse_bool.return_value = False
+
+        def _lookup_fqn(name):
+            if name == field_fullname:
+                return field_sym
+            if name == 'builtins.list':
+                return list_sym
+            return None
+
+        ctx.api.lookup_fully_qualified_or_none.side_effect = _lookup_fqn
+        return ctx
+
+    def _make_ctx_field_only(self, field_fullname):
+        """Return a ctx where the field is found but target lookup fails."""
+        field_sym = self._make_field_sym(field_fullname)
+
+        ctx = mock.MagicMock()
+        ctx.cls = mock.MagicMock()
+        ctx.api.lookup_qualified.return_value = None
+        ctx.api.modules = {}
+
+        def _lookup_fqn(name):
+            if name == field_fullname:
+                return field_sym
+            return None
+
+        ctx.api.lookup_fully_qualified_or_none.side_effect = _lookup_fqn
+        return ctx
+
+    def test_object_field_returns_resolved_type(self):
+        target = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = self._make_ctx_resolving(
+            'oslo_versionedobjects.fields.ObjectField', target
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ObjectField',
+            [nodes.StrExpr('HostVIFInfo')],
+            {},
+        )
+        self.assertIsInstance(result, types.Instance)
+        self.assertIs(result.type, target)
+
+    def test_list_of_objects_field_returns_list_of_resolved_type(self):
+        target = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = self._make_ctx_resolving(
+            'oslo_versionedobjects.fields.ListOfObjectsField', target
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ListOfObjectsField',
+            [nodes.StrExpr('HostVIFInfo')],
+            {},
+        )
+        self.assertIsInstance(result, types.Instance)
+        self.assertEqual('builtins.list', result.type.fullname)
+        self.assertEqual(1, len(result.args))
+        self.assertIsInstance(result.args[0], types.Instance)
+        self.assertIs(result.args[0].type, target)
+
+    def test_object_field_nullable_returns_union_with_none(self):
+        target = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = self._make_ctx_resolving(
+            'oslo_versionedobjects.fields.ObjectField', target
+        )
+        ctx.api.parse_bool.return_value = True
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ObjectField',
+            [nodes.StrExpr('HostVIFInfo')],
+            {'nullable': nodes.NameExpr('True')},
+        )
+        self.assertIsInstance(result, types.UnionType)
+        self.assertTrue(
+            any(isinstance(t, types.NoneType) for t in result.items)
+        )
+
+    def test_list_of_objects_field_nullable_returns_union_with_none(self):
+        target = _make_class_info('HostVIFInfo', 'mymodule')
+        ctx = self._make_ctx_resolving(
+            'oslo_versionedobjects.fields.ListOfObjectsField', target
+        )
+        ctx.api.parse_bool.return_value = True
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ListOfObjectsField',
+            [nodes.StrExpr('HostVIFInfo')],
+            {'nullable': nodes.NameExpr('True')},
+        )
+        self.assertIsInstance(result, types.UnionType)
+        self.assertTrue(
+            any(isinstance(t, types.NoneType) for t in result.items)
+        )
+        # The non-None item should be list[HostVIFInfo], not list[X | None]
+        non_none = [
+            t for t in result.items if not isinstance(t, types.NoneType)
+        ]
+        self.assertEqual(1, len(non_none))
+        self.assertIsInstance(non_none[0], types.Instance)
+        self.assertEqual('builtins.list', non_none[0].type.fullname)
+
+    def test_object_field_unresolvable_class_returns_any(self):
+        ctx = self._make_ctx_field_only(
+            'oslo_versionedobjects.fields.ObjectField'
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ObjectField',
+            [nodes.StrExpr('NoSuchClass')],
+            {},
+        )
+        self.assertIsInstance(result, types.AnyType)
+
+    def test_object_field_non_string_arg_returns_any(self):
+        ctx = self._make_ctx_field_only(
+            'oslo_versionedobjects.fields.ObjectField'
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ObjectField',
+            [nodes.NameExpr('some_var')],
+            {},
+        )
+        self.assertIsInstance(result, types.AnyType)
+
+    def test_object_field_no_positional_args_falls_through_to_any(self):
+        ctx = self._make_ctx_field_only(
+            'oslo_versionedobjects.fields.ObjectField'
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.ObjectField',
+            [],
+            {},
+        )
+        self.assertIsInstance(result, types.AnyType)
+
+
+class TestAddOvoMembersObjectField(test.TestCase):
+    """Integration tests: _add_ovo_members_to_class with ObjectField."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin = _make_plugin()
+
+    def _make_ctx_with_object_resolution(
+        self, field_fullname, target_type_info
+    ):
+        cls_name = field_fullname.split('.')[-1]
+        module = '.'.join(field_fullname.split('.')[:-1])
+        field_type_info = _make_class_info(cls_name, module)
+        field_sym = nodes.SymbolTableNode(nodes.GDEF, field_type_info)
+
+        target_sym = nodes.SymbolTableNode(nodes.GDEF, target_type_info)
+        list_sym_table = nodes.SymbolTable()
+        list_block = nodes.Block([])
+        list_cls_def = nodes.ClassDef('list', list_block)
+        list_type_info = nodes.TypeInfo(
+            list_sym_table, list_cls_def, 'builtins'
+        )
+        list_type_info._fullname = 'builtins.list'
+        list_cls_def.info = list_type_info
+        list_sym = nodes.SymbolTableNode(nodes.GDEF, list_type_info)
+
+        ctx = _make_ctx('Owner', [])
+        ctx.api.lookup_qualified.return_value = target_sym
+        ctx.api.modules = {}
+        ctx.api.parse_bool.return_value = False
+
+        def _lookup_fqn(name):
+            if name == field_fullname:
+                return field_sym
+            if name == 'builtins.list':
+                return list_sym
+            return None
+
+        ctx.api.lookup_fully_qualified_or_none.side_effect = _lookup_fqn
+        return ctx
+
+    def test_list_of_objects_field_resolved_to_list_type(self):
+        field_fullname = 'oslo_versionedobjects.fields.ListOfObjectsField'
+        target = _make_class_info('ChildObj', 'mymodule')
+        assignment = _make_object_field_assignment(
+            'children',
+            field_fullname,
+            'ChildObj',
+        )
+        ctx = self._make_ctx_with_object_resolution(field_fullname, target)
+        processed: set[str] = set()
+        self.plugin._add_ovo_members_to_class(
+            ctx, assignment.rvalue, processed
+        )
+        self.assertIn('children', ctx.cls.info.names)
+        field_type = ctx.cls.info.names['children'].node.type
+        self.assertIsInstance(field_type, types.Instance)
+        self.assertEqual('builtins.list', field_type.type.fullname)
+
+    def test_object_field_resolved_to_instance_type(self):
+        field_fullname = 'oslo_versionedobjects.fields.ObjectField'
+        target = _make_class_info('ChildObj', 'mymodule')
+        assignment = _make_object_field_assignment(
+            'child',
+            field_fullname,
+            'ChildObj',
+        )
+        ctx = self._make_ctx_with_object_resolution(field_fullname, target)
+        processed: set[str] = set()
+        self.plugin._add_ovo_members_to_class(
+            ctx, assignment.rvalue, processed
+        )
+        self.assertIn('child', ctx.cls.info.names)
+        field_type = ctx.cls.info.names['child'].node.type
+        self.assertIsInstance(field_type, types.Instance)
+        self.assertIs(field_type.type, target)
 
 
 class TestGenerateOvoFieldDefs(test.TestCase):

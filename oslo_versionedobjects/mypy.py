@@ -133,10 +133,34 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             return types.UnionType([field_type, types.NoneType()])
         return field_type
 
+    def _resolve_ovo_class_type(
+        self,
+        ctx: _plugin.ClassDefContext,
+        class_name: str,
+    ) -> types.Type | None:
+        """Look up a versioned object class by name and return its mypy Type.
+
+        Tries the current module scope first, then falls back to searching all
+        loaded modules.
+        """
+        sym = ctx.api.lookup_qualified(
+            class_name, ctx.cls, suppress_errors=True
+        )
+        if sym is not None and isinstance(sym.node, nodes.TypeInfo):
+            return types.Instance(sym.node, [])
+
+        for module in ctx.api.modules.values():
+            node = module.names.get(class_name)
+            if node is not None and isinstance(node.node, nodes.TypeInfo):
+                return types.Instance(node.node, [])
+
+        return None
+
     def _get_python_type_from_ovo_field_type(
         self,
         ctx: _plugin.ClassDefContext,
         ovo_field_type_name: str,
+        args: list[nodes.Expression],
         kwargs: dict[str, nodes.Expression],
     ) -> types.Type:
         # lookup_fully_qualified_or_none requires a dotted name (bare names
@@ -152,6 +176,37 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             field_symbol.node, nodes.TypeInfo
         ):
             self.log(f"Could not find field type {ovo_field_type_name}")
+            return types.AnyType(types.TypeOfAny.implementation_artifact)
+
+        field_fullname = field_symbol.node.fullname
+
+        # ObjectField and ListOfObjectsField take the target class name as a
+        # positional string arg rather than exposing a static MYPY_TYPE.
+        if field_fullname == 'oslo_versionedobjects.fields.ListOfObjectsField':
+            base_type: types.Type | None = None
+            if args and isinstance(args[0], nodes.StrExpr):
+                resolved = self._resolve_ovo_class_type(ctx, args[0].value)
+                if resolved is not None:
+                    list_sym = ctx.api.lookup_fully_qualified_or_none(
+                        'builtins.list'
+                    )
+                    if list_sym and isinstance(list_sym.node, nodes.TypeInfo):
+                        base_type = types.Instance(list_sym.node, [resolved])
+            if base_type is None:
+                self.log(
+                    f"Could not resolve object type for {ovo_field_type_name}"
+                )
+                return types.AnyType(types.TypeOfAny.implementation_artifact)
+            return self._apply_nullable(base_type, ctx, kwargs)
+
+        if field_fullname == 'oslo_versionedobjects.fields.ObjectField':
+            if args and isinstance(args[0], nodes.StrExpr):
+                resolved = self._resolve_ovo_class_type(ctx, args[0].value)
+                if resolved is not None:
+                    return self._apply_nullable(resolved, ctx, kwargs)
+            self.log(
+                f"Could not resolve object type for {ovo_field_type_name}"
+            )
             return types.AnyType(types.TypeOfAny.implementation_artifact)
 
         mypy_type_node = field_symbol.node.names.get("MYPY_TYPE")
@@ -189,6 +244,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             # Skip fields already defined by a more derived class in the MRO
             if field_name in processed_fields:
                 continue
+
             processed_fields.add(field_name)
 
             if (
@@ -203,14 +259,19 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
                     types.TypeOfAny.implementation_artifact
                 )
             else:
+                args = [
+                    arg
+                    for arg, arg_name in zip(v.args, v.arg_names)
+                    if arg_name is None
+                ]
                 kwargs = {
                     arg_name: arg
                     for arg, arg_name in zip(v.args, v.arg_names)
-                    if arg_name is not None  # skip positional args
+                    if arg_name is not None
                 }
 
                 field_type = self._get_python_type_from_ovo_field_type(
-                    ctx, v.callee.fullname, kwargs
+                    ctx, v.callee.fullname, args, kwargs
                 )
 
             self._add_member_to_class(field_name, field_type, ctx.cls.info)

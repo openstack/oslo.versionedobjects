@@ -1126,14 +1126,18 @@ class _TestObject(_BaseTestCase):
         self.assertEqual({'rel_object', 'rel_objects'}, obj.obj_what_changed())
         obj.obj_reset_changes()
         self.assertEqual({'rel_object'}, obj.obj_what_changed())
-        self.assertEqual({'baz'}, obj.rel_object.obj_what_changed())
-        self.assertEqual({'baz'}, obj.rel_objects[0].obj_what_changed())
+        rel_object = obj.rel_object
+        assert rel_object is not None
+        rel_objects = obj.rel_objects
+        assert rel_objects is not None
+        self.assertEqual({'baz'}, rel_object.obj_what_changed())
+        self.assertEqual({'baz'}, rel_objects[0].obj_what_changed())
         obj.obj_reset_changes(recursive=True, fields=['foo'])
         self.assertEqual({'rel_object'}, obj.obj_what_changed())
-        self.assertEqual({'baz'}, obj.rel_object.obj_what_changed())
-        self.assertEqual({'baz'}, obj.rel_objects[0].obj_what_changed())
+        self.assertEqual({'baz'}, rel_object.obj_what_changed())
+        self.assertEqual({'baz'}, rel_objects[0].obj_what_changed())
         obj.obj_reset_changes(recursive=True)
-        self.assertEqual(set(), obj.rel_object.obj_what_changed())
+        self.assertEqual(set(), rel_object.obj_what_changed())
         self.assertEqual(set(), obj.obj_what_changed())
 
     def test_get(self):
