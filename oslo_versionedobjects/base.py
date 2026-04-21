@@ -1371,7 +1371,6 @@ class VersionedObjectIndirectionAPI(metaclass=abc.ABCMeta):
         )
         raise NotImplementedError('Multi-version class action not supported')
 
-    @abc.abstractmethod
     def object_backport(
         self, context: Any, objinst: VersionedObject, target_version: str
     ) -> VersionedObject:
@@ -1401,7 +1400,7 @@ class VersionedObjectIndirectionAPI(metaclass=abc.ABCMeta):
                                that is understood by the requesting host.
         :returns: The downgraded instance of objinst
         """
-        ...
+        raise NotImplementedError('Backport not supported')
 
     def object_backport_versions(
         self,
