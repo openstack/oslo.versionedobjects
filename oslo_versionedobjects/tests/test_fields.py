@@ -842,6 +842,38 @@ class TestListOfStrings(TestField):
         self.assertEqual("['abc']", self.field.stringify(['abc']))
 
 
+class TestSetOfStrings(TestField):
+    def setUp(self):
+        super().setUp()
+        self.field = fields.SetOfStringsField()
+        self.coerce_good_values = [
+            ({'foo', 'bar'}, {'foo', 'bar'}),
+            ({'foo', 1}, {'foo', '1'}),
+        ]
+        self.coerce_bad_values = [['foo']]
+        self.to_primitive_values = [({'foo'}, tuple(['foo']))]
+        self.from_primitive_values = [(tuple(['foo']), {'foo'})]
+
+    def test_stringify(self):
+        self.assertEqual("set(['abc'])", self.field.stringify({'abc'}))
+
+
+class TestListOfListsOfStrings(TestField):
+    def setUp(self):
+        super().setUp()
+        self.field = fields.ListOfListsOfStringsField()
+        self.coerce_good_values = [
+            ([['foo', 'bar']], [['foo', 'bar']]),
+            ([['foo', 1]], [['foo', '1']]),
+        ]
+        self.coerce_bad_values = ['foo', [['foo', None]]]
+        self.to_primitive_values = [([['foo']], [['foo']])]
+        self.from_primitive_values = [([['foo']], [['foo']])]
+
+    def test_stringify(self):
+        self.assertEqual("[['abc']]", self.field.stringify([['abc']]))
+
+
 class TestDictOfListOfStrings(TestField):
     def setUp(self):
         super().setUp()
@@ -860,6 +892,19 @@ class TestDictOfListOfStrings(TestField):
         self.assertEqual(
             "{foo=['1','2']}", self.field.stringify({'foo': ['1', '2']})
         )
+
+
+class TestDictOfSetOfIntegers(TestField):
+    def setUp(self):
+        super().setUp()
+        self.field = fields.DictOfSetOfIntegersField()
+        self.coerce_good_values = [({'foo': {'1', 2}}, {'foo': {1, 2}})]
+        self.coerce_bad_values = [{'foo': {'bar'}}]
+        self.to_primitive_values = [({'foo': {1}}, {'foo': tuple([1])})]
+        self.from_primitive_values = [({'foo': tuple([1])}, {'foo': {1}})]
+
+    def test_stringify(self):
+        self.assertEqual('{foo=set([1])}', self.field.stringify({'foo': {1}}))
 
 
 class TestListOfEnum(TestField):
