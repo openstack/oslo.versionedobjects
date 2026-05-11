@@ -14,7 +14,6 @@ from collections.abc import Callable
 import os
 
 from mypy import nodes
-from mypy import options as _options
 from mypy import plugin as _plugin
 from mypy import types
 
@@ -49,15 +48,11 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
     to the class definition.
 
     The plugin also handles inherited fields (e.g. from TimestampedObject
-    mixins) by caching each class's fields dict while its body is still
-    intact, then using that cache when processing subclasses.
+    mixins) by traversing the MRO and reading each parent class's ``fields``
+    dict directly from its body. Parent class bodies have already had semantic
+    analysis applied (and so have fully-resolved ``fullname`` attributes on
+    their AST nodes) by the time subclasses are processed.
     """
-
-    def __init__(self, options: _options.Options) -> None:
-        super().__init__(options)
-        # Cache of class fullname -> fields DictExpr, populated by
-        # _cache_fields while each class body is still accessible.
-        self._fields_cache: dict[str, nodes.DictExpr] = {}
 
     def get_class_decorator_hook(
         self, fullname: str
@@ -77,32 +72,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         )
         if any(base_class in fullname for base_class in base_classes.split()):
             return self.generate_ovo_field_defs
-        # Cache field dicts for all classes while their bodies are intact.
-        # This is needed to support MRO traversal for mixin parent classes
-        # (e.g. TimestampedObject) whose bodies are empty by the time we
-        # process subclasses.
-        if fullname == "builtins.object":
-            return self._cache_fields
         return None
-
-    def _cache_fields(self, ctx: _plugin.ClassDefContext) -> None:
-        """Cache the fields dict from this class's body while it is intact."""
-        fields = _fields_dict_from_body(ctx.cls.defs.body)
-        if fields is not None:
-            self._fields_cache[ctx.cls.info.fullname] = fields
-
-    def _get_fields_dict_from_type_info(
-        self, type_info: nodes.TypeInfo
-    ) -> nodes.DictExpr | None:
-        """Get the 'fields' dict expression for a class in the MRO.
-
-        Checks the cache first (populated by _cache_fields), then falls back
-        to reading from the class body (which is only non-empty for the class
-        currently being processed).
-        """
-        if type_info.fullname in self._fields_cache:
-            return self._fields_cache[type_info.fullname]
-        return _fields_dict_from_body(type_info.defn.defs.body)
 
     def _add_member_to_class(
         self, member_name: str, member_type: types.Type, clazz: nodes.TypeInfo
@@ -254,7 +224,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             if (
                 not isinstance(v, nodes.CallExpr)
                 or not isinstance(v.callee, (nodes.MemberExpr, nodes.NameExpr))
-                or v.callee.fullname is None
+                or not v.callee.fullname
             ):
                 self.log(
                     f"Skipping field {field_name}: unexpected AST structure"
@@ -283,10 +253,12 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
     def generate_ovo_field_defs(self, ctx: _plugin.ClassDefContext) -> None:
         # Process fields from this class and all inherited classes via MRO,
         # so that inherited fields (e.g. from TimestampedObject) are included.
+        # Parent class bodies have fully-resolved AST node attributes by the
+        # time we process subclasses, so read directly from their bodies.
         processed_fields: set[str] = set()
 
         for type_info in ctx.cls.info.mro:
-            fields_dict_expr = self._get_fields_dict_from_type_info(type_info)
+            fields_dict_expr = _fields_dict_from_body(type_info.defn.defs.body)
             if fields_dict_expr is None:
                 continue
 

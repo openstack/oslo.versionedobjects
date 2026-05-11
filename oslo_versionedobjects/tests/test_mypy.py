@@ -190,124 +190,9 @@ class TestGetBaseClassHook(test.TestCase):
         )
         self.assertIsNone(hook)
 
-    def test_returns_cache_hook_for_builtins_object(self):
+    def test_returns_none_for_builtins_object(self):
         hook = self.plugin.get_base_class_hook('builtins.object')
-        self.assertEqual(self.plugin._cache_fields, hook)
-
-
-class TestCacheFields(test.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.plugin = _make_plugin()
-
-    def test_caches_fields_dict_for_class(self):
-        assignment = _make_fields_assignment(
-            ('id', 'oslo_versionedobjects.fields.IntegerField'),
-        )
-        ctx = _make_ctx('MyObj', [assignment])
-        self.plugin._cache_fields(ctx)
-        self.assertIn('mymodule.MyObj', self.plugin._fields_cache)
-        self.assertIsInstance(
-            self.plugin._fields_cache['mymodule.MyObj'], nodes.DictExpr
-        )
-
-    def test_does_not_cache_when_no_fields_assignment(self):
-        ctx = _make_ctx('MyObj', [])
-        self.plugin._cache_fields(ctx)
-        self.assertNotIn('mymodule.MyObj', self.plugin._fields_cache)
-
-    def test_caches_only_first_fields_assignment(self):
-        first = _make_fields_assignment(
-            ('id', 'oslo_versionedobjects.fields.IntegerField'),
-        )
-        second = _make_fields_assignment(
-            ('name', 'oslo_versionedobjects.fields.StringField'),
-        )
-        ctx = _make_ctx('MyObj', [first, second])
-        self.plugin._cache_fields(ctx)
-        cached = self.plugin._fields_cache['mymodule.MyObj']
-        # Only the first assignment (with 'id') should be cached
-        self.assertEqual(1, len(cached.items))
-        key, _ = cached.items[0]
-        self.assertIsInstance(key, nodes.StrExpr)
-        self.assertEqual('id', key.value)
-
-    def test_does_not_cache_non_dict_rvalue(self):
-        # An assignment like ``fields = some_call()`` should not be cached
-        lvalue = nodes.NameExpr('fields')
-        callee = nodes.NameExpr('get_fields')
-        call = nodes.CallExpr(callee, [], [], [])
-        assignment = nodes.AssignmentStmt([lvalue], call)
-        ctx = _make_ctx('MyObj', [assignment])
-        self.plugin._cache_fields(ctx)
-        self.assertNotIn('mymodule.MyObj', self.plugin._fields_cache)
-
-    def test_ignores_assignments_to_other_names(self):
-        other_lvalue = nodes.NameExpr('not_fields')
-        other_assignment = nodes.AssignmentStmt(
-            [other_lvalue], nodes.DictExpr([])
-        )
-        ctx = _make_ctx('MyObj', [other_assignment])
-        self.plugin._cache_fields(ctx)
-        self.assertNotIn('mymodule.MyObj', self.plugin._fields_cache)
-
-
-class TestGetFieldsDictFromTypeInfo(test.TestCase):
-    def setUp(self):
-        super().setUp()
-        self.plugin = _make_plugin()
-
-    def test_finds_fields_dict_from_class_body(self):
-        type_info = _make_class_info('MyObj')
-        type_info.defn.defs.body = [
-            _make_fields_assignment(
-                ('id', 'oslo_versionedobjects.fields.IntegerField'),
-            )
-        ]
-        result = self.plugin._get_fields_dict_from_type_info(type_info)
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, nodes.DictExpr)
-
-    def test_returns_none_when_no_fields_in_body(self):
-        type_info = _make_class_info('MyObj')
-        result = self.plugin._get_fields_dict_from_type_info(type_info)
-        self.assertIsNone(result)
-
-    def test_returns_cached_dict_in_preference_to_body(self):
-        type_info = _make_class_info('MyObj')
-        cached_dict = nodes.DictExpr([])
-        self.plugin._fields_cache['mymodule.MyObj'] = cached_dict
-        # The body also has a fields assignment, but the cache should win
-        type_info.defn.defs.body = [
-            _make_fields_assignment(
-                ('id', 'oslo_versionedobjects.fields.IntegerField'),
-            )
-        ]
-        result = self.plugin._get_fields_dict_from_type_info(type_info)
-        self.assertIs(cached_dict, result)
-
-    def test_falls_back_to_body_when_not_in_cache(self):
-        type_info = _make_class_info('MyObj')
-        type_info.defn.defs.body = [
-            _make_fields_assignment(
-                ('id', 'oslo_versionedobjects.fields.IntegerField'),
-            )
-        ]
-        # Cache is empty, so the body is used
-        result = self.plugin._get_fields_dict_from_type_info(type_info)
-        self.assertIsNotNone(result)
-
-    def test_ignores_assignments_to_other_names(self):
-        type_info = _make_class_info('MyObj')
-        other_lvalue = nodes.NameExpr('not_fields')
-        type_info.defn.defs.body = [
-            nodes.AssignmentStmt([other_lvalue], nodes.DictExpr([])),
-            _make_fields_assignment(
-                ('id', 'oslo_versionedobjects.fields.IntegerField'),
-            ),
-        ]
-        result = self.plugin._get_fields_dict_from_type_info(type_info)
-        self.assertIsNotNone(result)
+        self.assertIsNone(hook)
 
 
 class TestAddMemberToClass(test.TestCase):
@@ -486,6 +371,21 @@ class TestAddOvoMembersToClass(test.TestCase):
         processed: set[str] = set()
         self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
         ctx.api.fail.assert_called_once()
+
+    def test_empty_fullname_treated_as_unresolved(self):
+        # A callee with fullname='' (unresolved AST node) should be skipped
+        # gracefully, yielding AnyType rather than a crash.
+        key = nodes.StrExpr('my_field')
+        callee = nodes.NameExpr('IntegerField')
+        callee.fullname = ''
+        call = nodes.CallExpr(callee, [], [], [])
+        dict_expr = nodes.DictExpr([(key, call)])
+        ctx = self._make_ctx_with_any_api('MyObj', [])
+        processed: set[str] = set()
+        self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
+        self.assertIn('my_field', ctx.cls.info.names)
+        field_type = ctx.cls.info.names['my_field'].node.type
+        self.assertIsInstance(field_type, types.AnyType)
 
 
 class TestResolveOvoClassType(test.TestCase):
@@ -893,16 +793,16 @@ class TestGenerateOvoFieldDefs(test.TestCase):
         # The field must appear exactly once in the child class's names
         self.assertIn('shared', ctx.cls.info.names)
 
-    def test_cached_parent_fields_are_included(self):
-        """Fields from the cache (not just body) are picked up via MRO."""
+    def test_mixin_fields_included_via_body(self):
+        """Fields from a non-OVO mixin are picked up from its class body."""
         field_type = types.AnyType(types.TypeOfAny.special_form)
-        parent_type_info = _make_class_info('Base', 'mymodule')
-        # Simulate _cache_fields having run on the parent earlier:
-        # body is now empty but the cache holds the fields dict.
-        cached_dict = _make_fields_assignment(
-            ('cached_field', 'oslo_versionedobjects.fields.IntegerField'),
-        ).rvalue
-        self.plugin._fields_cache['mymodule.Base'] = cached_dict
+        mixin_type_info = _make_class_info('TimestampMixin', 'mymodule')
+        mixin_type_info.defn.defs.body = [
+            _make_fields_assignment(
+                ('created_at', 'oslo_versionedobjects.fields.DateTimeField'),
+                ('updated_at', 'oslo_versionedobjects.fields.DateTimeField'),
+            )
+        ]
         ctx = _make_ctx(
             'MyObj',
             [
@@ -911,11 +811,12 @@ class TestGenerateOvoFieldDefs(test.TestCase):
                 )
             ],
         )
-        ctx.cls.info.mro = [ctx.cls.info, parent_type_info]
+        ctx.cls.info.mro = [ctx.cls.info, mixin_type_info]
         ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
             field_type
         )
         ctx.api.parse_bool.return_value = False
         self.plugin.generate_ovo_field_defs(ctx)
         self.assertIn('name', ctx.cls.info.names)
-        self.assertIn('cached_field', ctx.cls.info.names)
+        self.assertIn('created_at', ctx.cls.info.names)
+        self.assertIn('updated_at', ctx.cls.info.names)
