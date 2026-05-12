@@ -2710,15 +2710,15 @@ class TestTimestampedObject(test.TestCase):
 
     def test_timestamped_holds_timestamps(self):
         now = timeutils.utcnow(with_timezone=True)
-        self.my_object.updated_at = now  # type: ignore[attr-defined]
-        self.my_object.created_at = now  # type: ignore[attr-defined]
-        self.assertEqual(now, self.my_object.updated_at)  # type: ignore[attr-defined]
-        self.assertEqual(now, self.my_object.created_at)  # type: ignore[attr-defined]
+        self.my_object.updated_at = now
+        self.my_object.created_at = now
+        self.assertEqual(now, self.my_object.updated_at)
+        self.assertEqual(now, self.my_object.created_at)
 
     def test_timestamped_rejects_not_timestamps(self):
         # we are intentionally assigning the wrong types hence the type ignores
         with testtools.ExpectedException(ValueError, '.*parse date.*'):
-            self.my_object.updated_at = 'a string'  # type: ignore[attr-defined]
+            self.my_object.updated_at = 'a string'  # type: ignore[assignment]
 
         with testtools.ExpectedException(ValueError, '.*parse date.*'):
-            self.my_object.created_at = 'a string'  # type: ignore[attr-defined]
+            self.my_object.created_at = 'a string'  # type: ignore[assignment]
