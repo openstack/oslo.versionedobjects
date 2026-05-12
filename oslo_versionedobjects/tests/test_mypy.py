@@ -76,10 +76,27 @@ def _make_object_field_assignment(
     return nodes.AssignmentStmt([lvalue], nodes.DictExpr([(key, call)]))
 
 
-def _make_ctx(name, statements, module_name='mymodule'):
+def _make_field_type(field_python_type):
+    """Create an AST for a ``FieldType``."""
+    var = nodes.Var('MYPY_TYPE')
+    var.type = field_python_type
+    mypy_type_sym = nodes.SymbolTableNode(nodes.MDEF, var)
+    field_sym_table = nodes.SymbolTable()
+    field_sym_table['MYPY_TYPE'] = mypy_type_sym
+    field_cls_def = nodes.ClassDef('IntegerField', nodes.Block([]))
+    field_type_info = nodes.TypeInfo(
+        field_sym_table, field_cls_def, 'oslo_versionedobjects.fields'
+    )
+    field_type_info._fullname = 'oslo_versionedobjects.fields.IntegerField'
+    field_cls_def.info = field_type_info
+
+    return nodes.SymbolTableNode(nodes.GDEF, field_type_info)
+
+
+def _make_ctx(name='MyObj', statements=None, module_name='mymodule'):
     """Create a mock ClassDefContext with the given class body statements."""
     type_info = _make_class_info(name, module_name)
-    type_info.defn.defs.body = statements
+    type_info.defn.defs.body = statements if statements is not None else []
     ctx = mock.MagicMock()
     ctx.cls = type_info.defn
     ctx.cls.info = type_info
@@ -319,34 +336,13 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         super().setUp()
         self.plugin = _make_plugin()
 
-    def _make_ctx_with_field_type(self, field_python_type):
-        """Return a mock ClassDefContext whose API resolves a field type.
-
-        Builds a real ``nodes.TypeInfo`` for the field class so that the
-        ``isinstance(..., nodes.TypeInfo)`` assertion inside the plugin is
-        satisfied.
-        """
-        var = nodes.Var('MYPY_TYPE')
-        var.type = field_python_type
-        mypy_type_sym = nodes.SymbolTableNode(nodes.MDEF, var)
-        field_sym_table = nodes.SymbolTable()
-        field_sym_table['MYPY_TYPE'] = mypy_type_sym
-        field_block = nodes.Block([])
-        field_cls_def = nodes.ClassDef('IntegerField', field_block)
-        field_type_info = nodes.TypeInfo(
-            field_sym_table, field_cls_def, 'oslo_versionedobjects.fields'
-        )
-        field_type_info._fullname = 'oslo_versionedobjects.fields.IntegerField'
-        field_cls_def.info = field_type_info
-        field_symbol = nodes.SymbolTableNode(nodes.GDEF, field_type_info)
-        ctx = mock.MagicMock()
-        ctx.api.lookup_fully_qualified_or_none.return_value = field_symbol
-        ctx.api.parse_bool.return_value = False
-        return ctx
-
     def test_returns_type_from_mypy_type_attribute(self):
         expected = types.AnyType(types.TypeOfAny.special_form)
-        ctx = self._make_ctx_with_field_type(expected)
+        ctx = _make_ctx()
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            expected
+        )
+        ctx.api.parse_bool.return_value = False
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.IntegerField',
@@ -368,7 +364,10 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
 
     def test_returns_union_with_none_when_nullable_true(self):
         field_type = types.AnyType(types.TypeOfAny.special_form)
-        ctx = self._make_ctx_with_field_type(field_type)
+        ctx = _make_ctx()
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
         ctx.api.parse_bool.return_value = True
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
@@ -383,7 +382,10 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
 
     def test_returns_plain_type_when_nullable_false(self):
         field_type = types.AnyType(types.TypeOfAny.special_form)
-        ctx = self._make_ctx_with_field_type(field_type)
+        ctx = _make_ctx()
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
         ctx.api.parse_bool.return_value = False
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
@@ -759,35 +761,6 @@ class TestGenerateOvoFieldDefs(test.TestCase):
         super().setUp()
         self.plugin = _make_plugin()
 
-    def _make_api_ctx(self, name, statements, field_python_type):
-        """Return a ClassDefContext with a fully mocked API.
-
-        Builds a real ``nodes.TypeInfo`` for the field class so that the
-        ``isinstance(..., nodes.TypeInfo)`` assertion inside the plugin is
-        satisfied.  The TypeInfo's MRO is set to contain only itself so that
-        ``generate_ovo_field_defs`` processes the class's own fields.
-        """
-        ctx = _make_ctx(name, statements)
-        # Make the MRO include the class itself so the MRO loop finds its
-        # fields
-        ctx.cls.info.mro = [ctx.cls.info]
-        var = nodes.Var('MYPY_TYPE')
-        var.type = field_python_type
-        mypy_type_sym = nodes.SymbolTableNode(nodes.MDEF, var)
-        field_sym_table = nodes.SymbolTable()
-        field_sym_table['MYPY_TYPE'] = mypy_type_sym
-        field_block = nodes.Block([])
-        field_cls_def = nodes.ClassDef('IntegerField', field_block)
-        field_type_info = nodes.TypeInfo(
-            field_sym_table, field_cls_def, 'oslo_versionedobjects.fields'
-        )
-        field_type_info._fullname = 'oslo_versionedobjects.fields.IntegerField'
-        field_cls_def.info = field_type_info
-        field_symbol = nodes.SymbolTableNode(nodes.GDEF, field_type_info)
-        ctx.api.lookup_fully_qualified_or_none.return_value = field_symbol
-        ctx.api.parse_bool.return_value = False
-        return ctx
-
     def test_no_fields_dict_is_noop(self):
         ctx = _make_ctx('MyObj', [])
         ctx.cls.info.mro = [ctx.cls.info]
@@ -796,7 +769,7 @@ class TestGenerateOvoFieldDefs(test.TestCase):
 
     def test_fields_are_added_to_class(self):
         field_type = types.AnyType(types.TypeOfAny.special_form)
-        ctx = self._make_api_ctx(
+        ctx = _make_ctx(
             'MyObj',
             [
                 _make_fields_assignment(
@@ -804,8 +777,12 @@ class TestGenerateOvoFieldDefs(test.TestCase):
                     ('name', 'oslo_versionedobjects.fields.StringField'),
                 )
             ],
-            field_type,
         )
+        ctx.cls.info.mro = [ctx.cls.info]
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
+        ctx.api.parse_bool.return_value = False
         self.plugin.generate_ovo_field_defs(ctx)
         self.assertIn('my_id', ctx.cls.info.names)
         self.assertIn('name', ctx.cls.info.names)
@@ -835,17 +812,19 @@ class TestGenerateOvoFieldDefs(test.TestCase):
                 ('inherited_id', 'oslo_versionedobjects.fields.IntegerField'),
             )
         ]
-        ctx = self._make_api_ctx(
+        ctx = _make_ctx(
             'MyObj',
             [
                 _make_fields_assignment(
                     ('name', 'oslo_versionedobjects.fields.StringField'),
                 )
             ],
-            field_type,
         )
-        # MRO: child first, then parent
         ctx.cls.info.mro = [ctx.cls.info, parent_type_info]
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
+        ctx.api.parse_bool.return_value = False
         self.plugin.generate_ovo_field_defs(ctx)
         self.assertIn('name', ctx.cls.info.names)
         self.assertIn('inherited_id', ctx.cls.info.names)
@@ -859,16 +838,19 @@ class TestGenerateOvoFieldDefs(test.TestCase):
                 ('shared', 'oslo_versionedobjects.fields.StringField'),
             )
         ]
-        ctx = self._make_api_ctx(
+        ctx = _make_ctx(
             'MyObj',
             [
                 _make_fields_assignment(
                     ('shared', 'oslo_versionedobjects.fields.IntegerField'),
                 )
             ],
-            field_type,
         )
         ctx.cls.info.mro = [ctx.cls.info, parent_type_info]
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
+        ctx.api.parse_bool.return_value = False
         self.plugin.generate_ovo_field_defs(ctx)
         # The field must appear exactly once in the child class's names
         self.assertIn('shared', ctx.cls.info.names)
@@ -883,16 +865,19 @@ class TestGenerateOvoFieldDefs(test.TestCase):
             ('cached_field', 'oslo_versionedobjects.fields.IntegerField'),
         ).rvalue
         self.plugin._fields_cache['mymodule.Base'] = cached_dict
-        ctx = self._make_api_ctx(
+        ctx = _make_ctx(
             'MyObj',
             [
                 _make_fields_assignment(
                     ('name', 'oslo_versionedobjects.fields.StringField'),
                 )
             ],
-            field_type,
         )
         ctx.cls.info.mro = [ctx.cls.info, parent_type_info]
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
+        ctx.api.parse_bool.return_value = False
         self.plugin.generate_ovo_field_defs(ctx)
         self.assertIn('name', ctx.cls.info.names)
         self.assertIn('cached_field', ctx.cls.info.names)
