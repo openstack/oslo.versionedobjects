@@ -181,7 +181,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         field_fullname = field_symbol.node.fullname
 
         # ObjectField and ListOfObjectsField take the target class name as a
-        # positional string arg rather than exposing a static MYPY_TYPE.
+        # positional string arg rather than a generic parameter
         if field_fullname == 'oslo_versionedobjects.fields.ListOfObjectsField':
             base_type: types.Type | None = None
             if args and isinstance(args[0], nodes.StrExpr):
@@ -209,16 +209,20 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             )
             return types.AnyType(types.TypeOfAny.implementation_artifact)
 
-        mypy_type_node = field_symbol.node.names.get("MYPY_TYPE")
-        if (
-            mypy_type_node is None
-            or not isinstance(mypy_type_node.node, nodes.Var)
-            or mypy_type_node.node.type is None
-        ):
-            self.log(f"No MYPY_TYPE defined on {ovo_field_type_name}")
-            return types.AnyType(types.TypeOfAny.implementation_artifact)
+        # AutoTypedField is a proper generic. We can retrieve its type from
+        # this.
+        for class_info in field_symbol.node.mro:
+            for base in class_info.bases:
+                if (
+                    isinstance(base, types.Instance)
+                    and base.type.fullname
+                    == 'oslo_versionedobjects.fields.AutoTypedField'
+                    and base.args
+                    and not isinstance(base.args[0], types.TypeVarType)
+                ):
+                    return self._apply_nullable(base.args[0], ctx, kwargs)
 
-        return self._apply_nullable(mypy_type_node.node.type, ctx, kwargs)
+        return types.AnyType(types.TypeOfAny.implementation_artifact)
 
     def _add_ovo_members_to_class(
         self,
