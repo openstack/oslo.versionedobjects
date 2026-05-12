@@ -1650,29 +1650,29 @@ class ListOfUUIDField(AutoTypedField[list[str]]):
     AUTO_TYPE = List(UUID())
 
 
-class IPAddressField(AutoTypedField['netaddr.IPAddress']):
+class IPAddressField(AutoTypedField[netaddr.IPAddress]):
     AUTO_TYPE = IPAddress()
 
 
-class IPV4AddressField(AutoTypedField['netaddr.IPAddress']):
+class IPV4AddressField(AutoTypedField[netaddr.IPAddress]):
     AUTO_TYPE = IPV4Address()
 
 
-class IPV6AddressField(AutoTypedField['netaddr.IPAddress']):
+class IPV6AddressField(AutoTypedField[netaddr.IPAddress]):
     AUTO_TYPE = IPV6Address()
 
 
-class IPV4AndV6AddressField(AutoTypedField['netaddr.IPAddress']):
+class IPV4AndV6AddressField(AutoTypedField[netaddr.IPAddress]):
     AUTO_TYPE = IPV4AndV6Address()
 
 
-class IPNetworkField(AutoTypedField['netaddr.IPNetwork']):
+class IPNetworkField(AutoTypedField[netaddr.IPNetwork]):
     AUTO_TYPE = IPNetwork()
 
 
-class IPV4NetworkField(AutoTypedField['netaddr.IPNetwork']):
+class IPV4NetworkField(AutoTypedField[netaddr.IPNetwork]):
     AUTO_TYPE = IPV4Network()
 
 
-class IPV6NetworkField(AutoTypedField['netaddr.IPNetwork']):
+class IPV6NetworkField(AutoTypedField[netaddr.IPNetwork]):
     AUTO_TYPE = IPV6Network()
