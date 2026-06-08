@@ -401,62 +401,70 @@ class VersionedObject:
 
     indirection_api: VersionedObjectIndirectionAPI | None = None
 
-    # Object versioning rules
-    #
-    # Each service has its set of objects, each with a version attached. When
-    # a client attempts to call an object method, the server checks to see if
-    # the version of that object matches (in a compatible way) its object
-    # implementation. If so, cool, and if not, fail.
-    #
-    # This version is allowed to have three parts, X.Y.Z, where the .Z element
-    # is reserved for stable branch backports. The .Z is ignored for the
-    # purposes of triggering a backport, which means anything changed under
-    # a .Z must be additive and non-destructive such that a node that knows
-    # about X.Y can consider X.Y.Z equivalent.
+    #: Object version field
+    #:
+    #: Each service has its set of objects, each with a version attached. When
+    #: a client attempts to call an object method, the server checks to see if
+    #: the version of that object matches (in a compatible way) its object
+    #: implementation. If so, cool, and if not, fail.
+    #:
+    #: This version is allowed to have three parts, ``X.Y.Z``, where the ``.Z``
+    #: element is reserved for stable branch backports. The ``.Z`` is ignored
+    #: for the purposes of triggering a backport, which means anything changed
+    #: under a ``.Z`` must be additive and non-destructive such that a node
+    #: that knows about ``X.Y`` can consider ``X.Y.Z`` equivalent.
     VERSION: str = '1.0'
 
-    # Object namespace for serialization
-    # NB: Generally this should not be changed, but is needed for backwards
-    #     compatibility
+    #: Object namespace for serialization
+    #:
+    #: This should generally not be changed, but is needed for backwards
+    #: compatibility
     OBJ_SERIAL_NAMESPACE: str = 'versioned_object'
 
-    # Object project namespace for serialization
-    # This is used to disambiguate owners of objects sharing a common RPC
-    # medium
+    #: Object project namespace for serialization
+    #:
+    #: This is used to disambiguate owners of objects sharing a common RPC
+    #: medium.
     OBJ_PROJECT_NAMESPACE: str = 'versionedobjects'
 
-    # The fields present in this object as key:field pairs. For example:
-    #
-    # fields = { 'foo': obj_fields.IntegerField(),
-    #            'bar': obj_fields.StringField(),
-    #          }
+    #: The fields present in this object as ``key:field`` pairs.
+    #:
+    #: For example::
+    #:
+    #:     fields = {
+    #:         'foo': obj_fields.IntegerField(),
+    #:         'bar': obj_fields.StringField(),
+    #:     }
+    #:
     fields: MutableMapping[str, obj_fields.Field[Any]] = {}
+
     obj_extra_fields: Sequence[str] = []
 
-    # Table of sub-object versioning information
-    #
-    # This contains a list of version mappings, by the field name of
-    # the subobject. The mappings must be in order of oldest to
-    # newest, and are tuples of (my_version, subobject_version). A
-    # request to backport this object to $my_version will cause the
-    # subobject to be backported to $subobject_version.
-    #
-    # obj_relationships = {
-    #     'subobject1': [('1.2', '1.1'), ('1.4', '1.2')],
-    #     'subobject2': [('1.2', '1.0')],
-    # }
-    #
-    # In the above example:
-    #
-    # - If we are asked to backport our object to version 1.3,
-    #   subobject1 will be backported to version 1.1, since it was
-    #   bumped to version 1.2 when our version was 1.4.
-    # - If we are asked to backport our object to version 1.5,
-    #   no changes will be made to subobject1 or subobject2, since
-    #   they have not changed since version 1.4.
-    # - If we are asked to backlevel our object to version 1.1, we
-    #   will remove both subobject1 and subobject2 from the primitive,
-    #   since they were not added until version 1.2.
+    #: Table of sub-object versioning information
+    #:
+    #: This contains a list of version mappings, by the field name of
+    #: the subobject. The mappings must be in order of oldest to
+    #: newest, and are tuples of ``(my_version, subobject_version)``. A
+    #: request to backport this object to ``my_version`` will cause the
+    #: subobject to be backported to ``subobject_version``::
+    #:
+    #:     obj_relationships = {
+    #:         'subobject1': [('1.2', '1.1'), ('1.4', '1.2')],
+    #:         'subobject2': [('1.2', '1.0')],
+    #:     }
+    #:
+    #: In the above example:
+    #:
+    #: * If we are asked to backport our object to version 1.3,
+    #:   ``subobject1`` will be backported to version 1.1, since it was
+    #:   bumped to version 1.2 when our version was 1.4.
+    #: * If we are asked to backport our object to version 1.5,
+    #:   no changes will be made to ``subobject1`` or ``subobject2``, since
+    #:   they have not changed since version 1.4.
+    #: * If we are asked to backlevel our object to version 1.1, we
+    #:   will remove both ``subobject1`` and ``subobject2`` from the primitive,
+    #:   since they were not added until version 1.2.
+    #:
     obj_relationships: dict[str, list[tuple[str, str]]] = {}
 
     _changed_fields: set[str]
@@ -507,7 +515,7 @@ class VersionedObject:
 
     @classmethod
     def obj_name(cls) -> str:
-        """Return the object's name
+        """Return the object's name.
 
         Return a canonical name for this object which will be used over
         the wire for remote hydration.
