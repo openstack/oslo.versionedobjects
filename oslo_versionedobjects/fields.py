@@ -26,6 +26,7 @@ from typing import (
     Generic,
     overload,
     SupportsIndex,
+    Self,
     TypeVar,
     TYPE_CHECKING,
 )
@@ -43,7 +44,6 @@ from oslo_versionedobjects import exception
 
 if TYPE_CHECKING:
     from oslo_versionedobjects import base
-    from typing_extensions import Self
 
 LOG = logging.getLogger('field')
 
@@ -592,7 +592,7 @@ class DateTime(FieldType[datetime.datetime]):
             # NOTE(danms): Legacy objects from sqlalchemy are stored in UTC,
             # but are returned without a timezone attached.
             # As a transitional aid, assume a tz-naive object is in UTC.
-            ts = ts.replace(tzinfo=datetime.timezone.utc)
+            ts = ts.replace(tzinfo=datetime.UTC)
         elif not self.tzinfo_aware:
             ts = ts.replace(tzinfo=None)
         return ts

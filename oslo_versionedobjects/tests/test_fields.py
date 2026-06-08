@@ -632,7 +632,7 @@ class TestFlexibleBoolean(TestField):
 class TestDateTime(TestField):
     def setUp(self):
         super().setUp()
-        self.dt = datetime.datetime(1955, 11, 5, tzinfo=datetime.timezone.utc)
+        self.dt = datetime.datetime(1955, 11, 5, tzinfo=datetime.UTC)
         self.field = fields.DateTimeField()
         self.coerce_good_values = [
             (self.dt, self.dt),
@@ -646,9 +646,7 @@ class TestDateTime(TestField):
         self.assertEqual(
             '1955-11-05T18:00:00Z',
             self.field.stringify(
-                datetime.datetime(
-                    1955, 11, 5, 18, 0, 0, tzinfo=datetime.timezone.utc
-                )
+                datetime.datetime(1955, 11, 5, 18, 0, 0, tzinfo=datetime.UTC)
             ),
         )
 
