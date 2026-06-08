@@ -53,6 +53,8 @@ if TYPE_CHECKING:
 LOG = logging.getLogger('object')
 
 _VO = TypeVar('_VO', bound='VersionedObject')
+# we'd like this to be ObjectListBase[_VO] but Python doesn't allow this :(
+_VOL = TypeVar('_VOL', bound='ObjectListBase[Any]')
 
 
 class _NotSpecifiedSentinel:
@@ -1464,11 +1466,11 @@ class VersionedObjectIndirectionAPI(metaclass=abc.ABCMeta):
 
 def obj_make_list(
     context: Any,
-    list_obj: ObjectListBase[_VO],
+    list_obj: _VOL,
     item_cls: type[_VO],
     db_list: list[dict[str, Any]],
     **extra_args: Any,
-) -> ObjectListBase[_VO]:
+) -> _VOL:
     """Construct an object list from a list of primitives.
 
     This calls item_cls._from_db_object() on each item of db_list, and
