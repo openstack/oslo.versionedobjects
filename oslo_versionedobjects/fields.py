@@ -93,9 +93,9 @@ class AbstractFieldType(Generic[T], metaclass=abc.ABCMeta):
         This method should convert the value given into the designated type,
         or throw an exception if this is not possible.
 
-        :param:obj: The VersionedObject on which an attribute is being set
-        :param:attr: The name of the attribute being set
-        :param:value: The value being set
+        :param obj: The VersionedObject on which an attribute is being set
+        :param attr: The name of the attribute being set
+        :param value: The value being set
         :returns: A properly-typed value
         """
         ...
@@ -109,9 +109,9 @@ class AbstractFieldType(Generic[T], metaclass=abc.ABCMeta):
         This method should deserialize a value from the form given by
         to_primitive() to the designated type.
 
-        :param:obj: The VersionedObject on which the value is to be set
-        :param:attr: The name of the attribute which will hold the value
-        :param:value: The serialized form of the value
+        :param obj: The VersionedObject on which the value is to be set
+        :param attr: The name of the attribute which will hold the value
+        :param value: The serialized form of the value
         :returns: The natural form of the value
         """
         ...
@@ -127,9 +127,9 @@ class AbstractFieldType(Generic[T], metaclass=abc.ABCMeta):
         This method should serialize a value to the form expected by
         from_primitive().
 
-        :param:obj: The VersionedObject on which the value is set
-        :param:attr: The name of the attribute holding the value
-        :param:value: The natural form of the value
+        :param obj: The VersionedObject on which the value is set
+        :param attr: The name of the attribute holding the value
+        :param value: The natural form of the value
         :returns: The serialized form of the value
         """
         ...
@@ -251,9 +251,9 @@ class Field(Generic[T]):
         nature of the field and calls the coerce() method on a
         FieldType to actually do the coercion.
 
-        :param:obj: The object being acted upon
-        :param:attr: The name of the attribute/field being set
-        :param:value: The value being set
+        :param obj: The object being acted upon
+        :param attr: The name of the attribute/field being set
+        :param value: The value being set
         :returns: The properly-typed value
         """
         if value is None:
@@ -282,9 +282,9 @@ class Field(Generic[T]):
         into regular form. It calls the from_primitive() method on a
         FieldType to do the actual deserialization.
 
-        :param:obj: The object being acted upon
-        :param:attr: The name of the attribute/field being deserialized
-        :param:value: The value to be deserialized
+        :param obj: The object being acted upon
+        :param attr: The name of the attribute/field being deserialized
+        :param value: The value to be deserialized
         :returns: The deserialized value
         """
         if value is None:
@@ -301,9 +301,9 @@ class Field(Generic[T]):
         form. It calls to_primitive() on a FieldType to do the actual
         serialization.
 
-        :param:obj: The object being acted upon
-        :param:attr: The name of the attribute/field being serialized
-        :param:value: The value to be serialized
+        :param obj: The object being acted upon
+        :param attr: The name of the attribute/field being serialized
+        :param value: The value to be serialized
         :returns: The serialized value
         """
         if value is None:
