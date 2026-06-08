@@ -438,6 +438,19 @@ class VersionedObject:
     #:
     fields: MutableMapping[str, obj_fields.Field[Any]] = {}
 
+    #: List of additional object attributes to expose alongside :attr:`fields`.
+    #:
+    #: Names listed here are typically implemented as Python properties and
+    #: are included in :attr:`obj_fields` and exposed through iteration, but
+    #: they are not versioned and not serialized during RPC::
+    #:
+    #:     class MyObject(VersionedObject):
+    #:         fields = {'foo': obj_fields.IntegerField()}
+    #:         obj_extra_fields = ['bar']
+    #:
+    #:         @property
+    #:         def bar(self):
+    #:             return self.foo * 2
     obj_extra_fields: Sequence[str] = []
 
     #: Table of sub-object versioning information
