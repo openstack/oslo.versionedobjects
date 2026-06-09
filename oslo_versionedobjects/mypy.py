@@ -78,7 +78,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         self, fullname: str
     ) -> Callable[[_plugin.ClassDefContext], None] | None:
         base_classes = os.environ.get(
-            "OVO_MYPY_BASE_CLASSES", "VersionedObject"
+            "OVO_MYPY_BASE_CLASSES", "VersionedObject VersionedObjectMixin"
         )
         if any(base_class in fullname for base_class in base_classes.split()):
             return self.generate_ovo_field_defs
@@ -274,10 +274,12 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         self.generate_ovo_field_defs_2(ctx)
 
     def generate_ovo_field_defs_2(self, ctx: _plugin.ClassDefContext) -> bool:
-        # Process fields from this class and all inherited classes via MRO,
-        # so that inherited fields (e.g. from TimestampedObject) are included.
-        # Parent class bodies have fully-resolved AST node attributes by the
-        # time we process subclasses, so read directly from their bodies.
+        # Process fields from this class and all classes in its MRO whose
+        # bodies are still available (i.e. same-file classes).  Cross-module
+        # parent classes have their bodies cleared by mypy after their own
+        # module is analyzed; their fields are instead picked up via mypy's
+        # normal MRO attribute resolution because the plugin fires for those
+        # classes too (via get_base_class_hook) while their bodies are intact.
         #
         # hook_2 callables can return False to request a retry, but we always
         # return True: by the time hook_2 fires all modules are loaded, so any

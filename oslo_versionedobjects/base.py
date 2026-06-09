@@ -967,7 +967,32 @@ class ComparableVersionedObject:
         return NotImplemented
 
 
-class TimestampedObject:
+class VersionedObjectMixin:
+    """Marker base class for OVO mixin classes that contribute fields.
+
+    Mixin classes that define an OVO ``fields`` dict should inherit from this
+    class so that the ``oslo_versionedobjects.mypy`` plugin can discover and
+    type-check their fields in the same way it handles registered
+    ``VersionedObject`` subclasses.
+
+    Example::
+
+        class MyFieldsMixin(VersionedObjectMixin):
+            fields: MutableMapping[str, fields.Field[Any]] = {
+                'name': fields.StringField(),
+            }
+
+
+        @base.VersionedObjectRegistry.register
+        class MyObject(MyFieldsMixin, base.VersionedObject):
+            VERSION = '1.0'
+            fields = {
+                'count': fields.IntegerField(),
+            }
+    """
+
+
+class TimestampedObject(VersionedObjectMixin):
     """Mixin class for db backed objects with timestamp fields.
 
     Sqlalchemy models that inherit from the oslo_db TimestampMixin will include
