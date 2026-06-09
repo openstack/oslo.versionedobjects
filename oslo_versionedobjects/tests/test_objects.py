@@ -1277,12 +1277,14 @@ class _TestObject(_BaseTestCase):
 
     def test_obj_mutable_default(self):
         obj = MyObj(context=self.context, foo=123, bar='abc')
-        obj.mutable_default = None
+        # we're assigning None here to trigger the mutable-default reset
+        # mechanism but these fields are not typed as nullable
+        obj.mutable_default = None  # type: ignore[assignment]
         obj.mutable_default.append('s1')
         self.assertEqual(obj.mutable_default, ['s1'])
 
         obj1 = MyObj(context=self.context, foo=123, bar='abc')
-        obj1.mutable_default = None
+        obj1.mutable_default = None  # type: ignore[assignment]
         obj1.mutable_default.append('s2')
         self.assertEqual(obj1.mutable_default, ['s2'])
 

@@ -78,16 +78,22 @@ def _make_object_field_assignment(
 
 def _make_field_type(field_python_type):
     """Create an AST for a ``FieldType``."""
-    var = nodes.Var('MYPY_TYPE')
-    var.type = field_python_type
-    mypy_type_sym = nodes.SymbolTableNode(nodes.MDEF, var)
-    field_sym_table = nodes.SymbolTable()
-    field_sym_table['MYPY_TYPE'] = mypy_type_sym
+    auto_cls_def = nodes.ClassDef('AutoTypedField', nodes.Block([]))
+    auto_type_info = nodes.TypeInfo(
+        nodes.SymbolTable(), auto_cls_def, 'oslo_versionedobjects.fields'
+    )
+    auto_type_info._fullname = 'oslo_versionedobjects.fields.AutoTypedField'
+    auto_cls_def.info = auto_type_info
+
     field_cls_def = nodes.ClassDef('IntegerField', nodes.Block([]))
     field_type_info = nodes.TypeInfo(
-        field_sym_table, field_cls_def, 'oslo_versionedobjects.fields'
+        nodes.SymbolTable(), field_cls_def, 'oslo_versionedobjects.fields'
     )
     field_type_info._fullname = 'oslo_versionedobjects.fields.IntegerField'
+    field_type_info.bases = [
+        types.Instance(auto_type_info, [field_python_type])
+    ]
+    field_type_info.mro = [field_type_info, auto_type_info]
     field_cls_def.info = field_type_info
 
     return nodes.SymbolTableNode(nodes.GDEF, field_type_info)
@@ -336,20 +342,52 @@ class TestGetPythonTypeFromOvoFieldType(test.TestCase):
         super().setUp()
         self.plugin = _make_plugin()
 
-    def test_returns_type_from_mypy_type_attribute(self):
+    def test_returns_type_from_auto_typed_field_generic(self):
         expected = types.AnyType(types.TypeOfAny.special_form)
         ctx = _make_ctx()
         ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
             expected
         )
-        ctx.api.parse_bool.return_value = False
         result = self.plugin._get_python_type_from_ovo_field_type(
             ctx,
             'oslo_versionedobjects.fields.IntegerField',
             [],
             {},
         )
-        self.assertEqual(expected, result)
+        self.assertIs(expected, result)
+
+    def test_auto_typed_field_skips_typevar_arguments(self):
+        any_type = types.AnyType(types.TypeOfAny.special_form)
+        typevar = types.TypeVarType(
+            'T', 'T', types.TypeVarId(-1), [], any_type, any_type
+        )
+        ctx = _make_ctx()
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            typevar
+        )
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.IntegerField',
+            [],
+            {},
+        )
+        self.assertIsInstance(result, types.AnyType)
+
+    def test_returns_any_when_neither_generic_nor_mypy_type(self):
+        type_info = _make_class_info(
+            'CustomField', 'oslo_versionedobjects.fields'
+        )
+        type_info.mro = [type_info]
+        field_symbol = nodes.SymbolTableNode(nodes.GDEF, type_info)
+        ctx = mock.MagicMock()
+        ctx.api.lookup_fully_qualified_or_none.return_value = field_symbol
+        result = self.plugin._get_python_type_from_ovo_field_type(
+            ctx,
+            'oslo_versionedobjects.fields.CustomField',
+            [],
+            {},
+        )
+        self.assertIsInstance(result, types.AnyType)
 
     def test_returns_any_when_field_type_not_found(self):
         ctx = mock.MagicMock()
