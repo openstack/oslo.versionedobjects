@@ -154,6 +154,45 @@ class TestGetClassDecoratorHook(test.TestCase):
         self.assertIsNone(hook)
 
 
+class TestGetClassDecoratorHook2(test.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.plugin = _make_plugin()
+
+    def test_returns_hook_for_versioned_object_registry(self):
+        hook = self.plugin.get_class_decorator_hook_2(
+            'oslo_versionedobjects.base.VersionedObjectRegistry.register'
+        )
+        self.assertIsNotNone(hook)
+        self.assertTrue(callable(hook))
+
+    def test_returns_none_for_non_matching(self):
+        hook = self.plugin.get_class_decorator_hook_2('some.other.Decorator')
+        self.assertIsNone(hook)
+
+    def test_env_var_custom_decorator_matches(self):
+        self.useFixture(
+            fixtures.EnvironmentVariable(
+                'OVO_MYPY_DECORATOR_CLASSES', 'MyCustomRegistry'
+            )
+        )
+        hook = self.plugin.get_class_decorator_hook_2(
+            'myproject.MyCustomRegistry.register'
+        )
+        self.assertIsNotNone(hook)
+
+    def test_env_var_excludes_default_when_overridden(self):
+        self.useFixture(
+            fixtures.EnvironmentVariable(
+                'OVO_MYPY_DECORATOR_CLASSES', 'MyCustomRegistry'
+            )
+        )
+        hook = self.plugin.get_class_decorator_hook_2(
+            'oslo_versionedobjects.base.VersionedObjectRegistry.register'
+        )
+        self.assertIsNone(hook)
+
+
 class TestGetBaseClassHook(test.TestCase):
     def setUp(self):
         super().setUp()
@@ -372,6 +411,46 @@ class TestAddOvoMembersToClass(test.TestCase):
         self.plugin._add_ovo_members_to_class(ctx, dict_expr, processed)
         ctx.api.fail.assert_called_once()
 
+    def test_returns_true_when_all_fields_resolved(self):
+        assignment = _make_fields_assignment(
+            ('my_id', 'oslo_versionedobjects.fields.IntegerField'),
+        )
+        ctx = self._make_ctx_with_any_api('MyObj', [assignment])
+        processed: set[str] = set()
+        result = self.plugin._add_ovo_members_to_class(
+            ctx, assignment.rvalue, processed
+        )
+        self.assertTrue(result)
+
+    def test_returns_false_when_object_field_unresolvable(self):
+        field_fullname = 'oslo_versionedobjects.fields.ObjectField'
+        assignment = _make_object_field_assignment(
+            'child', field_fullname, 'Missing'
+        )
+        ctx = _make_ctx('MyObj', [assignment])
+        ctx.api.lookup_qualified.return_value = None
+        ctx.api.modules = {}
+
+        def _lookup_fqn(name):
+            if name == field_fullname:
+                cls_info = _make_class_info(
+                    'ObjectField', 'oslo_versionedobjects.fields'
+                )
+                return nodes.SymbolTableNode(nodes.GDEF, cls_info)
+            return None
+
+        ctx.api.lookup_fully_qualified_or_none.side_effect = _lookup_fqn
+        processed: set[str] = set()
+        result = self.plugin._add_ovo_members_to_class(
+            ctx, assignment.rvalue, processed
+        )
+        self.assertFalse(result)
+        # Field is still added, typed as Any
+        self.assertIn('child', ctx.cls.info.names)
+        self.assertIsInstance(
+            ctx.cls.info.names['child'].node.type, types.AnyType
+        )
+
     def test_empty_fullname_treated_as_unresolved(self):
         # A callee with fullname='' (unresolved AST node) should be skipped
         # gracefully, yielding AnyType rather than a crash.
@@ -579,7 +658,7 @@ class TestGetPythonTypeObjectFields(test.TestCase):
         self.assertIsInstance(non_none[0], types.Instance)
         self.assertEqual('builtins.list', non_none[0].type.fullname)
 
-    def test_object_field_unresolvable_class_returns_any(self):
+    def test_object_field_unresolvable_class_returns_none(self):
         ctx = self._make_ctx_field_only(
             'oslo_versionedobjects.fields.ObjectField'
         )
@@ -589,9 +668,9 @@ class TestGetPythonTypeObjectFields(test.TestCase):
             [nodes.StrExpr('NoSuchClass')],
             {},
         )
-        self.assertIsInstance(result, types.AnyType)
+        self.assertIsNone(result)
 
-    def test_object_field_non_string_arg_returns_any(self):
+    def test_object_field_non_string_arg_returns_none(self):
         ctx = self._make_ctx_field_only(
             'oslo_versionedobjects.fields.ObjectField'
         )
@@ -601,9 +680,9 @@ class TestGetPythonTypeObjectFields(test.TestCase):
             [nodes.NameExpr('some_var')],
             {},
         )
-        self.assertIsInstance(result, types.AnyType)
+        self.assertIsNone(result)
 
-    def test_object_field_no_positional_args_falls_through_to_any(self):
+    def test_object_field_no_positional_args_returns_none(self):
         ctx = self._make_ctx_field_only(
             'oslo_versionedobjects.fields.ObjectField'
         )
@@ -613,7 +692,7 @@ class TestGetPythonTypeObjectFields(test.TestCase):
             [],
             {},
         )
-        self.assertIsInstance(result, types.AnyType)
+        self.assertIsNone(result)
 
 
 class TestAddOvoMembersObjectField(test.TestCase):
@@ -820,3 +899,55 @@ class TestGenerateOvoFieldDefs(test.TestCase):
         self.assertIn('name', ctx.cls.info.names)
         self.assertIn('created_at', ctx.cls.info.names)
         self.assertIn('updated_at', ctx.cls.info.names)
+
+
+class TestGenerateOvoFieldDefs2(test.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.plugin = _make_plugin()
+
+    def test_returns_true_when_all_fields_resolved(self):
+        field_type = types.AnyType(types.TypeOfAny.special_form)
+        ctx = _make_ctx(
+            'MyObj',
+            [
+                _make_fields_assignment(
+                    ('my_id', 'oslo_versionedobjects.fields.IntegerField'),
+                )
+            ],
+        )
+        ctx.cls.info.mro = [ctx.cls.info]
+        ctx.api.lookup_fully_qualified_or_none.return_value = _make_field_type(
+            field_type
+        )
+        ctx.api.parse_bool.return_value = False
+        result = self.plugin.generate_ovo_field_defs_2(ctx)
+        self.assertTrue(result)
+
+    def test_returns_true_even_when_object_field_unresolvable(self):
+        # hook_2 always returns True: by the time it fires all modules are
+        # loaded, so retrying (False) would not help an unresolvable target.
+        field_fullname = 'oslo_versionedobjects.fields.ObjectField'
+        ctx = _make_ctx(
+            'MyObj',
+            [
+                _make_object_field_assignment(
+                    'child', field_fullname, 'Missing'
+                )
+            ],
+        )
+        ctx.cls.info.mro = [ctx.cls.info]
+        ctx.api.lookup_qualified.return_value = None
+        ctx.api.modules = {}
+
+        def _lookup_fqn(name):
+            if name == field_fullname:
+                cls_info = _make_class_info(
+                    'ObjectField', 'oslo_versionedobjects.fields'
+                )
+                return nodes.SymbolTableNode(nodes.GDEF, cls_info)
+            return None
+
+        ctx.api.lookup_fully_qualified_or_none.side_effect = _lookup_fqn
+        result = self.plugin.generate_ovo_field_defs_2(ctx)
+        self.assertTrue(result)

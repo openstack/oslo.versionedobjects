@@ -64,6 +64,16 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             return self.generate_ovo_field_defs
         return None
 
+    def get_class_decorator_hook_2(
+        self, fullname: str
+    ) -> Callable[[_plugin.ClassDefContext], bool] | None:
+        dec_classes = os.environ.get(
+            "OVO_MYPY_DECORATOR_CLASSES", "VersionedObjectRegistry"
+        )
+        if any(dec_class in fullname for dec_class in dec_classes.split()):
+            return self.generate_ovo_field_defs_2
+        return None
+
     def get_base_class_hook(
         self, fullname: str
     ) -> Callable[[_plugin.ClassDefContext], None] | None:
@@ -132,7 +142,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         ovo_field_type_name: str,
         args: list[nodes.Expression],
         kwargs: dict[str, nodes.Expression],
-    ) -> types.Type:
+    ) -> types.Type | None:
         # lookup_fully_qualified_or_none requires a dotted name (bare names
         # like a local callable would raise ValueError inside mypy)
         if '.' not in ovo_field_type_name:
@@ -166,7 +176,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
                 self.log(
                     f"Could not resolve object type for {ovo_field_type_name}"
                 )
-                return types.AnyType(types.TypeOfAny.implementation_artifact)
+                return None
             return self._apply_nullable(base_type, ctx, kwargs)
 
         if field_fullname == 'oslo_versionedobjects.fields.ObjectField':
@@ -177,7 +187,7 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             self.log(
                 f"Could not resolve object type for {ovo_field_type_name}"
             )
-            return types.AnyType(types.TypeOfAny.implementation_artifact)
+            return None
 
         # AutoTypedField is a proper generic. We can retrieve its type from
         # this.
@@ -199,7 +209,8 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
         ctx: _plugin.ClassDefContext,
         fields_def: nodes.DictExpr,
         processed_fields: set[str],
-    ) -> None:
+    ) -> bool:
+        all_resolved = True
 
         for k, v in fields_def.items:
             # This means we do not support the case when the name of the
@@ -244,17 +255,34 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
                     if arg_name is not None
                 }
 
-                field_type = self._get_python_type_from_ovo_field_type(
+                resolved = self._get_python_type_from_ovo_field_type(
                     ctx, v.callee.fullname, args, kwargs
                 )
+                if resolved is None:
+                    all_resolved = False
+                    field_type = types.AnyType(
+                        types.TypeOfAny.implementation_artifact
+                    )
+                else:
+                    field_type = resolved
 
             self._add_member_to_class(field_name, field_type, ctx.cls.info)
 
+        return all_resolved
+
     def generate_ovo_field_defs(self, ctx: _plugin.ClassDefContext) -> None:
+        self.generate_ovo_field_defs_2(ctx)
+
+    def generate_ovo_field_defs_2(self, ctx: _plugin.ClassDefContext) -> bool:
         # Process fields from this class and all inherited classes via MRO,
         # so that inherited fields (e.g. from TimestampedObject) are included.
         # Parent class bodies have fully-resolved AST node attributes by the
         # time we process subclasses, so read directly from their bodies.
+        #
+        # hook_2 callables can return False to request a retry, but we always
+        # return True: by the time hook_2 fires all modules are loaded, so any
+        # ObjectField target that is still unresolvable will remain so on
+        # subsequent attempts.
         processed_fields: set[str] = set()
 
         for type_info in ctx.cls.info.mro:
@@ -262,10 +290,11 @@ class OsloVersionedObjectPlugin(_plugin.Plugin):
             if fields_dict_expr is None:
                 continue
 
-            # add a typed field def per `fields` dict k-v pair
             self._add_ovo_members_to_class(
                 ctx, fields_dict_expr, processed_fields
             )
+
+        return True
 
     def log(self, msg: str) -> None:
         if self.options.verbosity > 0:
