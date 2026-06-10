@@ -55,6 +55,7 @@ external = ["H"]
 
 [tool.ruff.lint.per-file-ignores]
 "oslo_versionedobjects/tests/*" = ["S"]
+"oslo_versionedobjects/tests/test_data/*" = ["E501", "F821"]
 "oslo_versionedobjects/mypy.py" = ["S101"]
 
 [tool.mypy]
