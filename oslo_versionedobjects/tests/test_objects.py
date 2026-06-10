@@ -1214,7 +1214,7 @@ class _TestObject(_BaseTestCase):
         obj.obj_reset_changes()
         self.assertEqual({}, obj.obj_get_changes())
 
-        timestamp = datetime.datetime(2001, 1, 1, tzinfo=datetime.timezone.utc)
+        timestamp = datetime.datetime(2001, 1, 1, tzinfo=datetime.UTC)
         with mock.patch.object(timeutils, 'utcnow') as mock_utcnow:
             mock_utcnow.return_value = timestamp
             obj.timestamp = timeutils.utcnow()

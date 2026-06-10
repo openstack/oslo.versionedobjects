@@ -34,8 +34,8 @@ from typing import (
     Concatenate,
     overload,
     ParamSpec,
+    Self,
     TypeVar,
-    TYPE_CHECKING,
 )
 import warnings
 
@@ -46,9 +46,6 @@ from oslo_utils import versionutils as vutils
 from oslo_versionedobjects._i18n import _
 from oslo_versionedobjects import exception
 from oslo_versionedobjects import fields as obj_fields
-
-if TYPE_CHECKING:
-    from typing_extensions import Self
 
 LOG = logging.getLogger('object')
 
