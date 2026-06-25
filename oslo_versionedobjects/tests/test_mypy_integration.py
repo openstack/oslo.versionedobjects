@@ -26,6 +26,7 @@ structured JSON output from mypy, avoiding fragile stdout regex parsing.
 import json
 import pathlib
 import re
+import tempfile
 from typing import TypedDict
 
 import mypy.api
@@ -58,16 +59,19 @@ def _run_mypy(fixture_name: str) -> tuple[list[_MypyMessage], int]:
     and ``message`` keys.
     """
     fixture_path = _TEST_DATA_DIR / fixture_name
-    stdout, _stderr, exit_code = mypy.api.run(
-        [
-            '--no-incremental',
-            '--output',
-            'json',
-            '--config-file',
-            str(_PROJECT_ROOT / 'pyproject.toml'),
-            str(fixture_path),
-        ]
-    )
+    with tempfile.TemporaryDirectory() as cache_dir:
+        stdout, _stderr, exit_code = mypy.api.run(
+            [
+                '--no-incremental',
+                '--cache-dir',
+                cache_dir,
+                '--output',
+                'json',
+                '--config-file',
+                str(_PROJECT_ROOT / 'pyproject.toml'),
+                str(fixture_path),
+            ]
+        )
     messages: list[_MypyMessage] = [
         json.loads(line) for line in stdout.splitlines() if line.strip()
     ]
