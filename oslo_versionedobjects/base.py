@@ -683,9 +683,9 @@ class VersionedObject:
         requires that the obj_relationships table in this object is
         correct and up-to-date.
 
-        :param:primitive: The primitive version of this object
-        :param:target_version: The version string requested for this object
-        :param:field: The name of the field in this object containing the
+        :param primitive: The primitive version of this object
+        :param target_version: The version string requested for this object
+        :param field: The name of the field in this object containing the
                       sub-object to be backported
         """
         relationship_map = self._obj_relationship_for(field, target_version)
@@ -1267,9 +1267,9 @@ class VersionedObjectSerializer(messaging.NoOpSerializer):  # type: ignore[misc]
     ) -> tuple[Any, ...] | list[Any] | dict[str, Any]:
         """Process an iterable, taking an action on each value.
 
-        :param:context: Request context
-        :param:action_fn: Action to take on each item in values
-        :param:values: Iterable container of things to take action on
+        :param context: Request context
+        :param action_fn: Action to take on each item in values
+        :param values: Iterable container of things to take action on
         :returns: A new container of the same type (except set) with
                   items from values having had action applied.
         """
@@ -1494,11 +1494,11 @@ def obj_make_list(
     This calls item_cls._from_db_object() on each item of db_list, and
     adds the resulting object to list_obj.
 
-    :param:context: Request context
-    :param:list_obj: An ObjectListBase object
-    :param:item_cls: The VersionedObject class of the objects within the list
-    :param:db_list: The list of primitives to convert to objects
-    :param:extra_args: Extra arguments to pass to _from_db_object()
+    :param context: Request context
+    :param list_obj: An ObjectListBase object
+    :param item_cls: The VersionedObject class of the objects within the list
+    :param db_list: The list of primitives to convert to objects
+    :param extra_args: Extra arguments to pass to _from_db_object()
     :returns: list_obj
     """
     list_obj.objects = []
