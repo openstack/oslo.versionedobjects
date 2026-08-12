@@ -50,7 +50,6 @@ from oslo_versionedobjects import fields as obj_fields
 LOG = logging.getLogger('object')
 
 _VO = TypeVar('_VO', bound='VersionedObject')
-# we'd like this to be ObjectListBase[_VO] but Python doesn't allow this :(
 _VOL = TypeVar('_VOL', bound='ObjectListBase[Any]')
 
 
@@ -1482,11 +1481,29 @@ class VersionedObjectIndirectionAPI(metaclass=abc.ABCMeta):
         raise NotImplementedError('Multi-version backport not supported')
 
 
+@overload
 def obj_make_list(
     context: Any,
     list_obj: _VOL,
-    item_cls: type[_VO],
     db_list: list[dict[str, Any]],
+    **extra_args: Any,
+) -> _VOL: ...
+
+
+@overload
+def obj_make_list(
+    context: Any,
+    list_obj: _VOL,
+    item_cls: type[Any],
+    db_list: list[dict[str, Any]],
+    **extra_args: Any,
+) -> _VOL: ...
+
+
+def obj_make_list(
+    context: Any,
+    list_obj: _VOL,
+    *args: Any,
     **extra_args: Any,
 ) -> _VOL:
     """Construct an object list from a list of primitives.
@@ -1496,11 +1513,36 @@ def obj_make_list(
 
     :param context: Request context
     :param list_obj: An ObjectListBase object
-    :param item_cls: The VersionedObject class of the objects within the list
+    :param item_cls: Deprecated. The VersionedObject class of the objects
+        within the list. If not provided, derived from the list object's field
+        definition
     :param db_list: The list of primitives to convert to objects
     :param extra_args: Extra arguments to pass to _from_db_object()
     :returns: list_obj
     """
+    if len(args) == 1:
+        db_list = args[0]
+        objects_field = cast(
+            obj_fields.ListOfObjectsField, list_obj.fields['objects']
+        )
+        obj_name = objects_field.objname
+        item_cls: type[Any] = VersionedObjectRegistry.obj_classes()[obj_name][
+            0
+        ]
+    elif len(args) == 2:
+        warnings.warn(
+            "Passing item_cls to obj_make_list() is deprecated. The item "
+            "class is now derived from the list object's field definition.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        item_cls, db_list = args
+    else:
+        raise TypeError(
+            f"obj_make_list() takes 3 or 4 positional arguments but "
+            f"{2 + len(args)} were given"
+        )
+
     list_obj.objects = []
     for db_item in db_list:
         # _from_db_object is a convention classmethod for VersionedObject
