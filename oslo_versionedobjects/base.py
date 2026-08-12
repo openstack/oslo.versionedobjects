@@ -495,8 +495,10 @@ class VersionedObject:
                     '{}={}'.format(
                         name,
                         (
-                            self.obj_attr_is_set(name)
-                            and field.stringify(getattr(self, name))
+                            (
+                                self.obj_attr_is_set(name)
+                                and field.stringify(getattr(self, name))
+                            )
                             or '<?>'
                         ),
                     )
@@ -1655,8 +1657,7 @@ def _do_subobject_backport(
     manifest = (
         hasattr(parent, '_obj_version_manifest')
         and parent._obj_version_manifest
-        or None
-    )
+    ) or None
     if isinstance(obj, VersionedObject):
         obj.obj_make_compatible_from_manifest(
             obj._obj_primitive_field(primitive[field], 'data'),

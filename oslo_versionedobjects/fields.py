@@ -314,7 +314,7 @@ class Field(Generic[T]):
     def describe(self) -> str:
         """Return a short string describing the type of this field."""
         name = self._type.describe()
-        prefix = self.nullable and 'Nullable' or ''
+        prefix = (self.nullable and 'Nullable') or ''
         return prefix + name
 
     def stringify(self, value: T) -> str:
