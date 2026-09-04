@@ -1190,7 +1190,8 @@ class _TestObject(_BaseTestCase):
             'rel_objects',
             'mutable_default',
             'timestamp',
-        ] + base_fields
+            *base_fields,
+        ]
         myobj3_fields = ['new_field']
         self.assertTrue(issubclass(TestSubclassedObject, MyObj))
         self.assertEqual(len(myobj_fields), len(MyObj.fields))
@@ -1584,7 +1585,7 @@ class _TestObject(_BaseTestCase):
             obj.list_field.extend([val])
 
         def add(val):
-            obj.list_field = obj.list_field + [val]
+            obj.list_field = [*obj.list_field, val]
 
         def iadd(val):
             """Test += corner case
@@ -2665,7 +2666,7 @@ class TestListObjectConcat(test.TestCase):
         list1 = MyList(objects=[MyOwnedObject(baz=1)])
 
         def add(obj):
-            return obj + []
+            return obj + []  # noqa: RUF005
 
         self.assertRaises(TypeError, add, list1)
 
@@ -2679,7 +2680,7 @@ class TestListObjectConcat(test.TestCase):
         list1 = MyList(objects=[MyOwnedObject(baz=1)])
 
         def add(obj):
-            return [] + obj
+            return [] + obj  # noqa: RUF005
 
         self.assertRaises(TypeError, add, list1)
 
