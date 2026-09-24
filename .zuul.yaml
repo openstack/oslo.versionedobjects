@@ -4,12 +4,12 @@
     check:
       jobs:
         - oslo.versionedobjects-src-grenade-multinode
-        - oslo.versionedobjects-nova-tox-py313
-        - oslo.versionedobjects-ironic-tox-py313
+        - oslo.versionedobjects-nova-tox-py314
+        - oslo.versionedobjects-ironic-tox-py314
     gate:
       jobs:
-        - oslo.versionedobjects-nova-tox-py313
-        - oslo.versionedobjects-ironic-tox-py313
+        - oslo.versionedobjects-nova-tox-py314
+        - oslo.versionedobjects-ironic-tox-py314
     templates:
       - check-requirements
       - lib-forward-testing-python3
@@ -20,8 +20,8 @@
       - release-notes-jobs-python3
 
 - job:
-    name: oslo.versionedobjects-nova-tox-py313
-    parent: openstack-tox-py313
+    name: oslo.versionedobjects-nova-tox-py314
+    parent: openstack-tox-py314
     description: |
       Run cross-project unit tests on nova.
     vars:
@@ -41,8 +41,8 @@
       - ^test-requirements\.txt$
 
 - job:
-    name: oslo.versionedobjects-ironic-tox-py313
-    parent: openstack-tox-py313
+    name: oslo.versionedobjects-ironic-tox-py314
+    parent: openstack-tox-py314
     description: |
       Run cross-project unit tests on ironic.
     vars:
