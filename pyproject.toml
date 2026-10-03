@@ -37,6 +37,19 @@ Repository = "https://opendev.org/openstack/oslo.versionedobjects"
 [tool.setuptools.packages.find]
 include = ["oslo_versionedobjects*"]
 
+[tool.coverage.run]
+source = [
+    "oslo_versionedobjects"
+]
+branch = true
+omit = [
+    "oslo_versionedobjects/tests/*"
+]
+
+[tool.coverage.report]
+ignore_errors = true
+show_missing = true
+
 [tool.ruff]
 line-length = 79
 
