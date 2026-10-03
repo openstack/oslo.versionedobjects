@@ -1,7 +1,6 @@
 mypy>=1.19.0 # MIT
 oslotest>=3.2.0 # Apache-2.0
 testtools>=2.2.0 # MIT
-coverage>=5.0 # Apache-2.0
 jsonschema>=3.2.0 # MIT
 stestr>=2.0.0 # Apache-2.0
 
